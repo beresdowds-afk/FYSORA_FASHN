@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useOrders, statusLabels, statusColors, type OrderStatus, type Order } from "@/hooks/useOrders";
 import { useOrgMembers, type AppRole } from "@/hooks/useOrganization";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import CreateOrderDialog from "./CreateOrderDialog";
 import OrderDetailSheet from "./OrderDetailSheet";
 import { motion } from "framer-motion";
-import { Plus, ShoppingBag, Filter, Trash2 } from "lucide-react";
+import { Plus, ShoppingBag, Filter, Trash2, Search, CalendarIcon, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OrdersTabProps {
@@ -21,6 +26,9 @@ const OrdersTab = ({ orgId, currency, role }: OrdersTabProps) => {
   const { orders, loading, createOrder, updateOrderStatus, assignTailor, deleteOrder } = useOrders(orgId);
   const { members } = useOrgMembers(orgId);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>();
+  const [dateTo, setDateTo] = useState<Date | undefined>();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const { toast } = useToast();
@@ -31,7 +39,29 @@ const OrdersTab = ({ orgId, currency, role }: OrdersTabProps) => {
     .filter((m) => m.role === "tailor" || m.role === "org_admin")
     .map((m) => ({ id: m.user_id, display_name: (m as any).profile?.display_name || null }));
 
-  const filteredOrders = statusFilter === "all" ? orders : orders.filter((o) => o.status === statusFilter);
+  const filteredOrders = useMemo(() => {
+    let result = orders;
+    if (statusFilter !== "all") result = result.filter((o) => o.status === statusFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (o) =>
+          o.title.toLowerCase().includes(q) ||
+          o.order_number.toLowerCase().includes(q) ||
+          o.customer_profile?.display_name?.toLowerCase().includes(q)
+      );
+    }
+    if (dateFrom) result = result.filter((o) => new Date(o.created_at) >= dateFrom);
+    if (dateTo) {
+      const end = new Date(dateTo);
+      end.setHours(23, 59, 59, 999);
+      result = result.filter((o) => new Date(o.created_at) <= end);
+    }
+    return result;
+  }, [orders, statusFilter, searchQuery, dateFrom, dateTo]);
+
+  const hasFilters = searchQuery || dateFrom || dateTo || statusFilter !== "all";
+  const clearFilters = () => { setSearchQuery(""); setDateFrom(undefined); setDateTo(undefined); setStatusFilter("all"); };
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     const { error } = await updateOrderStatus(orderId, newStatus);
@@ -66,28 +96,68 @@ const OrdersTab = ({ orgId, currency, role }: OrdersTabProps) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="font-heading font-bold text-2xl">Orders</h2>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 mb-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading font-bold text-2xl">Orders</h2>
+          <div className="flex items-center gap-2">
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="text-xs h-9" onClick={clearFilters}>
+                <X size={12} className="mr-1" /> Clear
+              </Button>
+            )}
+            {canManage && user && (
+              <CreateOrderDialog orgId={orgId} currency={currency} userId={user.id} createOrder={createOrder}>
+                <Button variant="hero" size="sm">
+                  <Plus size={16} className="mr-1" /> New Order
+                </Button>
+              </CreateOrderDialog>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search orders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-xs"
+            />
+          </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-36 h-9 text-xs">
               <Filter size={12} className="mr-1" />
               <SelectValue placeholder="Filter" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Orders</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               {(Object.entries(statusLabels) as [OrderStatus, string][]).map(([value, label]) => (
                 <SelectItem key={value} value={value}>{label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {canManage && user && (
-            <CreateOrderDialog orgId={orgId} currency={currency} userId={user.id} createOrder={createOrder}>
-              <Button variant="hero" size="sm">
-                <Plus size={16} className="mr-1" /> New Order
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 text-xs gap-1", dateFrom && "text-primary")}>
+                <CalendarIcon size={12} />
+                {dateFrom ? format(dateFrom, "MMM d") : "From"}
               </Button>
-            </CreateOrderDialog>
-          )}
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("h-9 text-xs gap-1", dateTo && "text-primary")}>
+                <CalendarIcon size={12} />
+                {dateTo ? format(dateTo, "MMM d") : "To"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={dateTo} onSelect={setDateTo} className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

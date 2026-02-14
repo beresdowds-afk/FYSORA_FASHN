@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock } from "lucide-react";
+import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import OrdersTab from "@/components/orders/OrdersTab";
+import CustomersTab from "@/components/customers/CustomersTab";
 import InviteMemberDialog from "@/components/members/InviteMemberDialog";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +34,7 @@ const Dashboard = () => {
   const { isSuperAdmin } = useUserGlobalRole();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "members" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "customers" | "members" | "settings">("overview");
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -154,6 +155,7 @@ const Dashboard = () => {
           {[
             { id: "overview" as const, icon: BarChart3, label: "Overview" },
             { id: "orders" as const, icon: Package, label: "Orders" },
+            { id: "customers" as const, icon: UserCheck, label: "Customers" },
             { id: "members" as const, icon: Users, label: "Team Members" },
             { id: "settings" as const, icon: Settings, label: "Settings" },
           ].map((item) => (
@@ -176,7 +178,7 @@ const Dashboard = () => {
         <main className="flex-1 min-w-0">
           {/* Mobile tabs */}
           <div className="flex md:hidden gap-2 mb-6 overflow-x-auto">
-            {["overview", "orders", "members", "settings"].map((tab) => (
+            {["overview", "orders", "customers", "members", "settings"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as typeof activeTab)}
@@ -191,6 +193,7 @@ const Dashboard = () => {
 
           {activeTab === "overview" && <OverviewTab org={currentOrg} role={role} />}
           {activeTab === "orders" && <OrdersTab orgId={currentOrg.id} currency={currentOrg.currency || "NGN"} role={role} />}
+          {activeTab === "customers" && <CustomersTab orgId={currentOrg.id} currency={currentOrg.currency || "NGN"} />}
           {activeTab === "members" && <MembersTab orgId={currentOrg.id} role={role} />}
           {activeTab === "settings" && <SettingsTab org={currentOrg} role={role} />}
         </main>
