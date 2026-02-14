@@ -79,6 +79,75 @@ export type Database = {
           },
         ]
       }
+      message_logs: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          error_message: string | null
+          event_type: string
+          external_id: string | null
+          id: string
+          order_id: string | null
+          org_id: string
+          recipient_contact: string | null
+          recipient_id: string
+          recipient_type: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          body?: string | null
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          external_id?: string | null
+          id?: string
+          order_id?: string | null
+          org_id: string
+          recipient_contact?: string | null
+          recipient_id: string
+          recipient_type: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          external_id?: string | null
+          id?: string
+          order_id?: string | null
+          org_id?: string
+          recipient_contact?: string | null
+          recipient_id?: string
+          recipient_type?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -366,6 +435,59 @@ export type Database = {
             foreignKeyName: "org_members_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_notification_settings: {
+        Row: {
+          brand_color: string | null
+          created_at: string
+          email_enabled: boolean
+          email_footer_text: string | null
+          id: string
+          notify_assigned_tailor: boolean
+          notify_customer: boolean
+          notify_org_admin: boolean
+          org_id: string
+          sms_enabled: boolean
+          updated_at: string
+          whatsapp_enabled: boolean
+        }
+        Insert: {
+          brand_color?: string | null
+          created_at?: string
+          email_enabled?: boolean
+          email_footer_text?: string | null
+          id?: string
+          notify_assigned_tailor?: boolean
+          notify_customer?: boolean
+          notify_org_admin?: boolean
+          org_id: string
+          sms_enabled?: boolean
+          updated_at?: string
+          whatsapp_enabled?: boolean
+        }
+        Update: {
+          brand_color?: string | null
+          created_at?: string
+          email_enabled?: boolean
+          email_footer_text?: string | null
+          id?: string
+          notify_assigned_tailor?: boolean
+          notify_customer?: boolean
+          notify_org_admin?: boolean
+          org_id?: string
+          sms_enabled?: boolean
+          updated_at?: string
+          whatsapp_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_notification_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
