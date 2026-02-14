@@ -14,6 +14,7 @@ import CustomersTab from "@/components/customers/CustomersTab";
 import InviteMemberDialog from "@/components/members/InviteMemberDialog";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { motion } from "framer-motion";
+import OrgExchangeRates from "@/components/shared/OrgExchangeRates";
 import { useToast } from "@/hooks/use-toast";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 
@@ -332,6 +333,13 @@ const OverviewTab = ({ org, role }: { org: any; role: AppRole | null }) => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Exchange Rates */}
+      {(role === "org_admin" || role === "super_admin") && (
+        <div className="rounded-xl bg-card border border-border p-6 mb-6">
+          <OrgExchangeRates />
         </div>
       )}
 
