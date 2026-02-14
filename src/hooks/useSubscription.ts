@@ -93,6 +93,12 @@ export const useOrgSubscription = (orgId: string | undefined) => {
   const selectPlan = async (planId: string, billingCycle: "monthly" | "yearly" = "monthly") => {
     if (!orgId) return { error: new Error("No org") };
 
+    // Check if this is a first-time selection (start trial)
+    const isNewSubscription = !subscription;
+    const trialEndsAt = isNewSubscription
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : undefined;
+
     if (subscription) {
       const { error } = await supabase
         .from("org_subscriptions")
@@ -103,7 +109,13 @@ export const useOrgSubscription = (orgId: string | undefined) => {
     } else {
       const { error } = await supabase
         .from("org_subscriptions")
-        .insert({ org_id: orgId, plan_id: planId, billing_cycle: billingCycle });
+        .insert({
+          org_id: orgId,
+          plan_id: planId,
+          billing_cycle: billingCycle,
+          is_trial: true,
+          trial_ends_at: trialEndsAt,
+        });
       if (!error) await fetchSubscription();
       return { error };
     }

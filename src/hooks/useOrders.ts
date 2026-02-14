@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { calculateFees, PLATFORM_FEE_PERCENT, ADMIN_FEE_PERCENT } from "@/hooks/usePlatformFees";
 
 export type OrderStatus =
   | "pending"
@@ -154,7 +155,8 @@ export const useOrders = (orgId: string | undefined) => {
   }) => {
     if (!orgId || !user) return { error: new Error("Not authenticated") };
 
-    const totalAmount = orderData.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+    const subtotal = orderData.items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+    const fees = calculateFees(subtotal);
     const orderNumber = generateOrderNumber();
 
     const { data: order, error: orderError } = await supabase
@@ -166,8 +168,13 @@ export const useOrders = (orgId: string | undefined) => {
         title: orderData.title,
         description: orderData.description || null,
         due_date: orderData.due_date || null,
-        total_amount: totalAmount,
+        total_amount: subtotal,
         currency: orderData.currency,
+        platform_fee_percent: PLATFORM_FEE_PERCENT,
+        platform_fee_amount: fees.platformFee,
+        admin_fee_percent: ADMIN_FEE_PERCENT,
+        admin_fee_amount: fees.adminFee,
+        customer_total: fees.customerTotal,
       })
       .select()
       .single();
@@ -196,6 +203,26 @@ export const useOrders = (orgId: string | undefined) => {
       changed_by: user.id,
       note: "Order created",
     });
+
+    // Insert platform fee ledger entries
+    if (fees.platformFee > 0) {
+      await supabase.from("platform_fee_ledger").insert({
+        org_id: orgId,
+        order_id: order.id,
+        fee_type: "customer_surcharge",
+        amount: fees.platformFee,
+        currency: orderData.currency,
+      });
+    }
+    if (fees.adminFee > 0) {
+      await supabase.from("platform_fee_ledger").insert({
+        org_id: orgId,
+        order_id: order.id,
+        fee_type: "org_admin_fee",
+        amount: fees.adminFee,
+        currency: orderData.currency,
+      });
+    }
 
     await fetchOrders();
     return { data: order, error: null };
