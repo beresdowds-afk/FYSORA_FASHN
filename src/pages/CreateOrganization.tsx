@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOrganizations } from "@/hooks/useOrganization";
+import { useOrganizations, useUserGlobalRole } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
-import { Building2, ArrowRight } from "lucide-react";
+import { Building2, ArrowRight, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const currencies = [
@@ -26,6 +26,7 @@ const CreateOrganization = () => {
   const [submitting, setSubmitting] = useState(false);
   const { createOrg } = useOrganizations();
   const { user } = useAuth();
+  const { isSuperAdmin } = useUserGlobalRole();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -50,6 +51,13 @@ const CreateOrganization = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      {isSuperAdmin && (
+        <div className="absolute top-4 left-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/super-admin")}>
+            <ArrowLeft size={16} className="mr-1" /> Super Admin Panel
+          </Button>
+        </div>
+      )}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-brand" />
 
       <motion.div
