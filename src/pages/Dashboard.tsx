@@ -20,6 +20,7 @@ import CustomerRegistrationsTab from "@/components/customers/CustomerRegistratio
 import MeasurementBookingsTab from "@/components/measurements/MeasurementBookingsTab";
 import { useToast } from "@/hooks/use-toast";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
+import RevenueAnalysisCard from "@/components/dashboard/RevenueAnalysisCard";
 
 const roleLabels: Record<AppRole, string> = {
   super_admin: "Super Admin",
@@ -342,6 +343,13 @@ const OverviewTab = ({ org, role }: { org: any; role: AppRole | null }) => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Revenue Analysis */}
+      {(role === "org_admin" || role === "super_admin") && (
+        <div className="mb-6">
+          <RevenueAnalysisCard orgId={org.id} currency={currency} />
         </div>
       )}
 
