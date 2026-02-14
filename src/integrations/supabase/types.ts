@@ -14,6 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
+      order_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          fabric_details: string | null
+          id: string
+          measurements: Json | null
+          name: string
+          order_id: string
+          quantity: number
+          status: Database["public"]["Enums"]["order_status"]
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          fabric_details?: string | null
+          id?: string
+          measurements?: Json | null
+          name: string
+          order_id: string
+          quantity?: number
+          status?: Database["public"]["Enums"]["order_status"]
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          fabric_details?: string | null
+          id?: string
+          measurements?: Json | null
+          name?: string
+          order_id?: string
+          quantity?: number
+          status?: Database["public"]["Enums"]["order_status"]
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          id: string
+          new_status: Database["public"]["Enums"]["order_status"]
+          note: string | null
+          old_status: Database["public"]["Enums"]["order_status"] | null
+          order_id: string
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          id?: string
+          new_status: Database["public"]["Enums"]["order_status"]
+          note?: string | null
+          old_status?: Database["public"]["Enums"]["order_status"] | null
+          order_id: string
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          id?: string
+          new_status?: Database["public"]["Enums"]["order_status"]
+          note?: string | null
+          old_status?: Database["public"]["Enums"]["order_status"] | null
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          assigned_tailor_id: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          description: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          order_number: string
+          org_id: string
+          status: Database["public"]["Enums"]["order_status"]
+          title: string
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_tailor_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_id: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          order_number: string
+          org_id: string
+          status?: Database["public"]["Enums"]["order_status"]
+          title: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_tailor_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: string
+          org_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          title?: string
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           id: string
@@ -181,6 +325,16 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "org_admin" | "tailor" | "customer"
+      order_status:
+        | "pending"
+        | "confirmed"
+        | "measuring"
+        | "cutting"
+        | "sewing"
+        | "fitting"
+        | "completed"
+        | "delivered"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -309,6 +463,17 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "org_admin", "tailor", "customer"],
+      order_status: [
+        "pending",
+        "confirmed",
+        "measuring",
+        "cutting",
+        "sewing",
+        "fitting",
+        "completed",
+        "delivered",
+        "cancelled",
+      ],
     },
   },
 } as const
