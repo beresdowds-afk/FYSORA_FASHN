@@ -7,6 +7,13 @@ import { Calendar, User, Clock, Package, ArrowRight, Ruler } from "lucide-react"
 import { motion } from "framer-motion";
 import InvoiceGenerator from "./InvoiceGenerator";
 
+interface InvoiceSettings {
+  invoice_address?: string | null;
+  invoice_payment_terms?: string | null;
+  invoice_notes?: string | null;
+  invoice_logo_url?: string | null;
+}
+
 interface OrderDetailSheetProps {
   order: Order | null;
   open: boolean;
@@ -16,9 +23,10 @@ interface OrderDetailSheetProps {
   onStatusChange: (orderId: string, status: OrderStatus) => void;
   onAssignTailor: (orderId: string, tailorId: string) => void;
   orgName?: string;
+  orgSettings?: InvoiceSettings;
 }
 
-const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusChange, onAssignTailor, orgName }: OrderDetailSheetProps) => {
+const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusChange, onAssignTailor, orgName, orgSettings }: OrderDetailSheetProps) => {
   const { items, history, loading } = useOrderDetail(open && order ? order.id : undefined);
   const canManage = role === "org_admin" || role === "super_admin";
   const canUpdateStatus = canManage || role === "tailor";
@@ -57,7 +65,7 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
                 </Button>
               )}
               {showInvoice && (
-                <InvoiceGenerator order={order} orgName={orgName || "Fashion Stitches"} />
+                <InvoiceGenerator order={order} orgName={orgName || "Fashion Stitches"} orgSettings={orgSettings} />
               )}
             </div>
           </div>

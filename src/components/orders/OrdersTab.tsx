@@ -44,9 +44,15 @@ interface OrdersTabProps {
   currency: string;
   role: AppRole | null;
   orgName?: string;
+  orgSettings?: {
+    invoice_address?: string | null;
+    invoice_payment_terms?: string | null;
+    invoice_notes?: string | null;
+    invoice_logo_url?: string | null;
+  };
 }
 
-const OrdersTab = ({ orgId, currency, role, orgName }: OrdersTabProps) => {
+const OrdersTab = ({ orgId, currency, role, orgName, orgSettings }: OrdersTabProps) => {
   const { user } = useAuth();
   const { orders, loading, createOrder, updateOrderStatus, assignTailor, deleteOrder } = useOrders(orgId);
   const { members } = useOrgMembers(orgId);
@@ -294,6 +300,7 @@ const OrdersTab = ({ orgId, currency, role, orgName }: OrdersTabProps) => {
         onStatusChange={handleStatusChange}
         onAssignTailor={handleAssignTailor}
         orgName={orgName}
+        orgSettings={orgSettings}
       />
     </motion.div>
   );
