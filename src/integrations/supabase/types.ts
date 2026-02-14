@@ -187,48 +187,57 @@ export type Database = {
       }
       orders: {
         Row: {
+          amount_paid: number | null
           assigned_tailor_id: string | null
           created_at: string
           currency: string
           customer_id: string
+          deposit_amount: number | null
           description: string | null
           due_date: string | null
           id: string
           notes: string | null
           order_number: string
           org_id: string
+          payment_status: string
           status: Database["public"]["Enums"]["order_status"]
           title: string
           total_amount: number | null
           updated_at: string
         }
         Insert: {
+          amount_paid?: number | null
           assigned_tailor_id?: string | null
           created_at?: string
           currency?: string
           customer_id: string
+          deposit_amount?: number | null
           description?: string | null
           due_date?: string | null
           id?: string
           notes?: string | null
           order_number: string
           org_id: string
+          payment_status?: string
           status?: Database["public"]["Enums"]["order_status"]
           title: string
           total_amount?: number | null
           updated_at?: string
         }
         Update: {
+          amount_paid?: number | null
           assigned_tailor_id?: string | null
           created_at?: string
           currency?: string
           customer_id?: string
+          deposit_amount?: number | null
           description?: string | null
           due_date?: string | null
           id?: string
           notes?: string | null
           order_number?: string
           org_id?: string
+          payment_status?: string
           status?: Database["public"]["Enums"]["order_status"]
           title?: string
           total_amount?: number | null
@@ -275,6 +284,66 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_subscriptions: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          gateway_customer_id: string | null
+          gateway_subscription_id: string | null
+          id: string
+          org_id: string
+          payment_gateway: string | null
+          plan_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          id?: string
+          org_id: string
+          payment_gateway?: string | null
+          plan_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          id?: string
+          org_id?: string
+          payment_gateway?: string | null
+          plan_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -339,6 +408,75 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          gateway_checkout_url: string | null
+          gateway_payment_id: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          org_id: string
+          paid_at: string | null
+          payment_gateway: string | null
+          payment_method: string | null
+          payment_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          gateway_checkout_url?: string | null
+          gateway_payment_id?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          org_id: string
+          paid_at?: string | null
+          payment_gateway?: string | null
+          payment_method?: string | null
+          payment_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          gateway_checkout_url?: string | null
+          gateway_payment_id?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          org_id?: string
+          paid_at?: string | null
+          payment_gateway?: string | null
+          payment_method?: string | null
+          payment_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -376,6 +514,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          max_customers: number | null
+          max_members: number | null
+          max_orders: number | null
+          name: string
+          price_monthly: number
+          price_yearly: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_customers?: number | null
+          max_members?: number | null
+          max_orders?: number | null
+          name: string
+          price_monthly?: number
+          price_yearly?: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_customers?: number | null
+          max_members?: number | null
+          max_orders?: number | null
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
