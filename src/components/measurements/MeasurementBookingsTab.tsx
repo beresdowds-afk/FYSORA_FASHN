@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { dispatchNotifications } from "@/lib/notificationDispatcher";
-import { Video, Clock, DollarSign, CheckCircle2, XCircle, Calendar } from "lucide-react";
+import { Video, Clock, DollarSign, CheckCircle2, XCircle, Calendar, PhoneCall } from "lucide-react";
 
 interface Booking {
   id: string;
@@ -36,6 +37,7 @@ const statusColors: Record<string, string> = {
 
 const MeasurementBookingsTab = ({ orgId, isAdmin = false }: { orgId: string; isAdmin?: boolean }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -172,6 +174,16 @@ const MeasurementBookingsTab = ({ orgId, isAdmin = false }: { orgId: string; isA
                       {booking.payment_status === "paid" ? "Paid" : "Unpaid"}
                     </p>
                   </div>
+                  {/* Join Call button for confirmed/in_progress bookings */}
+                  {(booking.booking_status === "confirmed" || booking.booking_status === "in_progress") && (
+                    <Button
+                      size="sm"
+                      className="text-xs h-7 gap-1"
+                      onClick={() => navigate(`/video-call?bookingId=${booking.id}&role=${isAdmin ? "admin" : "customer"}`)}
+                    >
+                      <PhoneCall size={12} /> Join Call
+                    </Button>
+                  )}
                   {isAdmin && booking.booking_status === "confirmed" && (
                     <div className="flex gap-1">
                       <Button

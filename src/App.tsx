@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import CreateOrganization from "./pages/CreateOrganization";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import CustomerPortal from "./pages/CustomerPortal";
+import VideoCall from "./pages/VideoCall";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/create-organization" element={<CreateOrganization />} />
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
             <Route path="/portal" element={<CustomerPortal />} />
+            <Route path="/video-call" element={<VideoCall />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
