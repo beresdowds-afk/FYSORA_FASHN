@@ -147,7 +147,7 @@ export const useOrders = (orgId: string | undefined) => {
     customer_id: string;
     due_date?: string;
     currency: string;
-    items: { name: string; quantity: number; unit_price: number; fabric_details?: string }[];
+    items: { name: string; quantity: number; unit_price: number; fabric_details?: string; measurements?: Record<string, any> }[];
   }) => {
     if (!orgId || !user) return { error: new Error("Not authenticated") };
 
@@ -180,6 +180,7 @@ export const useOrders = (orgId: string | undefined) => {
           quantity: item.quantity,
           unit_price: item.unit_price,
           fabric_details: item.fabric_details || null,
+          measurements: item.measurements || {},
         }))
       );
       if (itemsError) return { error: itemsError };
