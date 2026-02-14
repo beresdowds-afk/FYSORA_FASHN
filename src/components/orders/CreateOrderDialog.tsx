@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, Ruler, Save, FolderOpen } from "lucide-react";
+import { Plus, Trash2, Ruler, Save, FolderOpen, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMeasurementProfiles } from "@/hooks/useMeasurementProfiles";
+import { calculateFees } from "@/hooks/usePlatformFees";
 import type { useOrders } from "@/hooks/useOrders";
 
 const DRESS_TYPES = [
@@ -129,7 +130,8 @@ const CreateOrderDialog = ({ orgId, currency, userId, createOrder, children }: C
     }
   };
 
-  const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
+  const fees = calculateFees(subtotal);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,14 +333,25 @@ const CreateOrderDialog = ({ orgId, currency, userId, createOrder, children }: C
             ))}
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <div>
-              <span className="text-sm text-muted-foreground">Total: </span>
-              <span className="font-heading font-bold text-lg">
-                {total.toLocaleString()} {currency}
-              </span>
+          <div className="flex flex-col gap-2 pt-2 border-t border-border">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="font-medium">{subtotal.toLocaleString()} {currency}</span>
             </div>
-            <Button variant="hero" type="submit" disabled={submitting}>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1">
+                <Info size={12} /> Platform Fee (5%)
+              </span>
+              <span className="font-medium">{fees.platformFee.toLocaleString()} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between font-heading font-bold text-lg">
+              <span>Customer Total</span>
+              <span>{fees.customerTotal.toLocaleString()} {currency}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              A 5% platform service fee is applied. Organization admin fee (5%) is deducted separately.
+            </p>
+            <Button variant="hero" type="submit" disabled={submitting} className="mt-2">
               {submitting ? "Creating..." : "Create Order"}
             </Button>
           </div>

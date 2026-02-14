@@ -1,11 +1,11 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import CurrencyDisplay from "@/components/shared/CurrencyDisplay";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useOrderDetail, statusLabels, statusColors, ORDER_STATUS_FLOW, type Order, type OrderStatus } from "@/hooks/useOrders";
 import type { AppRole } from "@/hooks/useOrganization";
-import { Calendar, User, Clock, Package, ArrowRight, Ruler, Banknote } from "lucide-react";
+import { Calendar, User, Clock, Package, ArrowRight, Ruler, Banknote, CreditCard, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import InvoiceGenerator from "./InvoiceGenerator";
 import PaymentHistory from "@/components/payments/PaymentHistory";
@@ -13,6 +13,8 @@ import RecordPaymentDialog from "@/components/payments/RecordPaymentDialog";
 import { usePayments } from "@/hooks/usePayments";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface InvoiceSettings {
   invoice_address?: string | null;
@@ -39,11 +41,33 @@ const paymentTypeLabels: Record<string, string> = { deposit: "Deposit", partial:
 
 const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusChange, onAssignTailor, onRefetchOrders, orgId, orgName, orgSettings }: OrderDetailSheetProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { items, history, loading } = useOrderDetail(open && order ? order.id : undefined);
   const { recordPayment } = usePayments(orgId, order?.id);
   const { createNotification } = useNotifications();
+  const [initiatingPayment, setInitiatingPayment] = useState<string | null>(null);
   const canManage = role === "org_admin" || role === "super_admin";
   const canUpdateStatus = canManage || role === "tailor";
+
+  const handleOnlinePayment = async (gateway: string) => {
+    if (!order) return;
+    setInitiatingPayment(gateway);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("initialize-payment", {
+        body: { order_id: order.id, gateway, callback_url: window.location.href },
+      });
+      if (res.error) {
+        toast({ title: "Payment Error", description: res.error.message, variant: "destructive" });
+      } else if (res.data?.checkout_url) {
+        window.open(res.data.checkout_url, "_blank");
+        toast({ title: "Payment initiated", description: "Complete payment in the opened tab" });
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+    setInitiatingPayment(null);
+  };
 
   const handleRecordPayment = useCallback(async (data: Parameters<typeof recordPayment>[0]) => {
     const result = await recordPayment(data);
@@ -240,6 +264,25 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
                 </RecordPaymentDialog>
               )}
             </div>
+            {/* Online Payment Buttons */}
+            {order.payment_status !== "paid" && canManage && (
+              <div className="flex gap-2 mb-3 flex-wrap">
+                {["paystack", "flutterwave", "stripe"].map((gw) => (
+                  <Button
+                    key={gw}
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    disabled={!!initiatingPayment}
+                    onClick={() => handleOnlinePayment(gw)}
+                  >
+                    <CreditCard size={12} />
+                    {initiatingPayment === gw ? "Processing..." : `Pay via ${gw.charAt(0).toUpperCase() + gw.slice(1)}`}
+                    <ExternalLink size={10} />
+                  </Button>
+                ))}
+              </div>
+            )}
             {/* Payment summary */}
             <div className="flex gap-3 mb-3">
               <div className="flex-1 p-2 rounded-lg bg-muted/50 border border-border text-center">

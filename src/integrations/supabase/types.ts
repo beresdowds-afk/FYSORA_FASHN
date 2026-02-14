@@ -214,11 +214,14 @@ export type Database = {
       }
       orders: {
         Row: {
+          admin_fee_amount: number
+          admin_fee_percent: number
           amount_paid: number | null
           assigned_tailor_id: string | null
           created_at: string
           currency: string
           customer_id: string
+          customer_total: number
           deposit_amount: number | null
           description: string | null
           due_date: string | null
@@ -227,17 +230,22 @@ export type Database = {
           order_number: string
           org_id: string
           payment_status: string
+          platform_fee_amount: number
+          platform_fee_percent: number
           status: Database["public"]["Enums"]["order_status"]
           title: string
           total_amount: number | null
           updated_at: string
         }
         Insert: {
+          admin_fee_amount?: number
+          admin_fee_percent?: number
           amount_paid?: number | null
           assigned_tailor_id?: string | null
           created_at?: string
           currency?: string
           customer_id: string
+          customer_total?: number
           deposit_amount?: number | null
           description?: string | null
           due_date?: string | null
@@ -246,17 +254,22 @@ export type Database = {
           order_number: string
           org_id: string
           payment_status?: string
+          platform_fee_amount?: number
+          platform_fee_percent?: number
           status?: Database["public"]["Enums"]["order_status"]
           title: string
           total_amount?: number | null
           updated_at?: string
         }
         Update: {
+          admin_fee_amount?: number
+          admin_fee_percent?: number
           amount_paid?: number | null
           assigned_tailor_id?: string | null
           created_at?: string
           currency?: string
           customer_id?: string
+          customer_total?: number
           deposit_amount?: number | null
           description?: string | null
           due_date?: string | null
@@ -265,6 +278,8 @@ export type Database = {
           order_number?: string
           org_id?: string
           payment_status?: string
+          platform_fee_amount?: number
+          platform_fee_percent?: number
           status?: Database["public"]["Enums"]["order_status"]
           title?: string
           total_amount?: number | null
@@ -365,10 +380,12 @@ export type Database = {
           gateway_customer_id: string | null
           gateway_subscription_id: string | null
           id: string
+          is_trial: boolean
           org_id: string
           payment_gateway: string | null
           plan_id: string
           status: string
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
@@ -379,10 +396,12 @@ export type Database = {
           gateway_customer_id?: string | null
           gateway_subscription_id?: string | null
           id?: string
+          is_trial?: boolean
           org_id: string
           payment_gateway?: string | null
           plan_id: string
           status?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -393,10 +412,12 @@ export type Database = {
           gateway_customer_id?: string | null
           gateway_subscription_id?: string | null
           id?: string
+          is_trial?: boolean
           org_id?: string
           payment_gateway?: string | null
           plan_id?: string
           status?: string
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -478,6 +499,7 @@ export type Database = {
       }
       payments: {
         Row: {
+          admin_fee_amount: number
           amount: number
           created_at: string
           currency: string
@@ -491,10 +513,12 @@ export type Database = {
           payment_gateway: string | null
           payment_method: string | null
           payment_type: string
+          platform_fee_amount: number
           status: string
           updated_at: string
         }
         Insert: {
+          admin_fee_amount?: number
           amount: number
           created_at?: string
           currency?: string
@@ -508,10 +532,12 @@ export type Database = {
           payment_gateway?: string | null
           payment_method?: string | null
           payment_type?: string
+          platform_fee_amount?: number
           status?: string
           updated_at?: string
         }
         Update: {
+          admin_fee_amount?: number
           amount?: number
           created_at?: string
           currency?: string
@@ -525,6 +551,7 @@ export type Database = {
           payment_gateway?: string | null
           payment_method?: string | null
           payment_type?: string
+          platform_fee_amount?: number
           status?: string
           updated_at?: string
         }
@@ -541,6 +568,67 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_fee_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          fee_type: string
+          id: string
+          order_id: string | null
+          org_id: string
+          payment_id: string | null
+          settled_at: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          fee_type: string
+          id?: string
+          order_id?: string | null
+          org_id: string
+          payment_id?: string | null
+          settled_at?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          fee_type?: string
+          id?: string
+          order_id?: string | null
+          org_id?: string
+          payment_id?: string | null
+          settled_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_fee_ledger_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_fee_ledger_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_fee_ledger_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
             referencedColumns: ["id"]
           },
         ]
@@ -599,6 +687,7 @@ export type Database = {
           price_yearly: number
           slug: string
           sort_order: number
+          trial_days: number
           updated_at: string
         }
         Insert: {
@@ -616,6 +705,7 @@ export type Database = {
           price_yearly?: number
           slug: string
           sort_order?: number
+          trial_days?: number
           updated_at?: string
         }
         Update: {
@@ -633,6 +723,7 @@ export type Database = {
           price_yearly?: number
           slug?: string
           sort_order?: number
+          trial_days?: number
           updated_at?: string
         }
         Relationships: []

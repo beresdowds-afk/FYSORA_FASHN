@@ -2,3 +2,9 @@ project_id = "nsvwbqvnjsixepxrxysd"
 
 [functions.sync-exchange-rates]
 verify_jwt = false
+
+[functions.initialize-payment]
+verify_jwt = false
+
+[functions.verify-payment]
+verify_jwt = false
