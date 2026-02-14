@@ -280,6 +280,47 @@ export type Database = {
           },
         ]
       }
+      org_api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key_name: string
+          key_value: string
+          org_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_name: string
+          key_value: string
+          org_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_name?: string
+          key_value?: string
+          org_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           id: string
