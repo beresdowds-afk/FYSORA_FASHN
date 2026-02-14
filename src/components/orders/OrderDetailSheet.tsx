@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import CurrencyDisplay from "@/components/shared/CurrencyDisplay";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -168,7 +169,7 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                 <Package size={12} /> Total
               </div>
-              <p className="text-sm font-bold">{Number(order.total_amount).toLocaleString()} {order.currency}</p>
+              <p className="text-sm font-bold"><CurrencyDisplay amount={Number(order.total_amount)} currency={order.currency} /></p>
             </div>
           </div>
 

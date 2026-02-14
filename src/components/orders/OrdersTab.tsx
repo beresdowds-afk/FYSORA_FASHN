@@ -15,6 +15,7 @@ import OrderDetailSheet from "./OrderDetailSheet";
 import { motion } from "framer-motion";
 import { Plus, ShoppingBag, Filter, Trash2, Search, CalendarIcon, X, Download, CreditCard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import CurrencyDisplay from "@/components/shared/CurrencyDisplay";
 
 const exportOrdersCSV = (orders: Order[], currency: string) => {
   const headers = ["Order Number", "Title", "Status", "Customer", "Tailor", "Due Date", "Amount", "Currency", "Created"];
@@ -301,7 +302,7 @@ const OrdersTab = ({ orgId, currency, role, orgName, orgSettings }: OrdersTabPro
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm font-medium text-right">
-                      {Number(order.total_amount).toLocaleString()} {order.currency}
+                      <CurrencyDisplay amount={Number(order.total_amount)} currency={order.currency} />
                     </td>
                     {canManage && (
                       <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>

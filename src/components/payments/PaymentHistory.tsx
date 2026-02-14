@@ -1,5 +1,6 @@
 import { usePayments } from "@/hooks/usePayments";
 import { Clock, CreditCard, Banknote, Smartphone, Wallet } from "lucide-react";
+import CurrencyDisplay from "@/components/shared/CurrencyDisplay";
 import { motion } from "framer-motion";
 
 const methodIcons: Record<string, any> = {
@@ -63,7 +64,7 @@ const PaymentHistory = ({ orgId, orderId, currency }: PaymentHistoryProps) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">
-                  {Number(payment.amount).toLocaleString()} {currency}
+                  <CurrencyDisplay amount={Number(payment.amount)} currency={currency} />
                 </p>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                   payment.status === "completed"
