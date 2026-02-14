@@ -194,7 +194,7 @@ const Dashboard = () => {
           </div>
 
           {activeTab === "overview" && <OverviewTab org={currentOrg} role={role} />}
-          {activeTab === "orders" && <OrdersTab orgId={currentOrg.id} currency={currentOrg.currency || "NGN"} role={role} orgName={currentOrg.name} />}
+          {activeTab === "orders" && <OrdersTab orgId={currentOrg.id} currency={currentOrg.currency || "NGN"} role={role} orgName={currentOrg.name} orgSettings={currentOrg} />}
           {activeTab === "customers" && <CustomersTab orgId={currentOrg.id} currency={currentOrg.currency || "NGN"} />}
           {activeTab === "members" && <MembersTab orgId={currentOrg.id} role={role} />}
           {activeTab === "settings" && <SettingsTab org={currentOrg} role={role} />}
@@ -454,14 +454,42 @@ const SettingsTab = ({ org, role }: { org: any; role: AppRole | null }) => {
   const [email, setEmail] = useState(org.email || "");
   const [phone, setPhone] = useState(org.phone || "");
   const [address, setAddress] = useState(org.address || "");
+  const [invoiceAddress, setInvoiceAddress] = useState(org.invoice_address || "");
+  const [invoicePaymentTerms, setInvoicePaymentTerms] = useState(org.invoice_payment_terms || "");
+  const [invoiceNotes, setInvoiceNotes] = useState(org.invoice_notes || "");
+  const [invoiceLogoUrl, setInvoiceLogoUrl] = useState(org.invoice_logo_url || "");
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const canEdit = role === "org_admin" || role === "super_admin";
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    const ext = file.name.split(".").pop();
+    const path = `${org.id}/invoice-logo.${ext}`;
+    const { error } = await supabase.storage.from("org-assets").upload(path, file, { upsert: true });
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } else {
+      const { data } = supabase.storage.from("org-assets").getPublicUrl(path);
+      setInvoiceLogoUrl(data.publicUrl);
+      toast({ title: "Logo uploaded" });
+    }
+    setUploadingLogo(false);
+  };
 
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase
       .from("organizations")
-      .update({ name, email, phone, address })
+      .update({
+        name, email, phone, address,
+        invoice_address: invoiceAddress || null,
+        invoice_payment_terms: invoicePaymentTerms || null,
+        invoice_notes: invoiceNotes || null,
+        invoice_logo_url: invoiceLogoUrl || null,
+      })
       .eq("id", org.id);
     setSaving(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -471,7 +499,10 @@ const SettingsTab = ({ org, role }: { org: any; role: AppRole | null }) => {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <h2 className="font-heading font-bold text-2xl mb-6">Organization Settings</h2>
-      <div className="rounded-xl bg-card border border-border p-6 max-w-lg space-y-4">
+      
+      {/* General Settings */}
+      <div className="rounded-xl bg-card border border-border p-6 max-w-lg space-y-4 mb-6">
+        <h3 className="font-heading font-semibold text-lg">General</h3>
         <div className="space-y-2">
           <label className="text-sm font-medium">Organization Name</label>
           <input
@@ -514,12 +545,83 @@ const SettingsTab = ({ org, role }: { org: any; role: AppRole | null }) => {
             Country: <span className="font-medium text-foreground">{org.country}</span>
           </div>
         </div>
-        {canEdit && (
-          <Button variant="hero" onClick={handleSave} disabled={saving} className="mt-2">
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-        )}
       </div>
+
+      {/* Invoice Settings */}
+      <div className="rounded-xl bg-card border border-border p-6 max-w-lg space-y-4 mb-6">
+        <h3 className="font-heading font-semibold text-lg">Invoice Customization</h3>
+        <p className="text-xs text-muted-foreground">Customize how your invoices appear when downloaded as PDF.</p>
+
+        {/* Logo Upload */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Business Logo</label>
+          <div className="flex items-center gap-4">
+            {invoiceLogoUrl ? (
+              <div className="w-16 h-16 rounded-lg border border-border overflow-hidden bg-muted flex items-center justify-center">
+                <img src={invoiceLogoUrl} alt="Logo" className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <div className="w-16 h-16 rounded-lg border border-dashed border-border bg-muted/50 flex items-center justify-center">
+                <Palette size={20} className="text-muted-foreground" />
+              </div>
+            )}
+            <div>
+              <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-input cursor-pointer hover:bg-muted transition-colors ${!canEdit ? "opacity-50 pointer-events-none" : ""}`}>
+                {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={!canEdit || uploadingLogo} />
+              </label>
+              {invoiceLogoUrl && canEdit && (
+                <button onClick={() => setInvoiceLogoUrl("")} className="ml-2 text-xs text-destructive hover:underline">Remove</button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Invoice Address */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Invoice Address</label>
+          <textarea
+            value={invoiceAddress}
+            onChange={(e) => setInvoiceAddress(e.target.value)}
+            disabled={!canEdit}
+            placeholder="Business address to display on invoices"
+            rows={2}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
+          />
+        </div>
+
+        {/* Payment Terms */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Payment Terms</label>
+          <textarea
+            value={invoicePaymentTerms}
+            onChange={(e) => setInvoicePaymentTerms(e.target.value)}
+            disabled={!canEdit}
+            placeholder="e.g. Payment due within 14 days. Bank: GTBank, Acct: 0123456789"
+            rows={3}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
+          />
+        </div>
+
+        {/* Additional Notes */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Invoice Footer Notes</label>
+          <textarea
+            value={invoiceNotes}
+            onChange={(e) => setInvoiceNotes(e.target.value)}
+            disabled={!canEdit}
+            placeholder="e.g. Thank you for your patronage!"
+            rows={2}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
+          />
+        </div>
+      </div>
+
+      {canEdit && (
+        <Button variant="hero" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save All Settings"}
+        </Button>
+      )}
     </motion.div>
   );
 };

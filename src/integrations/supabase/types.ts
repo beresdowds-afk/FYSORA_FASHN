@@ -288,6 +288,10 @@ export type Database = {
           description: string | null
           email: string | null
           id: string
+          invoice_address: string | null
+          invoice_logo_url: string | null
+          invoice_notes: string | null
+          invoice_payment_terms: string | null
           is_active: boolean
           logo_url: string | null
           name: string
@@ -303,6 +307,10 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          invoice_address?: string | null
+          invoice_logo_url?: string | null
+          invoice_notes?: string | null
+          invoice_payment_terms?: string | null
           is_active?: boolean
           logo_url?: string | null
           name: string
@@ -318,6 +326,10 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          invoice_address?: string | null
+          invoice_logo_url?: string | null
+          invoice_notes?: string | null
+          invoice_payment_terms?: string | null
           is_active?: boolean
           logo_url?: string | null
           name?: string
