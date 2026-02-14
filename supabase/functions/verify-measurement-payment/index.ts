@@ -21,17 +21,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: reg } = await serviceClient
-      .from("customer_registrations")
+    const { data: booking } = await serviceClient
+      .from("ai_measurement_bookings")
       .select("*")
       .eq("gateway_reference", reference)
       .single();
 
-    if (!reg) {
-      return new Response(JSON.stringify({ error: "Registration not found" }), { status: 404, headers: corsHeaders });
+    if (!booking) {
+      return new Response(JSON.stringify({ error: "Booking not found" }), { status: 404, headers: corsHeaders });
     }
 
-    if (reg.status === "paid") {
+    if (booking.payment_status === "paid") {
       return new Response(JSON.stringify({ status: "already_paid" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     const { data: apiKeys } = await serviceClient
       .from("org_api_keys")
       .select("key_name, key_value")
-      .eq("org_id", reg.org_id)
+      .eq("org_id", booking.org_id)
       .eq("provider", "paystack")
       .eq("is_active", true);
 
@@ -52,24 +52,35 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Paystack not configured" }), { status: 400, headers: corsHeaders });
     }
 
-    // Verify with Paystack
     const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: { Authorization: `Bearer ${secretKey}` },
     });
     const verifyData = await verifyRes.json();
 
     if (verifyData.data?.status === "success") {
-      await serviceClient.from("customer_registrations").update({
-        status: "paid",
+      // Update booking
+      await serviceClient.from("ai_measurement_bookings").update({
+        payment_status: "paid",
+        booking_status: "confirmed",
         paid_at: new Date().toISOString(),
-      }).eq("id", reg.id);
+      }).eq("id", booking.id);
 
-      // Log $5 registration fee to platform_fee_ledger as FASHION STITCHES AFRICA revenue
+      // Log revenue split to platform_fee_ledger
+      // Platform share (40%) - goes to FASHION STITCHES AFRICA
       await serviceClient.from("platform_fee_ledger").insert({
-        org_id: reg.org_id,
-        fee_type: "registration_fee",
-        amount: Number(reg.fee_amount) || 5,
-        currency: reg.fee_currency || "USD",
+        org_id: booking.org_id,
+        fee_type: "ai_measurement_platform_share",
+        amount: Number(booking.platform_share_amount),
+        currency: booking.currency || "USD",
+        status: "collected",
+      });
+
+      // Org share (60%) - tracked for transparency
+      await serviceClient.from("platform_fee_ledger").insert({
+        org_id: booking.org_id,
+        fee_type: "ai_measurement_org_share",
+        amount: Number(booking.org_share_amount),
+        currency: booking.currency || "USD",
         status: "collected",
       });
 

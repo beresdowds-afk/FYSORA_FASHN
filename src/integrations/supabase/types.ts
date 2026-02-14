@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_measurement_bookings: {
+        Row: {
+          actual_duration_minutes: number | null
+          additional_hour_rate: number
+          booking_status: string
+          created_at: string
+          currency: string
+          customer_id: string
+          ended_at: string | null
+          first_hour_rate: number
+          gateway_checkout_url: string | null
+          gateway_reference: string | null
+          hours_booked: number
+          id: string
+          local_amount: number | null
+          local_currency: string | null
+          measurements_captured: Json | null
+          org_id: string
+          org_share_amount: number
+          org_share_percent: number
+          paid_at: string | null
+          payment_gateway: string | null
+          payment_status: string
+          platform_share_amount: number
+          platform_share_percent: number
+          scheduled_at: string | null
+          session_notes: string | null
+          session_type: string
+          started_at: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          actual_duration_minutes?: number | null
+          additional_hour_rate?: number
+          booking_status?: string
+          created_at?: string
+          currency?: string
+          customer_id: string
+          ended_at?: string | null
+          first_hour_rate?: number
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          hours_booked?: number
+          id?: string
+          local_amount?: number | null
+          local_currency?: string | null
+          measurements_captured?: Json | null
+          org_id: string
+          org_share_amount?: number
+          org_share_percent?: number
+          paid_at?: string | null
+          payment_gateway?: string | null
+          payment_status?: string
+          platform_share_amount?: number
+          platform_share_percent?: number
+          scheduled_at?: string | null
+          session_notes?: string | null
+          session_type?: string
+          started_at?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          actual_duration_minutes?: number | null
+          additional_hour_rate?: number
+          booking_status?: string
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          ended_at?: string | null
+          first_hour_rate?: number
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          hours_booked?: number
+          id?: string
+          local_amount?: number | null
+          local_currency?: string | null
+          measurements_captured?: Json | null
+          org_id?: string
+          org_share_amount?: number
+          org_share_percent?: number
+          paid_at?: string | null
+          payment_gateway?: string | null
+          payment_status?: string
+          platform_share_amount?: number
+          platform_share_percent?: number
+          scheduled_at?: string | null
+          session_notes?: string | null
+          session_type?: string
+          started_at?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_measurement_bookings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_registrations: {
         Row: {
           created_at: string

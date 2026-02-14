@@ -10,9 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Package, CreditCard, Bell, Ruler, Clock, ChevronRight,
-  CheckCircle2, AlertCircle, Lock, KeyRound, Loader2
+  CheckCircle2, AlertCircle, Lock, KeyRound, Loader2, Video
 } from "lucide-react";
 import UserNotificationPreferences from "@/components/communications/UserNotificationPreferences";
+import BookMeasurementDialog from "@/components/measurements/BookMeasurementDialog";
+import MeasurementBookingsTab from "@/components/measurements/MeasurementBookingsTab";
 import { useToast } from "@/hooks/use-toast";
 
 const statusLabels: Record<string, string> = {
@@ -62,15 +64,26 @@ const CustomerPortal = () => {
   // Verify registration payment callback
   useEffect(() => {
     const regStatus = searchParams.get("reg_status");
+    const measStatus = searchParams.get("meas_status");
     const trxref = searchParams.get("trxref") || searchParams.get("reference");
+    
     if (regStatus === "success" && trxref) {
-      // Verify payment with backend
       supabase.functions.invoke("verify-registration-payment", {
         body: { reference: trxref },
       }).then(({ data }) => {
         if (data?.status === "success" || data?.status === "already_paid") {
           toast({ title: "Registration payment confirmed!" });
           setRegistration((prev: any) => prev ? { ...prev, status: "paid" } : prev);
+        }
+      });
+    }
+
+    if (measStatus === "success" && trxref) {
+      supabase.functions.invoke("verify-measurement-payment", {
+        body: { reference: trxref },
+      }).then(({ data }) => {
+        if (data?.status === "success" || data?.status === "already_paid") {
+          toast({ title: "Measurement booking confirmed!" });
         }
       });
     }
@@ -330,6 +343,7 @@ const CustomerPortal = () => {
             <Tabs defaultValue="orders">
               <TabsList className="mb-6">
                 <TabsTrigger value="orders" className="gap-2"><Package size={14} /> My Orders</TabsTrigger>
+                <TabsTrigger value="measurements" className="gap-2"><Ruler size={14} /> AI Measurements</TabsTrigger>
                 <TabsTrigger value="payments" className="gap-2"><CreditCard size={14} /> Payments</TabsTrigger>
                 <TabsTrigger value="notifications" className="gap-2"><Bell size={14} /> Notifications</TabsTrigger>
               </TabsList>
@@ -389,6 +403,21 @@ const CustomerPortal = () => {
                     )}
                   </div>
                 )}
+              </TabsContent>
+
+              {/* AI Measurements Tab */}
+              <TabsContent value="measurements">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-heading font-bold text-xl">AI Measurement Sessions</h2>
+                    <BookMeasurementDialog orgId={selectedOrgId}>
+                      <Button variant="hero" size="sm">
+                        <Video size={14} className="mr-1" /> Book Session
+                      </Button>
+                    </BookMeasurementDialog>
+                  </div>
+                  <MeasurementBookingsTab orgId={selectedOrgId} />
+                </div>
               </TabsContent>
 
               {/* Payments Tab */}

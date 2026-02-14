@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.verify-registration-payment]
 verify_jwt = false
+
+[functions.initialize-measurement-payment]
+verify_jwt = false
+
+[functions.verify-measurement-payment]
+verify_jwt = false
