@@ -5,11 +5,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck } from "lucide-react";
+import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, Bell } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import OrdersTab from "@/components/orders/OrdersTab";
 import CustomersTab from "@/components/customers/CustomersTab";
 import InviteMemberDialog from "@/components/members/InviteMemberDialog";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
@@ -138,6 +139,7 @@ const Dashboard = () => {
                 <Shield size={14} className="mr-1" /> Admin Panel
               </Button>
             )}
+            <NotificationBell />
             <span className="text-sm text-muted-foreground hidden sm:block">
               {profile?.display_name || user.email}
             </span>

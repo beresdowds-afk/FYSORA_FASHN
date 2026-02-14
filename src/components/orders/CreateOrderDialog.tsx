@@ -4,9 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Ruler } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { useOrders } from "@/hooks/useOrders";
+
+const DRESS_TYPES = [
+  "Agbada", "Kaftan", "Senator", "Buba & Sokoto", "Iro & Buba",
+  "Aso Oke", "Dashiki", "Jumpsuit", "Gown", "Blouse & Skirt",
+  "Shirt", "Trousers", "Suit (2-piece)", "Suit (3-piece)",
+  "Wedding Dress", "Bridesmaid Dress", "Ankara Dress", "Other",
+];
+
+const MATERIAL_TYPES = [
+  "Ankara", "Lace", "Aso Oke", "Guinea Brocade", "Adire",
+  "Chiffon", "Silk", "Satin", "Cotton", "Linen",
+  "Velvet", "Crepe", "Organza", "Jacquard", "Kente",
+  "Damask", "Cashmere", "Wool", "Denim", "Other",
+];
 
 const MEASUREMENT_FIELDS = [
   { key: "bust", label: "Bust" },
@@ -23,6 +38,8 @@ const MEASUREMENT_FIELDS = [
 
 interface OrderItemInput {
   name: string;
+  dressType: string;
+  materialType: string;
   quantity: number;
   unit_price: number;
   fabric_details: string;
@@ -38,16 +55,21 @@ interface CreateOrderDialogProps {
   children: React.ReactNode;
 }
 
+const emptyItem = (): OrderItemInput => ({
+  name: "", dressType: "", materialType: "", quantity: 1, unit_price: 0,
+  fabric_details: "", measurements: {}, showMeasurements: false,
+});
+
 const CreateOrderDialog = ({ currency, userId, createOrder, children }: CreateOrderDialogProps) => {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [items, setItems] = useState<OrderItemInput[]>([{ name: "", quantity: 1, unit_price: 0, fabric_details: "", measurements: {}, showMeasurements: false }]);
+  const [items, setItems] = useState<OrderItemInput[]>([emptyItem()]);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const addItem = () => setItems([...items, { name: "", quantity: 1, unit_price: 0, fabric_details: "", measurements: {}, showMeasurements: false }]);
+  const addItem = () => setItems([...items, emptyItem()]);
 
   const removeItem = (index: number) => {
     if (items.length <= 1) return;
@@ -86,7 +108,7 @@ const CreateOrderDialog = ({ currency, userId, createOrder, children }: CreateOr
         name: i.name,
         unit_price: Number(i.unit_price),
         quantity: Number(i.quantity),
-        fabric_details: i.fabric_details || undefined,
+        fabric_details: [i.dressType, i.materialType, i.fabric_details].filter(Boolean).join(" | ") || undefined,
         measurements: Object.fromEntries(
           Object.entries(i.measurements).filter(([, v]) => v.trim() !== "")
         ),
@@ -107,7 +129,7 @@ const CreateOrderDialog = ({ currency, userId, createOrder, children }: CreateOr
     setTitle("");
     setDescription("");
     setDueDate("");
-    setItems([{ name: "", quantity: 1, unit_price: 0, fabric_details: "", measurements: {}, showMeasurements: false }]);
+    setItems([emptyItem()]);
   };
 
   return (
@@ -158,7 +180,38 @@ const CreateOrderDialog = ({ currency, userId, createOrder, children }: CreateOr
                   <Input type="number" placeholder="Qty" min={1} value={item.quantity} onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)} />
                   <Input type="number" placeholder="Unit price" min={0} step={0.01} value={item.unit_price || ""} onChange={(e) => updateItem(index, "unit_price", parseFloat(e.target.value) || 0)} />
                 </div>
-                <Input placeholder="Fabric details (optional)" value={item.fabric_details} onChange={(e) => updateItem(index, "fabric_details", e.target.value)} />
+
+                {/* Dress Type & Material Type dropdowns */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground">Dress Type</label>
+                    <Select value={item.dressType} onValueChange={(val) => updateItem(index, "dressType", val)}>
+                      <SelectTrigger className="h-9 text-xs bg-background">
+                        <SelectValue placeholder="Select dress type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        {DRESS_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-medium text-muted-foreground">Material Type</label>
+                    <Select value={item.materialType} onValueChange={(val) => updateItem(index, "materialType", val)}>
+                      <SelectTrigger className="h-9 text-xs bg-background">
+                        <SelectValue placeholder="Select material type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        {MATERIAL_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Input placeholder="Additional fabric details (optional)" value={item.fabric_details} onChange={(e) => updateItem(index, "fabric_details", e.target.value)} />
                 
                 {/* Measurements toggle */}
                 <Button

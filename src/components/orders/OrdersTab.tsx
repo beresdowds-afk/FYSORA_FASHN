@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useOrders, statusLabels, statusColors, type OrderStatus, type Order } from "@/hooks/useOrders";
 import { useOrgMembers, type AppRole } from "@/hooks/useOrganization";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,6 +49,7 @@ const OrdersTab = ({ orgId, currency, role }: OrdersTabProps) => {
   const { user } = useAuth();
   const { orders, loading, createOrder, updateOrderStatus, assignTailor, deleteOrder } = useOrders(orgId);
   const { members } = useOrgMembers(orgId);
+  const { createNotification } = useNotifications();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
@@ -87,9 +89,29 @@ const OrdersTab = ({ orgId, currency, role }: OrdersTabProps) => {
   const clearFilters = () => { setSearchQuery(""); setDateFrom(undefined); setDateTo(undefined); setStatusFilter("all"); };
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    const order = orders.find((o) => o.id === orderId);
     const { error } = await updateOrderStatus(orderId, newStatus);
     if (error) toast({ title: "Error", description: (error as any).message, variant: "destructive" });
-    else toast({ title: `Order moved to ${statusLabels[newStatus]}` });
+    else {
+      toast({ title: `Order moved to ${statusLabels[newStatus]}` });
+      // Notify relevant users
+      if (order) {
+        const notifyUsers = new Set<string>();
+        if (order.customer_id) notifyUsers.add(order.customer_id);
+        if (order.assigned_tailor_id) notifyUsers.add(order.assigned_tailor_id);
+        // Don't notify yourself
+        if (user) notifyUsers.delete(user.id);
+        notifyUsers.forEach((uid) => {
+          createNotification({
+            org_id: orgId,
+            user_id: uid,
+            order_id: orderId,
+            title: `Order ${statusLabels[newStatus]}`,
+            message: `"${order.title}" (${order.order_number}) has been moved to ${statusLabels[newStatus]}.`,
+          });
+        });
+      }
+    }
   };
 
   const handleAssignTailor = async (orderId: string, tailorId: string) => {
