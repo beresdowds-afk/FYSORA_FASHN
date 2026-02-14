@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      customer_registrations: {
+        Row: {
+          created_at: string
+          fee_amount: number
+          fee_currency: string
+          gateway_checkout_url: string | null
+          gateway_reference: string | null
+          id: string
+          local_amount: number | null
+          local_currency: string | null
+          org_id: string
+          paid_at: string | null
+          payment_gateway: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fee_amount?: number
+          fee_currency?: string
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          id?: string
+          local_amount?: number | null
+          local_currency?: string | null
+          org_id: string
+          paid_at?: string | null
+          payment_gateway?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fee_amount?: number
+          fee_currency?: string
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          id?: string
+          local_amount?: number | null
+          local_currency?: string | null
+          org_id?: string
+          paid_at?: string | null
+          payment_gateway?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_registrations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exchange_rates: {
         Row: {
           base_currency: string

@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-whatsapp]
 verify_jwt = false
+
+[functions.due-date-reminders]
+verify_jwt = false
