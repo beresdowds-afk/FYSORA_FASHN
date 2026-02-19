@@ -10,6 +10,7 @@ interface RevenueSource {
   previousAmount: number;
   color: string;
   bgColor: string;
+  barColor: string;
 }
 
 interface RevenueAnalysisCardProps {
@@ -51,6 +52,7 @@ const RevenueAnalysisCard = ({ orgId, currency }: RevenueAnalysisCardProps) => {
           previousAmount: sumField(ordersPrev.data, "amount"),
           color: "text-primary",
           bgColor: "bg-primary/10",
+          barColor: "bg-primary/70",
         },
         {
           label: "AI Measurements",
@@ -59,6 +61,7 @@ const RevenueAnalysisCard = ({ orgId, currency }: RevenueAnalysisCardProps) => {
           previousAmount: sumField(bookingsPrev.data, "org_share_amount"),
           color: "text-secondary",
           bgColor: "bg-secondary/10",
+          barColor: "bg-secondary/70",
         },
         {
           label: "Registration Fees",
@@ -67,6 +70,7 @@ const RevenueAnalysisCard = ({ orgId, currency }: RevenueAnalysisCardProps) => {
           previousAmount: sumField(regsPrev.data, "fee_amount"),
           color: "text-accent",
           bgColor: "bg-accent/10",
+          barColor: "bg-accent/70",
         },
       ]);
       setLoading(false);
@@ -150,7 +154,7 @@ const RevenueAnalysisCard = ({ orgId, currency }: RevenueAnalysisCardProps) => {
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.max(pct, 1)}%` }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
-                  className={`h-full rounded-full ${source.color.replace("text-", "bg-")}/70`}
+                  className={`h-full rounded-full ${source.barColor}`}
                 />
               </div>
               <p className="text-[10px] text-muted-foreground mt-1">
