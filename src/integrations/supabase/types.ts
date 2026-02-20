@@ -568,6 +568,118 @@ export type Database = {
           },
         ]
       }
+      org_catalogue_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean
+          name: string
+          org_id: string
+          price: number | null
+          sort_order: number
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name: string
+          org_id: string
+          price?: number | null
+          sort_order?: number
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name?: string
+          org_id?: string
+          price?: number | null
+          sort_order?: number
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_catalogue_items_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_consultations: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string | null
+          id: string
+          message: string | null
+          notes: string | null
+          org_id: string
+          preferred_date: string | null
+          preferred_time: string | null
+          service_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone?: string | null
+          id?: string
+          message?: string | null
+          notes?: string | null
+          org_id: string
+          preferred_date?: string | null
+          preferred_time?: string | null
+          service_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string | null
+          id?: string
+          message?: string | null
+          notes?: string | null
+          org_id?: string
+          preferred_date?: string | null
+          preferred_time?: string | null
+          service_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_consultations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           id: string
@@ -718,6 +830,77 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_websites: {
+        Row: {
+          accent_color: string | null
+          api_key: string | null
+          api_secret: string | null
+          brand_color: string | null
+          created_at: string
+          facebook_url: string | null
+          hero_description: string | null
+          hero_image_url: string | null
+          id: string
+          instagram_url: string | null
+          is_enabled: boolean
+          mode: string
+          org_id: string
+          tagline: string | null
+          theme: string
+          updated_at: string
+          webhook_url: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          api_key?: string | null
+          api_secret?: string | null
+          brand_color?: string | null
+          created_at?: string
+          facebook_url?: string | null
+          hero_description?: string | null
+          hero_image_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          is_enabled?: boolean
+          mode?: string
+          org_id: string
+          tagline?: string | null
+          theme?: string
+          updated_at?: string
+          webhook_url?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          api_key?: string | null
+          api_secret?: string | null
+          brand_color?: string | null
+          created_at?: string
+          facebook_url?: string | null
+          hero_description?: string | null
+          hero_image_url?: string | null
+          id?: string
+          instagram_url?: string | null
+          is_enabled?: boolean
+          mode?: string
+          org_id?: string
+          tagline?: string | null
+          theme?: string
+          updated_at?: string
+          webhook_url?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_websites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
