@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import {
   LogOut,
   Users,
@@ -17,8 +18,11 @@ import {
   Plus,
   Activity,
   TrendingUp,
-  ChevronRight,
   LayoutDashboard,
+  Crown,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -38,7 +42,7 @@ const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ orgs: 0, users: 0 });
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
-  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "revenue" | "keys" | "rates">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "revenue" | "keys" | "rates" | "websites">("overview");
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
@@ -75,6 +79,7 @@ const SuperAdminDashboard = () => {
     { id: "organizations" as const, icon: Building2, label: "Organizations" },
     { id: "users" as const, icon: Users, label: "Users & Roles" },
     { id: "revenue" as const, icon: TrendingUp, label: "Platform Revenue" },
+    { id: "websites" as const, icon: Crown, label: "Website Requests" },
     { id: "keys" as const, icon: Shield, label: "Keys & Secrets" },
     { id: "rates" as const, icon: Globe, label: "Exchange Rates" },
   ];
@@ -173,6 +178,7 @@ const SuperAdminDashboard = () => {
           {activeTab === "organizations" && <OrganizationsPanel orgs={orgs} />}
           {activeTab === "users" && <UsersPanel />}
           {activeTab === "revenue" && <PlatformRevenuePanel />}
+          {activeTab === "websites" && <WebsiteRequestsPanel />}
           {activeTab === "keys" && <KeysSecretsPanel />}
           {activeTab === "rates" && <ExchangeRatesPanel />}
         </main>
@@ -428,4 +434,241 @@ const UsersPanel = () => {
   );
 };
 
+/* ───────────── Website Requests Panel ───────────── */
+const WebsiteRequestsPanel = () => {
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
+  const [noteInput, setNoteInput] = useState<Record<string, string>>({});
+  const [urlInput, setUrlInput] = useState<Record<string, string>>({});
+
+  const load = async () => {
+    setLoading(true);
+    const [reqResult, subResult] = await Promise.all([
+      supabase
+        .from("website_builder_requests")
+        .select("*, organizations(name, slug, email)")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("website_builder_subscriptions")
+        .select("*, organizations(name, slug)")
+        .order("created_at", { ascending: false }),
+    ]);
+    setRequests(reqResult.data || []);
+    setSubscriptions(subResult.data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const updateRequestStatus = async (id: string, status: string, websiteUrl?: string) => {
+    setUpdating(id);
+    const updateData: any = { status };
+    if (status === "completed") {
+      updateData.completed_at = new Date().toISOString();
+      if (websiteUrl) updateData.website_url = websiteUrl;
+    } else if (status === "assigned") {
+      updateData.assigned_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase
+      .from("website_builder_requests")
+      .update(updateData)
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Request updated successfully" });
+      load();
+    }
+    setUpdating(null);
+  };
+
+  const statusColors: Record<string, string> = {
+    pending: "bg-yellow-500/10 text-yellow-600",
+    assigned: "bg-blue-500/10 text-blue-600",
+    in_progress: "bg-primary/10 text-primary",
+    completed: "bg-green-500/10 text-green-600",
+    cancelled: "bg-destructive/10 text-destructive",
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+      <div>
+        <h1 className="font-heading font-bold text-2xl">Website Builder</h1>
+        <p className="text-muted-foreground text-sm mt-1">Manage Pro plan requests and monitor Lite subscriptions.</p>
+      </div>
+
+      {/* Pro Requests */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Crown size={16} className="text-accent" />
+          <h2 className="font-heading font-semibold text-lg">Pro Plan Requests ({requests.length})</h2>
+        </div>
+
+        {requests.length === 0 ? (
+          <div className="rounded-xl bg-card border border-dashed border-border p-10 text-center">
+            <Crown size={32} className="mx-auto text-muted-foreground mb-2 opacity-40" />
+            <p className="text-muted-foreground text-sm">No Pro plan requests yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {requests.map((req) => (
+              <div key={req.id} className="rounded-xl bg-card border border-border p-5 space-y-4">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold">{req.organizations?.name || req.org_id}</p>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[req.status] || "bg-muted text-muted-foreground"}`}>
+                        {req.status.replace("_", " ")}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${req.payment_status === "paid" ? "bg-green-500/10 text-green-600" : "bg-yellow-500/10 text-yellow-600"}`}>
+                        Payment: {req.payment_status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {req.organizations?.email} · Slug: {req.organizations?.slug}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      One-time: ${req.one_time_fee} · Platform fee: ${req.platform_fee} · Monthly: ${req.monthly_maintenance}/mo
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Requested: {new Date(req.requested_at).toLocaleDateString()}
+                      {req.paid_at && ` · Paid: ${new Date(req.paid_at).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {req.status === "pending" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={updating === req.id}
+                        onClick={() => updateRequestStatus(req.id, "assigned")}
+                      >
+                        Mark Assigned
+                      </Button>
+                    )}
+                    {(req.status === "assigned" || req.status === "in_progress") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={updating === req.id}
+                        onClick={() => updateRequestStatus(req.id, "in_progress")}
+                      >
+                        Mark In Progress
+                      </Button>
+                    )}
+                    {req.status !== "completed" && req.status !== "cancelled" && (
+                      <div className="flex gap-2">
+                        <input
+                          value={urlInput[req.id] || ""}
+                          onChange={(e) => setUrlInput({ ...urlInput, [req.id]: e.target.value })}
+                          placeholder="Website URL..."
+                          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-48"
+                        />
+                        <Button
+                          size="sm"
+                          variant="hero"
+                          disabled={updating === req.id}
+                          onClick={() => updateRequestStatus(req.id, "completed", urlInput[req.id])}
+                        >
+                          <CheckCircle2 size={13} className="mr-1" /> Complete
+                        </Button>
+                      </div>
+                    )}
+                    {req.status === "completed" && req.website_url && (
+                      <a href={req.website_url} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="outline">
+                          <ExternalLink size={13} className="mr-1" /> View Site
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {req.gateway_reference && (
+                  <p className="text-xs text-muted-foreground font-mono">
+                    Reference: {req.gateway_reference}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Lite Subscriptions */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Clock size={16} className="text-primary" />
+          <h2 className="font-heading font-semibold text-lg">Lite Subscriptions ({subscriptions.length})</h2>
+        </div>
+
+        {subscriptions.length === 0 ? (
+          <div className="rounded-xl bg-card border border-dashed border-border p-10 text-center">
+            <Clock size={32} className="mx-auto text-muted-foreground mb-2 opacity-40" />
+            <p className="text-muted-foreground text-sm">No Lite subscriptions yet.</p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Organization</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Status</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Trial Ends</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Monthly</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Signed Up</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subscriptions.map((sub) => {
+                  const daysLeft = Math.max(0, Math.ceil((new Date(sub.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                  return (
+                    <tr key={sub.id} className="border-t border-border">
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-medium">{sub.organizations?.name || sub.org_id}</p>
+                        <p className="text-xs text-muted-foreground">{sub.organizations?.slug}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[sub.status] || "bg-muted text-muted-foreground"}`}>
+                          {sub.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {new Date(sub.trial_end).toLocaleDateString()}
+                        {sub.status === "trial" && (
+                          <span className={`ml-2 text-xs font-medium ${daysLeft <= 30 ? "text-destructive" : "text-primary"}`}>
+                            ({daysLeft}d left)
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">${sub.monthly_fee}/mo</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {new Date(sub.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
 export default SuperAdminDashboard;
+

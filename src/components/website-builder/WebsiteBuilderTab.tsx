@@ -3,7 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Globe, Zap, Link2, Eye, Plus, Trash2, Edit2, Save, X, Package, ExternalLink, Copy, Key } from "lucide-react";
+import {
+  Globe, Zap, Link2, Eye, Plus, Trash2, Edit2, Save, X, Package,
+  ExternalLink, Copy, Key, Crown, Clock, CheckCircle2, AlertCircle,
+  ArrowRight, Sparkles, Star
+} from "lucide-react";
 import type { AppRole } from "@/hooks/useOrganization";
 
 interface WebsiteSettings {
@@ -38,6 +42,34 @@ interface CatalogueItem {
   tags: string[] | null;
 }
 
+interface WebsiteSubscription {
+  id: string;
+  org_id: string;
+  plan: string;
+  status: string;
+  trial_start: string;
+  trial_end: string;
+  activated_at: string | null;
+  cancelled_at: string | null;
+  monthly_fee: number;
+  platform_fee: number;
+  gateway_reference: string | null;
+}
+
+interface WebsiteRequest {
+  id: string;
+  org_id: string;
+  plan: string;
+  status: string;
+  payment_status: string;
+  one_time_fee: number;
+  platform_fee: number;
+  monthly_maintenance: number;
+  gateway_reference: string | null;
+  completed_at: string | null;
+  website_url: string | null;
+}
+
 interface WebsiteBuilderTabProps {
   org: { id: string; name: string; slug: string; currency?: string | null };
   role: AppRole | null;
@@ -61,29 +93,328 @@ const defaultSettings = (orgId: string): WebsiteSettings => ({
   whatsapp_number: "",
 });
 
+// ── Subscription Status Banner ────────────────────────────────────────────────
+const SubscriptionBanner = ({
+  subscription,
+  proRequest,
+}: {
+  subscription: WebsiteSubscription | null;
+  proRequest: WebsiteRequest | null;
+}) => {
+  if (!subscription && !proRequest) return null;
+
+  const trialDaysLeft = subscription
+    ? Math.max(0, Math.ceil((new Date(subscription.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  if (proRequest && proRequest.payment_status === "paid") {
+    return (
+      <div className="rounded-xl bg-accent/10 border border-accent/30 p-4 mb-6 flex items-start gap-3">
+        <Crown size={18} className="text-accent shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-accent">
+            {proRequest.status === "completed" ? "Website Builder Pro — Active" : "Website Builder Pro — Setup In Progress"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {proRequest.status === "completed"
+              ? `Your custom website is live at ${proRequest.website_url || "your custom domain"}.`
+              : "Our team has received your payment and will contact you within 24 hours to set up your custom website."}
+          </p>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-accent/20 text-accent font-medium shrink-0">PRO</span>
+      </div>
+    );
+  }
+
+  if (subscription && subscription.status === "trial") {
+    return (
+      <div className={`rounded-xl border p-4 mb-6 flex items-start gap-3 ${trialDaysLeft <= 30 ? "bg-destructive/5 border-destructive/20" : "bg-primary/5 border-primary/20"}`}>
+        <Clock size={18} className={`shrink-0 mt-0.5 ${trialDaysLeft <= 30 ? "text-destructive" : "text-primary"}`} />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm">Website Builder Lite — Trial Period</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {trialDaysLeft > 0
+              ? `${trialDaysLeft} days remaining in your 6-month trial. After trial ends, $17/month applies.`
+              : "Your trial period has ended. Please pay to continue."}
+          </p>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium shrink-0">TRIAL</span>
+      </div>
+    );
+  }
+
+  if (subscription && subscription.status === "active") {
+    return (
+      <div className="rounded-xl bg-green-500/5 border border-green-500/20 p-4 mb-6 flex items-start gap-3">
+        <CheckCircle2 size={18} className="text-green-500 shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-green-600">Website Builder Lite — Active</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Your website is live. Monthly subscription: $17/month.</p>
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-600 font-medium shrink-0">LITE</span>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// ── Pricing Cards ─────────────────────────────────────────────────────────────
+const PricingSection = ({
+  org,
+  subscription,
+  proRequest,
+  canEdit,
+  onPaymentStarted,
+}: {
+  org: { id: string; name: string; slug: string; currency?: string | null };
+  subscription: WebsiteSubscription | null;
+  proRequest: WebsiteRequest | null;
+  canEdit: boolean;
+  onPaymentStarted: () => void;
+}) => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState<"lite" | "pro" | null>(null);
+
+  const hasActiveLite = subscription && (subscription.status === "trial" || subscription.status === "active");
+  const hasActivePro = proRequest && proRequest.payment_status === "paid";
+
+  const handleSubscribe = async (plan: "lite" | "pro") => {
+    if (!canEdit) return;
+    setLoading(plan);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast({ title: "Please log in", variant: "destructive" }); return; }
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/initialize-website-payment`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            org_id: org.id,
+            plan,
+            callback_url: `${window.location.origin}/dashboard`,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.error) {
+        toast({ title: "Payment Error", description: data.error, variant: "destructive" });
+        return;
+      }
+
+      // Open Paystack checkout
+      window.open(data.checkout_url, "_blank");
+      onPaymentStarted();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4 mb-8">
+      <div>
+        <h3 className="font-heading font-bold text-lg">Website Builder Plans</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Choose a plan to unlock your professional fashion website on Fashion Stitches Africa.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Lite Plan */}
+        <div className={`relative rounded-2xl border-2 p-6 transition-all ${hasActiveLite ? "border-primary/50 bg-primary/5" : "border-border bg-card hover:border-primary/30"}`}>
+          {hasActiveLite && (
+            <div className="absolute -top-3 left-4">
+              <span className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-full font-medium">Current Plan</span>
+            </div>
+          )}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap size={18} className="text-primary" />
+              <h4 className="font-heading font-bold text-base">Website Builder Lite</h4>
+            </div>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-3xl font-bold">$17</span>
+              <span className="text-sm text-muted-foreground">/month</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              + $10/month platform fee · <strong className="text-primary">6-month free trial</strong>
+            </p>
+          </div>
+
+          <ul className="space-y-2 mb-6 text-sm">
+            {[
+              "Auto-generated branded website",
+              "Public URL on fashionstitchesafrica.com",
+              "Filterable product catalogue",
+              "Appointment booking form",
+              "Mobile responsive design",
+              "SSL certificate & hosting",
+              "Dashboard integration",
+            ].map((f) => (
+              <li key={f} className="flex items-center gap-2 text-muted-foreground">
+                <CheckCircle2 size={13} className="text-green-500 shrink-0" /> {f}
+              </li>
+            ))}
+            {[
+              "Custom domain support",
+              "E-commerce module",
+              "Priority support",
+            ].map((f) => (
+              <li key={f} className="flex items-center gap-2 text-muted-foreground/50">
+                <X size={13} className="shrink-0" /> {f}
+              </li>
+            ))}
+          </ul>
+
+          {hasActiveLite ? (
+            <div className="flex items-center gap-2 text-sm text-primary font-medium">
+              <CheckCircle2 size={16} /> Plan Active
+            </div>
+          ) : (
+            <Button
+              variant="hero"
+              className="w-full"
+              onClick={() => handleSubscribe("lite")}
+              disabled={!!loading || !canEdit || !!hasActivePro}
+            >
+              {loading === "lite" ? "Redirecting to payment…" : "Start 6-Month Trial — $27"}
+              {loading !== "lite" && <ArrowRight size={14} />}
+            </Button>
+          )}
+
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            First payment: $27 (includes $10 platform fee)
+          </p>
+        </div>
+
+        {/* Pro Plan */}
+        <div className={`relative rounded-2xl border-2 p-6 transition-all ${hasActivePro ? "border-accent/50 bg-accent/5" : "border-accent/40 bg-gradient-to-br from-card to-accent/5 hover:border-accent/60"}`}>
+          <div className="absolute -top-3 right-4">
+            <span className="text-xs bg-accent text-accent-foreground px-3 py-1 rounded-full font-medium flex items-center gap-1">
+              <Star size={10} /> Best Value
+            </span>
+          </div>
+          {hasActivePro && (
+            <div className="absolute -top-3 left-4">
+              <span className="text-xs bg-green-500 text-white px-3 py-1 rounded-full font-medium">Current Plan</span>
+            </div>
+          )}
+
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Crown size={18} className="text-accent" />
+              <h4 className="font-heading font-bold text-base">Website Builder Pro</h4>
+            </div>
+            <div className="flex items-baseline gap-1 mb-1">
+              <span className="text-3xl font-bold">$199</span>
+              <span className="text-sm text-muted-foreground">one-time</span>
+              <span className="text-lg font-semibold ml-2">+ $7</span>
+              <span className="text-sm text-muted-foreground">/month</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              + $140 one-time platform fee · Total today: <strong className="text-foreground">$339</strong>
+            </p>
+          </div>
+
+          <ul className="space-y-2 mb-6 text-sm">
+            {[
+              "Everything in Lite",
+              "20+ premium templates",
+              "Custom domain support (+$2/mo)",
+              "Full e-commerce module",
+              "SEO optimization tools",
+              "Analytics dashboard",
+              "Priority 24/7 support",
+              "Dedicated setup by our team",
+              "Premium hosting included",
+              "Social media integrations",
+            ].map((f) => (
+              <li key={f} className="flex items-center gap-2 text-muted-foreground">
+                <CheckCircle2 size={13} className="text-accent shrink-0" /> {f}
+              </li>
+            ))}
+          </ul>
+
+          {hasActivePro ? (
+            <div className="flex items-center gap-2 text-sm text-accent font-medium">
+              <CheckCircle2 size={16} />
+              {proRequest?.status === "completed" ? "Website Live" : "Setup In Progress"}
+            </div>
+          ) : (
+            <Button
+              className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold"
+              onClick={() => handleSubscribe("pro")}
+              disabled={!!loading || !canEdit || !!hasActiveLite}
+            >
+              {loading === "pro" ? "Redirecting to payment…" : (
+                <>
+                  <Sparkles size={14} /> Get Pro — $339 today
+                </>
+              )}
+            </Button>
+          )}
+
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Our team contacts you within 24h after payment
+          </p>
+        </div>
+      </div>
+
+      {/* Note about Paystack key */}
+      {canEdit && !hasActiveLite && !hasActivePro && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border text-xs text-muted-foreground">
+          <AlertCircle size={14} className="shrink-0 mt-0.5 text-yellow-500" />
+          <span>
+            Payments are processed via <strong>Paystack</strong>. Make sure your Paystack secret key is configured in your{" "}
+            <strong>Keys & Secrets</strong> settings before subscribing.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
   const { toast } = useToast();
   const [settings, setSettings] = useState<WebsiteSettings>(defaultSettings(org.id));
   const [catalogue, setCatalogue] = useState<CatalogueItem[]>([]);
+  const [subscription, setSubscription] = useState<WebsiteSubscription | null>(null);
+  const [proRequest, setProRequest] = useState<WebsiteRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<"general" | "catalogue" | "integration">("general");
+  const [activeSection, setActiveSection] = useState<"plans" | "general" | "catalogue" | "integration">("plans");
   const [editingItem, setEditingItem] = useState<CatalogueItem | null>(null);
   const [addingItem, setAddingItem] = useState(false);
 
   const canEdit = role === "org_admin" || role === "super_admin";
   const websiteUrl = `${window.location.origin}/site/${org.slug}`;
 
+  const hasActivePlan = subscription && (subscription.status === "trial" || subscription.status === "active")
+    || (proRequest && proRequest.payment_status === "paid");
+
   const load = async () => {
     setLoading(true);
 
-    const { data: ws } = await supabase
-      .from("org_websites")
-      .select("*")
-      .eq("org_id", org.id)
-      .single();
+    const [wsResult, catResult, subResult, reqResult] = await Promise.all([
+      supabase.from("org_websites").select("*").eq("org_id", org.id).single(),
+      supabase.from("org_catalogue_items").select("*").eq("org_id", org.id).order("sort_order"),
+      supabase.from("website_builder_subscriptions").select("*").eq("org_id", org.id).maybeSingle(),
+      supabase.from("website_builder_requests").select("*").eq("org_id", org.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    ]);
 
-    if (ws) {
+    if (wsResult.data) {
+      const ws = wsResult.data;
       setSettings({
         ...defaultSettings(org.id),
         ...ws,
@@ -101,13 +432,10 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       });
     }
 
-    const { data: catData } = await supabase
-      .from("org_catalogue_items")
-      .select("*")
-      .eq("org_id", org.id)
-      .order("sort_order");
+    setCatalogue((catResult.data || []) as CatalogueItem[]);
+    if (subResult.data) setSubscription(subResult.data as WebsiteSubscription);
+    if (reqResult.data) setProRequest(reqResult.data as WebsiteRequest);
 
-    setCatalogue((catData || []) as CatalogueItem[]);
     setLoading(false);
   };
 
@@ -159,40 +487,48 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
           <h2 className="font-heading font-bold text-2xl">Website Builder</h2>
           <p className="text-muted-foreground text-sm mt-0.5">Create your public website or connect your own.</p>
         </div>
-        <div className="flex gap-2">
-          <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm">
-              <Eye size={14} className="mr-1.5" /> Preview
+        {hasActivePlan && (
+          <div className="flex gap-2">
+            <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm">
+                <Eye size={14} className="mr-1.5" /> Preview
+              </Button>
+            </a>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { navigator.clipboard.writeText(websiteUrl); toast({ title: "Link copied!" }); }}
+            >
+              <Copy size={14} className="mr-1.5" /> Copy Link
             </Button>
-          </a>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => { navigator.clipboard.writeText(websiteUrl); toast({ title: "Link copied!" }); }}
-          >
-            <Copy size={14} className="mr-1.5" /> Copy Link
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Website URL display */}
-      <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 mb-6 flex items-center gap-3">
-        <Globe size={18} className="text-primary shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-muted-foreground">Your public website URL</p>
-          <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline flex items-center gap-1 truncate">
-            {websiteUrl} <ExternalLink size={12} />
-          </a>
+      {/* Subscription status banner */}
+      <SubscriptionBanner subscription={subscription} proRequest={proRequest} />
+
+      {/* Website URL display (only if has active plan) */}
+      {hasActivePlan && (
+        <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 mb-6 flex items-center gap-3">
+          <Globe size={18} className="text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs text-muted-foreground">Your public website URL</p>
+            <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline flex items-center gap-1 truncate">
+              {websiteUrl} <ExternalLink size={12} />
+            </a>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className={`w-2 h-2 rounded-full ${settings.is_enabled ? "bg-green-500" : "bg-muted-foreground"}`} />
+            <span className="text-xs text-muted-foreground">{settings.is_enabled ? "Live" : "Disabled"}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className={`w-2 h-2 rounded-full ${settings.is_enabled ? "bg-green-500" : "bg-muted-foreground"}`} />
-          <span className="text-xs text-muted-foreground">{settings.is_enabled ? "Live" : "Disabled"}</span>
-        </div>
-      </div>
+      )}
 
       {/* Section tabs */}
-      <div className="flex gap-1 bg-muted/50 p-1 rounded-lg w-fit mb-6">
+      <div className="flex gap-1 bg-muted/50 p-1 rounded-lg w-fit mb-6 overflow-x-auto">
         {[
+          { id: "plans" as const, icon: Crown, label: "Plans" },
           { id: "general" as const, icon: Globe, label: "General" },
           { id: "catalogue" as const, icon: Package, label: "Catalogue" },
           { id: "integration" as const, icon: Link2, label: "Integration" },
@@ -200,12 +536,31 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
           <button
             key={s.id}
             onClick={() => setActiveSection(s.id)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeSection === s.id ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeSection === s.id ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
             <s.icon size={14} /> {s.label}
+            {s.id === "plans" && (subscription || proRequest) && (
+              <span className="w-1.5 h-1.5 rounded-full bg-primary ml-0.5" />
+            )}
           </button>
         ))}
       </div>
+
+      {/* ── Plans ─────────────────────────────────────────────── */}
+      {activeSection === "plans" && (
+        <PricingSection
+          org={org}
+          subscription={subscription}
+          proRequest={proRequest}
+          canEdit={canEdit}
+          onPaymentStarted={() => {
+            toast({
+              title: "Payment Window Opened",
+              description: "Complete the payment in the new tab. Come back and refresh to see your plan status.",
+            });
+          }}
+        />
+      )}
 
       {/* ── General Settings ─────────────────────────────────── */}
       {activeSection === "general" && (

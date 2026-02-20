@@ -1276,6 +1276,148 @@ export type Database = {
         }
         Relationships: []
       }
+      website_builder_requests: {
+        Row: {
+          assigned_at: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          gateway_checkout_url: string | null
+          gateway_reference: string | null
+          id: string
+          monthly_maintenance: number
+          notes: string | null
+          one_time_fee: number
+          org_id: string
+          paid_at: string | null
+          payment_gateway: string | null
+          payment_status: string
+          plan: string
+          platform_fee: number
+          requested_at: string
+          status: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          id?: string
+          monthly_maintenance?: number
+          notes?: string | null
+          one_time_fee?: number
+          org_id: string
+          paid_at?: string | null
+          payment_gateway?: string | null
+          payment_status?: string
+          plan?: string
+          platform_fee?: number
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          id?: string
+          monthly_maintenance?: number
+          notes?: string | null
+          one_time_fee?: number
+          org_id?: string
+          paid_at?: string | null
+          payment_gateway?: string | null
+          payment_status?: string
+          plan?: string
+          platform_fee?: number
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_builder_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_builder_subscriptions: {
+        Row: {
+          activated_at: string | null
+          auto_renew: boolean
+          cancelled_at: string | null
+          created_at: string
+          gateway_checkout_url: string | null
+          gateway_reference: string | null
+          id: string
+          monthly_fee: number
+          org_id: string
+          payment_gateway: string | null
+          plan: string
+          platform_fee: number
+          status: string
+          trial_end: string
+          trial_start: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          auto_renew?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          id?: string
+          monthly_fee?: number
+          org_id: string
+          payment_gateway?: string | null
+          plan?: string
+          platform_fee?: number
+          status?: string
+          trial_end?: string
+          trial_start?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          auto_renew?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          id?: string
+          monthly_fee?: number
+          org_id?: string
+          payment_gateway?: string | null
+          plan?: string
+          platform_fee?: number
+          status?: string
+          trial_end?: string
+          trial_start?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_builder_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
