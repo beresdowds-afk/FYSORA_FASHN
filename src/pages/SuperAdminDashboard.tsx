@@ -441,12 +441,15 @@ const WebsiteRequestsPanel = () => {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
-  const [noteInput, setNoteInput] = useState<Record<string, string>>({});
-  const [urlInput, setUrlInput] = useState<Record<string, string>>({});
+  const [assignModalOpen, setAssignModalOpen] = useState<string | null>(null);
+  const [completeModalOpen, setCompleteModalOpen] = useState<string | null>(null);
+  const [assignTo, setAssignTo] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [superAdmins, setSuperAdmins] = useState<{ user_id: string; display_name: string | null }[]>([]);
 
   const load = async () => {
     setLoading(true);
-    const [reqResult, subResult] = await Promise.all([
+    const [reqResult, subResult, adminsResult] = await Promise.all([
       supabase
         .from("website_builder_requests")
         .select("*, organizations(name, slug, email)")
@@ -455,23 +458,29 @@ const WebsiteRequestsPanel = () => {
         .from("website_builder_subscriptions")
         .select("*, organizations(name, slug)")
         .order("created_at", { ascending: false }),
+      supabase
+        .from("user_roles")
+        .select("user_id, profiles:user_id(display_name)")
+        .eq("role", "super_admin"),
     ]);
     setRequests(reqResult.data || []);
     setSubscriptions(subResult.data || []);
+    setSuperAdmins(
+      (adminsResult.data || []).map((a: any) => ({
+        user_id: a.user_id,
+        display_name: (a.profiles as any)?.display_name || "Admin",
+      }))
+    );
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const updateRequestStatus = async (id: string, status: string, websiteUrl?: string) => {
+  const updateRequestStatus = async (id: string, status: string, extra?: Record<string, any>) => {
     setUpdating(id);
-    const updateData: any = { status };
-    if (status === "completed") {
-      updateData.completed_at = new Date().toISOString();
-      if (websiteUrl) updateData.website_url = websiteUrl;
-    } else if (status === "assigned") {
-      updateData.assigned_at = new Date().toISOString();
-    }
+    const updateData: any = { status, ...extra };
+    if (status === "completed") updateData.completed_at = new Date().toISOString();
+    if (status === "assigned") updateData.assigned_at = new Date().toISOString();
 
     const { error } = await supabase
       .from("website_builder_requests")
@@ -487,6 +496,20 @@ const WebsiteRequestsPanel = () => {
     setUpdating(null);
   };
 
+  const handleAssign = () => {
+    if (!assignTo || !assignModalOpen) return;
+    updateRequestStatus(assignModalOpen, "assigned", { assigned_to: assignTo });
+    setAssignModalOpen(null);
+    setAssignTo("");
+  };
+
+  const handleComplete = () => {
+    if (!websiteUrl || !completeModalOpen) return;
+    updateRequestStatus(completeModalOpen, "completed", { website_url: websiteUrl });
+    setCompleteModalOpen(null);
+    setWebsiteUrl("");
+  };
+
   const statusColors: Record<string, string> = {
     pending: "bg-yellow-500/10 text-yellow-600",
     assigned: "bg-blue-500/10 text-blue-600",
@@ -494,6 +517,14 @@ const WebsiteRequestsPanel = () => {
     completed: "bg-green-500/10 text-green-600",
     cancelled: "bg-destructive/10 text-destructive",
   };
+
+  // Stats
+  const pending = requests.filter((r) => r.status === "pending").length;
+  const assigned = requests.filter((r) => r.status === "assigned" || r.status === "in_progress").length;
+  const completed30 = requests.filter(
+    (r) => r.status === "completed" && new Date(r.completed_at).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000
+  ).length;
+  const totalFees = requests.reduce((sum, r) => sum + (r.platform_fee || 0), 0);
 
   if (loading) {
     return (
@@ -505,16 +536,39 @@ const WebsiteRequestsPanel = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-      <div>
-        <h1 className="font-heading font-bold text-2xl">Website Builder</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage Pro plan requests and monitor Lite subscriptions.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading font-bold text-2xl">🌐 Website Builder</h1>
+          <p className="text-muted-foreground text-sm mt-1">Manage Pro plan requests and monitor Lite subscriptions.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={load}>
+          ↻ Refresh
+        </Button>
       </div>
 
-      {/* Pro Requests */}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Pending Requests", value: pending, icon: Clock, color: "text-yellow-600", bg: "bg-yellow-500/10" },
+          { label: "Assigned", value: assigned, icon: Users, color: "text-blue-600", bg: "bg-blue-500/10" },
+          { label: "Completed (30d)", value: completed30, icon: CheckCircle2, color: "text-green-600", bg: "bg-green-500/10" },
+          { label: "Total Platform Fees", value: `$${totalFees}`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
+        ].map((stat) => (
+          <div key={stat.label} className="p-4 rounded-xl bg-card border border-border">
+            <div className={`w-9 h-9 rounded-lg ${stat.bg} flex items-center justify-center mb-3`}>
+              <stat.icon size={18} className={stat.color} />
+            </div>
+            <p className="font-heading font-bold text-2xl">{stat.value}</p>
+            <p className="text-muted-foreground text-xs mt-0.5">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Pro Requests Table */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Crown size={16} className="text-accent" />
-          <h2 className="font-heading font-semibold text-lg">Pro Plan Requests ({requests.length})</h2>
+          <h2 className="font-heading font-semibold text-lg">Pro Plan Requests</h2>
         </div>
 
         {requests.length === 0 ? (
@@ -523,87 +577,77 @@ const WebsiteRequestsPanel = () => {
             <p className="text-muted-foreground text-sm">No Pro plan requests yet.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {requests.map((req) => (
-              <div key={req.id} className="rounded-xl bg-card border border-border p-5 space-y-4">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-semibold">{req.organizations?.name || req.org_id}</p>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[req.status] || "bg-muted text-muted-foreground"}`}>
-                        {req.status.replace("_", " ")}
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${req.payment_status === "paid" ? "bg-green-500/10 text-green-600" : "bg-yellow-500/10 text-yellow-600"}`}>
-                        Payment: {req.payment_status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {req.organizations?.email} · Slug: {req.organizations?.slug}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      One-time: ${req.one_time_fee} · Platform fee: ${req.platform_fee} · Monthly: ${req.monthly_maintenance}/mo
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Requested: {new Date(req.requested_at).toLocaleDateString()}
-                      {req.paid_at && ` · Paid: ${new Date(req.paid_at).toLocaleDateString()}`}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    {req.status === "pending" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={updating === req.id}
-                        onClick={() => updateRequestStatus(req.id, "assigned")}
-                      >
-                        Mark Assigned
-                      </Button>
-                    )}
-                    {(req.status === "assigned" || req.status === "in_progress") && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={updating === req.id}
-                        onClick={() => updateRequestStatus(req.id, "in_progress")}
-                      >
-                        Mark In Progress
-                      </Button>
-                    )}
-                    {req.status !== "completed" && req.status !== "cancelled" && (
-                      <div className="flex gap-2">
-                        <input
-                          value={urlInput[req.id] || ""}
-                          onChange={(e) => setUrlInput({ ...urlInput, [req.id]: e.target.value })}
-                          placeholder="Website URL..."
-                          className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm w-48"
-                        />
-                        <Button
-                          size="sm"
-                          variant="hero"
-                          disabled={updating === req.id}
-                          onClick={() => updateRequestStatus(req.id, "completed", urlInput[req.id])}
-                        >
-                          <CheckCircle2 size={13} className="mr-1" /> Complete
-                        </Button>
-                      </div>
-                    )}
-                    {req.status === "completed" && req.website_url && (
-                      <a href={req.website_url} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" variant="outline">
-                          <ExternalLink size={13} className="mr-1" /> View Site
-                        </Button>
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                {req.gateway_reference && (
-                  <p className="text-xs text-muted-foreground font-mono">
-                    Reference: {req.gateway_reference}
-                  </p>
-                )}
-              </div>
-            ))}
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-muted/50">
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Organization</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Date</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Amount</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Platform Fee</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Payment</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Status</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Assigned To</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((req) => (
+                    <tr key={req.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-medium">{req.organizations?.name || "Unknown"}</p>
+                        <p className="text-xs text-muted-foreground">{req.organizations?.email}</p>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {new Date(req.requested_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium">${req.one_time_fee}</td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">${req.platform_fee}</td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${req.payment_status === "paid" ? "bg-green-500/10 text-green-600" : "bg-yellow-500/10 text-yellow-600"}`}>
+                          {req.payment_status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[req.status] || "bg-muted text-muted-foreground"}`}>
+                          {req.status.replace("_", " ")}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">{req.assigned_to || "—"}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1.5">
+                          {req.status === "pending" && (
+                            <Button size="sm" variant="outline" className="text-xs h-7" disabled={updating === req.id} onClick={() => setAssignModalOpen(req.id)}>
+                              Assign
+                            </Button>
+                          )}
+                          {(req.status === "assigned" || req.status === "in_progress") && (
+                            <>
+                              {req.status === "assigned" && (
+                                <Button size="sm" variant="outline" className="text-xs h-7" disabled={updating === req.id} onClick={() => updateRequestStatus(req.id, "in_progress")}>
+                                  Start
+                                </Button>
+                              )}
+                              <Button size="sm" variant="hero" className="text-xs h-7" disabled={updating === req.id} onClick={() => setCompleteModalOpen(req.id)}>
+                                <CheckCircle2 size={12} className="mr-1" /> Complete
+                              </Button>
+                            </>
+                          )}
+                          {req.status === "completed" && req.website_url && (
+                            <a href={req.website_url} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="outline" className="text-xs h-7">
+                                <ExternalLink size={12} className="mr-1" /> View
+                              </Button>
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -666,6 +710,68 @@ const WebsiteRequestsPanel = () => {
           </div>
         )}
       </div>
+
+      {/* Assign Modal */}
+      {assignModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setAssignModalOpen(null)}>
+          <div className="bg-card rounded-xl border border-border p-6 w-full max-w-md shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-heading font-semibold text-lg mb-4">Assign Request</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Select Admin</label>
+                <select
+                  value={assignTo}
+                  onChange={(e) => setAssignTo(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Choose admin...</option>
+                  {superAdmins.map((sa) => (
+                    <option key={sa.user_id} value={sa.display_name || sa.user_id}>
+                      {sa.display_name || sa.user_id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" size="sm" onClick={() => setAssignModalOpen(null)}>
+                  Cancel
+                </Button>
+                <Button variant="hero" size="sm" disabled={!assignTo} onClick={handleAssign}>
+                  Assign
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Modal */}
+      {completeModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setCompleteModalOpen(null)}>
+          <div className="bg-card rounded-xl border border-border p-6 w-full max-w-md shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-heading font-semibold text-lg mb-4">Complete Implementation</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Website URL</label>
+                <input
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  placeholder="https://business.fashionstitches.africa"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" size="sm" onClick={() => setCompleteModalOpen(null)}>
+                  Cancel
+                </Button>
+                <Button variant="hero" size="sm" disabled={!websiteUrl} onClick={handleComplete}>
+                  <CheckCircle2 size={13} className="mr-1" /> Mark Complete
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };
