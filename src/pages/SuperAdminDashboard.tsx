@@ -507,11 +507,49 @@ const WebsiteRequestsPanel = () => {
     setAssignTo("");
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!websiteUrl || !completeModalOpen) return;
-    updateRequestStatus(completeModalOpen, "completed", { website_url: websiteUrl });
+    setUpdating(completeModalOpen);
+
+    // 1. Update request status to completed
+    const { error: reqError } = await supabase
+      .from("website_builder_requests")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        website_url: websiteUrl,
+        payment_status: "paid",
+      })
+      .eq("id", completeModalOpen);
+
+    if (reqError) {
+      toast({ title: "Error", description: reqError.message, variant: "destructive" });
+      setUpdating(null);
+      return;
+    }
+
+    // 2. Find the org_id for this request and activate Pro subscription
+    const req = requests.find((r) => r.id === completeModalOpen);
+    if (req?.org_id) {
+      // Upsert the subscription to Pro active
+      await supabase.from("website_builder_subscriptions").upsert(
+        {
+          org_id: req.org_id,
+          plan: "pro",
+          status: "active",
+          activated_at: new Date().toISOString(),
+          monthly_fee: req.monthly_maintenance || 7,
+          platform_fee: req.platform_fee || 140,
+        },
+        { onConflict: "org_id" }
+      );
+    }
+
+    toast({ title: "✅ Pro website activated", description: `Website is now live at ${websiteUrl}` });
     setCompleteModalOpen(null);
     setWebsiteUrl("");
+    setUpdating(null);
+    load();
   };
 
   const statusColors: Record<string, string> = {
