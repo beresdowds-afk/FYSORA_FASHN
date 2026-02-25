@@ -577,6 +577,16 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
   useEffect(() => { load(); }, [org.id]);
 
   const handleSaveSettings = async () => {
+    // Save guard: require active plan
+    if (!hasActivePlan) {
+      toast({
+        title: "No active plan",
+        description: "You need an active Website Builder plan to save settings. Choose a plan first.",
+        variant: "destructive",
+      });
+      setActiveSection("plans");
+      return;
+    }
     setSaving(true);
     const payload = {
       org_id: org.id,
@@ -839,10 +849,57 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       {/* ── Catalogue ────────────────────────────────────────── */}
       {activeSection === "catalogue" && (
         <div className="space-y-4">
+          {/* Catalogue limit warning */}
+          {(() => {
+            const limits = getTierLimits(currentTier);
+            const atLimit = limits.maxProducts > 0 && catalogue.length >= limits.maxProducts;
+            const nearLimit = limits.maxProducts > 0 && catalogue.length >= limits.maxProducts * 0.8;
+            const noEcommerce = limits.maxProducts === 0 && currentTier === "lite";
+            if (noEcommerce) return (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2 text-sm">
+                <AlertCircle size={14} className="text-destructive shrink-0" />
+                <span>E-commerce catalogue is limited on the Lite plan (0 product slots). Items are display-only.</span>
+              </div>
+            );
+            if (atLimit) return (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={14} className="text-destructive shrink-0" />
+                  <span>You've reached your catalogue limit ({limits.maxProducts} items). <strong>Upgrade to Pro</strong> for up to 100 items.</span>
+                </div>
+                <Button size="sm" variant="outline" className="shrink-0 border-accent text-accent" onClick={() => setActiveSection("plans")}>
+                  <Crown size={12} className="mr-1" /> Upgrade
+                </Button>
+              </div>
+            );
+            if (nearLimit) return (
+              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 flex items-center gap-2 text-sm">
+                <AlertCircle size={14} className="text-yellow-600 shrink-0" />
+                <span>You're using {catalogue.length}/{limits.maxProducts} catalogue slots.</span>
+              </div>
+            );
+            return null;
+          })()}
+
           <div className="flex items-center justify-between">
             <h3 className="font-heading font-semibold text-lg">Catalogue Items ({catalogue.length})</h3>
             {canEdit && (
-              <Button variant="hero" size="sm" onClick={() => setAddingItem(true)}>
+              <Button
+                variant="hero"
+                size="sm"
+                disabled={(() => {
+                  const limits = getTierLimits(currentTier);
+                  return limits.maxProducts > 0 && catalogue.length >= limits.maxProducts;
+                })()}
+                onClick={() => {
+                  if (!hasActivePlan) {
+                    toast({ title: "No active plan", description: "Choose a Website Builder plan first.", variant: "destructive" });
+                    setActiveSection("plans");
+                    return;
+                  }
+                  setAddingItem(true);
+                }}
+              >
                 <Plus size={14} className="mr-1" /> Add Item
               </Button>
             )}
