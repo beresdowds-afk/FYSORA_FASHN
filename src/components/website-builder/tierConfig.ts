@@ -96,14 +96,113 @@ export function canAccessFeature(tier: string, feature: keyof TierFeatures): boo
 
 export interface UsageData {
   catalogueItems: number;
-  // Future: pages, storageMB, etc.
+  pages?: number;
+  storageMB?: number;
+  templates?: number;
+  customDomains?: number;
+}
+
+export interface WebsiteBuilderPermissions {
+  hasAccess: boolean;
+  tier: string;
+  status?: string;
+  trialDaysLeft?: number;
+  monthlyFee?: number;
+  maintenanceFee?: number;
+  features: TierFeatures;
+  limits: TierLimits;
+}
+
+export function checkPermissions(
+  subscription: { plan: string; status: string; trial_end: string; monthly_fee: number } | null,
+  proRequest: { payment_status: string; status: string; monthly_maintenance: number } | null,
+): WebsiteBuilderPermissions {
+  const hasPro = proRequest?.payment_status === "paid";
+  const tier = hasPro ? "pro" : subscription ? subscription.plan : "none";
+
+  if (!subscription && !hasPro) {
+    return {
+      hasAccess: false,
+      tier: "none",
+      features: getTierFeatures("lite"),
+      limits: getTierLimits("lite"),
+    };
+  }
+
+  const trialDaysLeft = subscription
+    ? Math.max(0, Math.ceil((new Date(subscription.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  return {
+    hasAccess: true,
+    tier,
+    status: hasPro ? proRequest!.status : subscription!.status,
+    trialDaysLeft,
+    monthlyFee: subscription?.monthly_fee,
+    maintenanceFee: hasPro ? proRequest!.monthly_maintenance : undefined,
+    features: getTierFeatures(tier),
+    limits: getTierLimits(tier),
+  };
+}
+
+/**
+ * Calculate prorated upgrade cost from Lite to Pro.
+ * Applies a discount for unused trial time (max 25% off).
+ */
+export function calculateUpgradeCost(
+  subscription: { status: string; trial_start: string; trial_end: string; monthly_fee: number } | null,
+  proOneTimeFee = 199,
+): { upgradeAmount: number; platformFee: number } {
+  if (!subscription || subscription.status !== "trial") {
+    return { upgradeAmount: proOneTimeFee, platformFee: 140 };
+  }
+
+  const trialStart = new Date(subscription.trial_start).getTime();
+  const trialEnd = new Date(subscription.trial_end).getTime();
+  const now = Date.now();
+  const totalDays = (trialEnd - trialStart) / (1000 * 60 * 60 * 24);
+  const daysUsed = (now - trialStart) / (1000 * 60 * 60 * 24);
+  const unusedRatio = Math.max(0, (totalDays - daysUsed) / totalDays);
+  const discount = Math.min(subscription.monthly_fee * unusedRatio, 50);
+
+  return {
+    upgradeAmount: Math.max(proOneTimeFee * 0.75, proOneTimeFee - discount),
+    platformFee: Math.max(100, 140 - discount * 0.7),
+  };
 }
 
 export function getUsagePercentages(tier: string, usage: UsageData) {
   const limits = getTierLimits(tier);
   return {
     products: limits.maxProducts === 0 ? 100 : Math.min(100, (usage.catalogueItems / limits.maxProducts) * 100),
-    pages: limits.maxPages === 999 ? 0 : 0, // Not tracked yet
-    storage: 0, // Not tracked yet
+    pages: limits.maxPages === 999 ? 0 : usage.pages ? Math.min(100, (usage.pages / limits.maxPages) * 100) : 0,
+    storage: usage.storageMB ? Math.min(100, (usage.storageMB / limits.maxStorageMB) * 100) : 0,
+    templates: usage.templates ? Math.min(100, (usage.templates / limits.maxTemplates) * 100) : 0,
+    customDomains: limits.customDomains === 0 ? 100 : usage.customDomains ? Math.min(100, (usage.customDomains / limits.customDomains) * 100) : 0,
+  };
+}
+
+/**
+ * Check if a specific feature operation is allowed.
+ * Returns { allowed, message } for UI feedback.
+ */
+export function checkFeatureAccess(
+  tier: string,
+  feature: "customDomain" | "ecommerce" | "seoTools" | "prioritySupport",
+): { allowed: boolean; message?: string } {
+  const features = getTierFeatures(tier);
+  const allowed = features[feature] === true;
+  if (allowed) return { allowed: true };
+
+  const featureLabels: Record<string, string> = {
+    customDomain: "Custom domains",
+    ecommerce: "E-commerce",
+    seoTools: "SEO tools",
+    prioritySupport: "Priority support",
+  };
+
+  return {
+    allowed: false,
+    message: `${featureLabels[feature] || feature} is a Pro feature. Please upgrade to Pro.`,
   };
 }

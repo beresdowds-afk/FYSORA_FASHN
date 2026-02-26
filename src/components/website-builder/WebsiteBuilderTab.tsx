@@ -9,7 +9,7 @@ import {
   ArrowRight, Sparkles, Star, Lock
 } from "lucide-react";
 import type { AppRole } from "@/hooks/useOrganization";
-import { getTierFeatures, getTierLimits } from "./tierConfig";
+import { getTierFeatures, getTierLimits, checkFeatureAccess, calculateUpgradeCost } from "./tierConfig";
 
 interface WebsiteSettings {
   id?: string;
@@ -835,6 +835,68 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Pro-gated: Custom Domain */}
+          {(() => {
+            const domainAccess = checkFeatureAccess(currentTier, "customDomain");
+            if (!domainAccess.allowed) {
+              return <UpgradePrompt featureName="Custom Domain" onUpgrade={() => setActiveSection("plans")} />;
+            }
+            return (
+              <div className="rounded-xl bg-card border border-border p-6 space-y-3">
+                <h3 className="font-heading font-semibold text-base">Custom Domain</h3>
+                <p className="text-xs text-muted-foreground">Point your own domain to your Fashion Stitches website (+$2/mo).</p>
+                <input
+                  placeholder="yourbrand.com"
+                  disabled={!canEdit}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            );
+          })()}
+
+          {/* Pro-gated: SEO Tools */}
+          {(() => {
+            const seoAccess = checkFeatureAccess(currentTier, "seoTools");
+            if (!seoAccess.allowed) {
+              return <UpgradePrompt featureName="SEO Optimization Tools" onUpgrade={() => setActiveSection("plans")} />;
+            }
+            return (
+              <div className="rounded-xl bg-card border border-border p-6 space-y-3">
+                <h3 className="font-heading font-semibold text-base">SEO Tools</h3>
+                <p className="text-xs text-muted-foreground">Optimize your website for search engines with meta tags, sitemaps, and more.</p>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Meta Title</label>
+                  <input disabled={!canEdit} placeholder="Your Brand | Custom Fashion"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Meta Description</label>
+                  <textarea disabled={!canEdit} rows={2} placeholder="Describe your business for search engines..."
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none" />
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Upgrade cost info for Lite users */}
+          {isLiteTier && subscription && (
+            <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 text-sm">
+              <p className="font-medium flex items-center gap-2 mb-1">
+                <Crown size={14} className="text-accent" /> Upgrade to Pro
+              </p>
+              {(() => {
+                const cost = calculateUpgradeCost(subscription as any);
+                return (
+                  <p className="text-xs text-muted-foreground">
+                    Your prorated upgrade cost: <strong className="text-foreground">${cost.upgradeAmount.toFixed(0)}</strong> one-time
+                    {" + "}<strong className="text-foreground">${cost.platformFee.toFixed(0)}</strong> platform fee.
+                    {subscription.status === "trial" && " Discount applied for unused trial time."}
+                  </p>
+                );
+              })()}
             </div>
           )}
 
