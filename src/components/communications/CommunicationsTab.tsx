@@ -1,8 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, History, UserCog } from "lucide-react";
+import { Settings, History, UserCog, Inbox, Route } from "lucide-react";
 import NotificationSettingsPanel from "./NotificationSettingsPanel";
 import MessageLogViewer from "./MessageLogViewer";
 import UserNotificationPreferences from "./UserNotificationPreferences";
+import MessageInbox from "./MessageInbox";
+import RoutingRulesPanel from "./RoutingRulesPanel";
 
 interface CommunicationsTabProps {
   orgId: string;
@@ -15,11 +17,19 @@ const CommunicationsTab = ({ orgId, role }: CommunicationsTabProps) => {
   return (
     <div>
       <h2 className="font-heading font-bold text-2xl mb-6">Communications Hub</h2>
-      <Tabs defaultValue={isAdmin ? "settings" : "preferences"}>
+      <Tabs defaultValue="inbox">
         <TabsList className="mb-6">
+          <TabsTrigger value="inbox" className="gap-2">
+            <Inbox size={14} /> Inbox
+          </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="settings" className="gap-2">
               <Settings size={14} /> Org Settings
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="routing" className="gap-2">
+              <Route size={14} /> Routing Rules
             </TabsTrigger>
           )}
           <TabsTrigger value="preferences" className="gap-2">
@@ -30,9 +40,17 @@ const CommunicationsTab = ({ orgId, role }: CommunicationsTabProps) => {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="inbox">
+          <MessageInbox orgId={orgId} />
+        </TabsContent>
         {isAdmin && (
           <TabsContent value="settings">
             <NotificationSettingsPanel orgId={orgId} isAdmin={isAdmin} />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="routing">
+            <RoutingRulesPanel orgId={orgId} />
           </TabsContent>
         )}
         <TabsContent value="preferences">

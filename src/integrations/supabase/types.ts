@@ -204,6 +204,69 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_messages: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          from_number: string
+          id: string
+          is_read: boolean
+          media_urls: Json | null
+          message_sid: string | null
+          num_media: number | null
+          org_id: string
+          raw_event: Json | null
+          thread_id: string | null
+          to_number: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          from_number: string
+          id?: string
+          is_read?: boolean
+          media_urls?: Json | null
+          message_sid?: string | null
+          num_media?: number | null
+          org_id: string
+          raw_event?: Json | null
+          thread_id?: string | null
+          to_number: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          from_number?: string
+          id?: string
+          is_read?: boolean
+          media_urls?: Json | null
+          message_sid?: string | null
+          num_media?: number | null
+          org_id?: string
+          raw_event?: Json | null
+          thread_id?: string | null
+          to_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       measurement_profiles: {
         Row: {
           created_at: string
@@ -311,6 +374,130 @@ export type Database = {
           },
         ]
       }
+      message_routing_rules: {
+        Row: {
+          action_type: string
+          auto_response: string | null
+          channel: string | null
+          condition_type: string
+          created_at: string
+          description: string | null
+          enabled: boolean
+          end_time: string | null
+          forward_to: string | null
+          history_type: string | null
+          id: string
+          keywords: string[] | null
+          name: string
+          org_id: string
+          priority: number
+          sentiment: string | null
+          start_time: string | null
+          time_type: string | null
+          updated_at: string
+          webhook_url: string | null
+        }
+        Insert: {
+          action_type?: string
+          auto_response?: string | null
+          channel?: string | null
+          condition_type?: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          end_time?: string | null
+          forward_to?: string | null
+          history_type?: string | null
+          id?: string
+          keywords?: string[] | null
+          name: string
+          org_id: string
+          priority?: number
+          sentiment?: string | null
+          start_time?: string | null
+          time_type?: string | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Update: {
+          action_type?: string
+          auto_response?: string | null
+          channel?: string | null
+          condition_type?: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          end_time?: string | null
+          forward_to?: string | null
+          history_type?: string | null
+          id?: string
+          keywords?: string[] | null
+          name?: string
+          org_id?: string
+          priority?: number
+          sentiment?: string | null
+          start_time?: string | null
+          time_type?: string | null
+          updated_at?: string
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_routing_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_threads: {
+        Row: {
+          channel: string
+          created_at: string
+          customer_number: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          message_count: number
+          org_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          customer_number: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          message_count?: number
+          org_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          customer_number?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          message_count?: number
+          org_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_threads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -352,6 +539,44 @@ export type Database = {
           },
           {
             foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opt_out_registry: {
+        Row: {
+          created_at: string
+          customer_number: string
+          id: string
+          opted_in_at: string | null
+          opted_out_at: string | null
+          org_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          customer_number: string
+          id?: string
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          org_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          customer_number?: string
+          id?: string
+          opted_in_at?: string | null
+          opted_out_at?: string | null
+          org_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opt_out_registry_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -768,6 +993,47 @@ export type Database = {
           },
         ]
       }
+      org_phone_numbers: {
+        Row: {
+          assigned_at: string | null
+          channel: string
+          created_at: string
+          id: string
+          messaging_service_sid: string | null
+          org_id: string
+          phone_number: string
+          status: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          messaging_service_sid?: string | null
+          org_id: string
+          phone_number: string
+          status?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          messaging_service_sid?: string | null
+          org_id?: string
+          phone_number?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_phone_numbers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_subscriptions: {
         Row: {
           billing_cycle: string
@@ -967,6 +1233,84 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      outbound_messages: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          error_message: string | null
+          from_number: string | null
+          id: string
+          in_reply_to: string | null
+          is_auto_reply: boolean
+          org_id: string
+          priority: string
+          retry_count: number
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          thread_id: string | null
+          to_number: string
+          twilio_sid: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          from_number?: string | null
+          id?: string
+          in_reply_to?: string | null
+          is_auto_reply?: boolean
+          org_id: string
+          priority?: string
+          retry_count?: number
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          thread_id?: string | null
+          to_number: string
+          twilio_sid?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          from_number?: string | null
+          id?: string
+          in_reply_to?: string | null
+          is_auto_reply?: boolean
+          org_id?: string
+          priority?: string
+          retry_count?: number
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          thread_id?: string | null
+          to_number?: string
+          twilio_sid?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbound_messages_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {

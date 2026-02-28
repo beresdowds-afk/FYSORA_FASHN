@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.notify-admin-registration]
 verify_jwt = false
+
+[functions.twilio-webhook]
+verify_jwt = false
