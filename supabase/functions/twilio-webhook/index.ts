@@ -23,18 +23,384 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const route = url.searchParams.get("route") || "";
 
-    // Handle status callbacks
+    // Voice routes
+    if (route === "voice-inbound") {
+      return await handleInboundCall(req, supabaseAdmin);
+    }
+    if (route === "voice-status") {
+      return await handleCallStatusCallback(req, supabaseAdmin);
+    }
+    if (route === "voice-ivr") {
+      return await handleIvrGather(req, supabaseAdmin);
+    }
+    if (route === "voice-recording-status") {
+      return await handleRecordingStatus(req, supabaseAdmin);
+    }
+
+    // Outbound call initiation (JSON, from dashboard)
+    if (route === "initiate-call") {
+      return await handleInitiateCall(req, supabaseAdmin);
+    }
+
+    // Message routes
     if (route === "message-status") {
       return await handleStatusCallback(req, supabaseAdmin);
     }
 
-    // Handle inbound messages (default)
+    // Default: inbound message
     return await handleInboundMessage(req, supabaseAdmin);
   } catch (err) {
     console.error("twilio-webhook error:", err);
-    return twimlResponse("Error processing message");
+    return twimlResponse("Error processing request");
   }
 });
+
+// ==================== VOICE HANDLERS ====================
+
+async function handleInboundCall(req: Request, supabase: any) {
+  const formData = await req.formData();
+  const params: Record<string, string> = {};
+  formData.forEach((v, k) => { params[k] = v.toString(); });
+
+  const callSid = params.CallSid || "";
+  const from = params.From || "";
+  const to = params.To || "";
+  const callerName = params.CallerName || "";
+
+  // Detect org by phone number
+  const { data: phoneMapping } = await supabase
+    .from("org_phone_numbers")
+    .select("org_id")
+    .eq("phone_number", to)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (!phoneMapping) {
+    console.error(`No organization found for voice number: ${to}`);
+    return twimlVoiceResponse('<Say voice="alice">Sorry, this number is not configured. Goodbye.</Say><Hangup/>');
+  }
+
+  const orgId = phoneMapping.org_id;
+
+  // Log the inbound call
+  await supabase.from("call_logs").insert({
+    org_id: orgId,
+    direction: "inbound",
+    call_sid: callSid,
+    from_number: from,
+    to_number: to,
+    status: "ringing",
+    caller_name: callerName || null,
+    started_at: new Date().toISOString(),
+  });
+
+  // Get org info for greeting
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("name")
+    .eq("id", orgId)
+    .single();
+
+  const orgName = org?.name || "our business";
+
+  // Check for call routing rules (forwarding numbers)
+  const { data: _rules } = await supabase
+    .from("message_routing_rules")
+    .select("*")
+    .eq("org_id", orgId)
+    .eq("enabled", true)
+    .eq("condition_type", "always")
+    .eq("action_type", "forward")
+    .order("priority", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  // Build IVR menu
+  const functionUrl = Deno.env.get("SUPABASE_URL")! + "/functions/v1/twilio-webhook";
+
+  const gatherUrl = `${functionUrl}?route=voice-ivr&org_id=${orgId}&call_sid=${callSid}`;
+
+  const twiml = `
+    <Say voice="alice">Thank you for calling ${escapeXml(orgName)}.</Say>
+    <Gather numDigits="1" action="${gatherUrl}" method="POST" timeout="8">
+      <Say voice="alice">
+        Press 1 to speak with our team.
+        Press 2 to leave a voicemail.
+        Press 3 to hear our business hours.
+      </Say>
+    </Gather>
+    <Say voice="alice">We didn't receive any input. Goodbye.</Say>
+    <Hangup/>
+  `;
+
+  return twimlVoiceResponse(twiml);
+}
+
+async function handleIvrGather(req: Request, supabase: any) {
+  const url = new URL(req.url);
+  const orgId = url.searchParams.get("org_id") || "";
+  const callSid = url.searchParams.get("call_sid") || "";
+
+  const formData = await req.formData();
+  const digits = formData.get("Digits")?.toString() || "";
+
+  const functionUrl = Deno.env.get("SUPABASE_URL")! + "/functions/v1/twilio-webhook";
+
+  // Track IVR navigation
+  await supabase
+    .from("call_logs")
+    .update({ ivr_path: [digits] })
+    .eq("call_sid", callSid);
+
+  switch (digits) {
+    case "1": {
+      // Connect to team - look for a forwarding number
+      const { data: orgPhones } = await supabase
+        .from("org_phone_numbers")
+        .select("phone_number")
+        .eq("org_id", orgId)
+        .eq("channel", "voice_forward")
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+
+      if (orgPhones?.phone_number) {
+        const recordingStatusUrl = `${functionUrl}?route=voice-recording-status&call_sid=${callSid}`;
+        return twimlVoiceResponse(`
+          <Say voice="alice">Connecting you now. This call may be recorded for quality purposes.</Say>
+          <Record recordingStatusCallback="${recordingStatusUrl}" recordingStatusCallbackMethod="POST" timeout="3" playBeep="false" />
+          <Dial callerId="${orgPhones.phone_number}" timeout="30" record="record-from-answer-dual" recordingStatusCallback="${recordingStatusUrl}" recordingStatusCallbackMethod="POST">
+            <Number>${orgPhones.phone_number}</Number>
+          </Dial>
+          <Say voice="alice">Sorry, no one is available right now. Please try again later. Goodbye.</Say>
+          <Hangup/>
+        `);
+      }
+
+      return twimlVoiceResponse(`
+        <Say voice="alice">Sorry, no agents are available right now. Please leave a message after the beep and we will get back to you.</Say>
+        <Record maxLength="120" action="${functionUrl}?route=voice-status" transcribe="true" />
+        <Say voice="alice">Goodbye.</Say>
+        <Hangup/>
+      `);
+    }
+
+    case "2": {
+      // Voicemail
+      const recordingStatusUrl = `${functionUrl}?route=voice-recording-status&call_sid=${callSid}`;
+      return twimlVoiceResponse(`
+        <Say voice="alice">Please leave your message after the beep. Press pound when you are finished.</Say>
+        <Record maxLength="180" finishOnKey="#" recordingStatusCallback="${recordingStatusUrl}" recordingStatusCallbackMethod="POST" />
+        <Say voice="alice">Thank you for your message. Goodbye.</Say>
+        <Hangup/>
+      `);
+    }
+
+    case "3": {
+      // Business hours
+      return twimlVoiceResponse(`
+        <Say voice="alice">Our business hours are Monday through Friday, 9 AM to 5 PM. 
+        We are closed on weekends and public holidays.
+        Thank you for calling. Goodbye.</Say>
+        <Hangup/>
+      `);
+    }
+
+    default:
+      return twimlVoiceResponse(`
+        <Say voice="alice">Invalid selection. Goodbye.</Say>
+        <Hangup/>
+      `);
+  }
+}
+
+async function handleCallStatusCallback(req: Request, supabase: any) {
+  const formData = await req.formData();
+  const params: Record<string, string> = {};
+  formData.forEach((v, k) => { params[k] = v.toString(); });
+
+  const callSid = params.CallSid || "";
+  const callStatus = params.CallStatus || "";
+  const duration = parseInt(params.CallDuration || "0");
+
+  if (callSid) {
+    const updates: Record<string, any> = {
+      status: callStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (duration > 0) updates.duration_seconds = duration;
+    if (callStatus === "in-progress") updates.answered_at = new Date().toISOString();
+    if (["completed", "busy", "no-answer", "canceled", "failed"].includes(callStatus)) {
+      updates.ended_at = new Date().toISOString();
+    }
+
+    await supabase.from("call_logs").update(updates).eq("call_sid", callSid);
+  }
+
+  return new Response("", { status: 200 });
+}
+
+async function handleRecordingStatus(req: Request, supabase: any) {
+  const url = new URL(req.url);
+  const callSid = url.searchParams.get("call_sid") || "";
+
+  const formData = await req.formData();
+  const recordingUrl = formData.get("RecordingUrl")?.toString() || "";
+  const recordingSid = formData.get("RecordingSid")?.toString() || "";
+
+  if (callSid && recordingUrl) {
+    await supabase
+      .from("call_logs")
+      .update({ recording_url: recordingUrl, recording_sid: recordingSid })
+      .eq("call_sid", callSid);
+  }
+
+  return new Response("", { status: 200 });
+}
+
+async function handleInitiateCall(req: Request, supabase: any) {
+  // This endpoint is called from the dashboard to initiate outbound calls
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const userClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(
+    authHeader.replace("Bearer ", "")
+  );
+
+  if (claimsError || !claimsData?.claims) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const userId = claimsData.claims.sub;
+
+  const { to, orgId } = await req.json();
+
+  if (!to || !orgId) {
+    return new Response(JSON.stringify({ error: "Missing 'to' or 'orgId'" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Verify user is org member
+  const { data: member } = await supabase
+    .from("org_members")
+    .select("role")
+    .eq("org_id", orgId)
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!member) {
+    return new Response(JSON.stringify({ error: "Not an org member" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Get org phone number
+  const { data: orgPhone } = await supabase
+    .from("org_phone_numbers")
+    .select("phone_number")
+    .eq("org_id", orgId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (!orgPhone) {
+    return new Response(JSON.stringify({ error: "No phone number configured for this organization" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+    return new Response(JSON.stringify({ error: "Twilio credentials not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const functionUrl = Deno.env.get("SUPABASE_URL")! + "/functions/v1/twilio-webhook";
+  const statusUrl = `${functionUrl}?route=voice-status`;
+  const recordingStatusUrl = `${functionUrl}?route=voice-recording-status`;
+
+  // Create the call via Twilio API
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Calls.json`;
+  const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+
+  const twimlForOutbound = `<Response><Say voice="alice">Connecting your call.</Say><Dial record="record-from-answer-dual" recordingStatusCallback="${recordingStatusUrl}" recordingStatusCallbackMethod="POST"><Number>${to}</Number></Dial></Response>`;
+
+  const callParams = new URLSearchParams({
+    To: to,
+    From: orgPhone.phone_number,
+    Twiml: twimlForOutbound,
+    StatusCallback: statusUrl,
+    StatusCallbackEvent: "initiated ringing answered completed",
+    StatusCallbackMethod: "POST",
+  });
+
+  try {
+    const res = await fetch(twilioUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: callParams.toString(),
+    });
+
+    const data = await res.json();
+
+    if (data.sid) {
+      // Log outbound call
+      await supabase.from("call_logs").insert({
+        org_id: orgId,
+        direction: "outbound",
+        call_sid: data.sid,
+        from_number: orgPhone.phone_number,
+        to_number: to,
+        status: "initiated",
+        started_at: new Date().toISOString(),
+      });
+
+      return new Response(JSON.stringify({ success: true, callSid: data.sid }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: data.message || "Failed to initiate call" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("Outbound call error:", e);
+    return new Response(JSON.stringify({ error: "Failed to initiate call" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+}
+
+// ==================== MESSAGE HANDLERS (existing) ====================
 
 async function handleInboundMessage(req: Request, supabase: any) {
   // Parse form-encoded Twilio webhook payload
@@ -51,14 +417,12 @@ async function handleInboundMessage(req: Request, supabase: any) {
   const numMedia = parseInt(params.NumMedia || "0");
   const channel = detectChannel(to, from);
 
-  // Extract media URLs
   const mediaUrls: string[] = [];
   for (let i = 0; i < numMedia; i++) {
     const url = params[`MediaUrl${i}`];
     if (url) mediaUrls.push(url);
   }
 
-  // Detect organization by phone number
   const cleanTo = to.replace("whatsapp:", "");
   const { data: phoneMapping } = await supabase
     .from("org_phone_numbers")
@@ -75,7 +439,6 @@ async function handleInboundMessage(req: Request, supabase: any) {
   const orgId = phoneMapping.org_id;
   const cleanFrom = from.replace("whatsapp:", "");
 
-  // Check opt-out status
   const { data: optOut } = await supabase
     .from("opt_out_registry")
     .select("id")
@@ -84,7 +447,6 @@ async function handleInboundMessage(req: Request, supabase: any) {
     .eq("status", "opted_out")
     .maybeSingle();
 
-  // Handle opt-out keywords
   const bodyLower = body.toLowerCase().trim();
   if (OPT_OUT_KEYWORDS.includes(bodyLower)) {
     if (!optOut) {
@@ -93,7 +455,6 @@ async function handleInboundMessage(req: Request, supabase: any) {
         customer_number: cleanFrom,
         status: "opted_out",
       });
-      // Notify org
       await supabase.from("notifications").insert({
         org_id: orgId,
         user_id: "00000000-0000-0000-0000-000000000000",
@@ -104,7 +465,6 @@ async function handleInboundMessage(req: Request, supabase: any) {
     return twimlResponse("You have been unsubscribed. Reply START to resubscribe.");
   }
 
-  // Handle opt-in keywords
   if (OPT_IN_KEYWORDS.includes(bodyLower) && optOut) {
     await supabase
       .from("opt_out_registry")
@@ -113,15 +473,12 @@ async function handleInboundMessage(req: Request, supabase: any) {
     return twimlResponse("You have been resubscribed. You will now receive messages.");
   }
 
-  // If opted out, silently ignore
   if (optOut) {
     return twimlResponse("");
   }
 
-  // Get or create thread
   const thread = await getOrCreateThread(supabase, orgId, cleanFrom, channel);
 
-  // Store inbound message
   await supabase.from("inbound_messages").insert({
     org_id: orgId,
     thread_id: thread.id,
@@ -135,7 +492,6 @@ async function handleInboundMessage(req: Request, supabase: any) {
     raw_event: params,
   });
 
-  // Update thread
   await supabase
     .from("message_threads")
     .update({
@@ -145,7 +501,6 @@ async function handleInboundMessage(req: Request, supabase: any) {
     })
     .eq("id", thread.id);
 
-  // Also log to message_logs for the existing Communications Hub
   await supabase.from("message_logs").insert({
     org_id: orgId,
     channel,
@@ -160,9 +515,7 @@ async function handleInboundMessage(req: Request, supabase: any) {
     sent_at: new Date().toISOString(),
   });
 
-  // Apply routing rules
   const responseText = await applyRoutingRules(supabase, orgId, body, channel, thread, cleanFrom);
-
   return twimlResponse(responseText || "");
 }
 
@@ -186,7 +539,6 @@ async function applyRoutingRules(
   for (const rule of rules) {
     if (evaluateRule(rule, messageBody, channel, thread)) {
       if (rule.action_type === "auto_reply" && rule.auto_response) {
-        // Queue auto-reply as outbound
         await supabase.from("outbound_messages").insert({
           org_id: orgId,
           thread_id: thread.id,
@@ -198,14 +550,11 @@ async function applyRoutingRules(
           is_auto_reply: true,
         });
 
-        // Send immediately via Twilio
         await sendTwilioMessage(supabase, orgId, customerNumber, rule.auto_response, channel);
-
         return rule.auto_response;
       }
 
       if (rule.action_type === "webhook" && rule.webhook_url) {
-        // Fire webhook in background
         try {
           await fetch(rule.webhook_url, {
             method: "POST",
@@ -224,7 +573,7 @@ async function applyRoutingRules(
         }
       }
 
-      break; // First matching rule wins
+      break;
     }
   }
 
@@ -237,13 +586,10 @@ function evaluateRule(rule: any, body: string, channel: string, thread: any): bo
   switch (rule.condition_type) {
     case "always":
       return true;
-
     case "keyword":
       return (rule.keywords || []).some((kw: string) => bodyLower.includes(kw.toLowerCase()));
-
     case "channel":
       return channel === rule.channel;
-
     case "time_based": {
       const now = new Date();
       const hour = now.getUTCHours();
@@ -258,13 +604,11 @@ function evaluateRule(rule: any, body: string, channel: string, thread: any): bo
       }
       return true;
     }
-
     case "customer_history":
       if (!thread) return false;
       if (rule.history_type === "new_customer") return (thread.message_count || 0) <= 1;
       if (rule.history_type === "returning_customer") return (thread.message_count || 0) > 5;
       return false;
-
     default:
       return false;
   }
@@ -298,7 +642,7 @@ async function sendTwilioMessage(
     toNumber = to;
   }
 
-  const params = new URLSearchParams({ To: toNumber, From: fromNumber, Body: body });
+  const msgParams = new URLSearchParams({ To: toNumber, From: fromNumber, Body: body });
 
   try {
     const res = await fetch(twilioUrl, {
@@ -307,17 +651,15 @@ async function sendTwilioMessage(
         Authorization: `Basic ${credentials}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: params.toString(),
+      body: msgParams.toString(),
     });
-    const data = await res.json();
-    return data;
+    return await res.json();
   } catch (e) {
     console.error("Twilio send error:", e);
   }
 }
 
 async function getOrCreateThread(supabase: any, orgId: string, customerNumber: string, channel: string) {
-  // Look for recent thread (within 30 days)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -334,7 +676,6 @@ async function getOrCreateThread(supabase: any, orgId: string, customerNumber: s
 
   if (existing) return existing;
 
-  // Create new thread
   const { data: newThread } = await supabase
     .from("message_threads")
     .insert({
@@ -356,7 +697,6 @@ async function handleStatusCallback(req: Request, supabase: any) {
   const status = formData.get("MessageStatus")?.toString() || "";
 
   if (messageSid && status) {
-    // Update outbound message status
     await supabase
       .from("outbound_messages")
       .update({ status: mapTwilioStatus(status), updated_at: new Date().toISOString() })
@@ -390,6 +730,14 @@ function twimlResponse(message: string) {
     message ? `<Message>${escapeXml(message)}</Message>` : ""
   }</Response>`;
 
+  return new Response(twiml, {
+    status: 200,
+    headers: { "Content-Type": "text/xml" },
+  });
+}
+
+function twimlVoiceResponse(innerTwiml: string) {
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>${innerTwiml}</Response>`;
   return new Response(twiml, {
     status: 200,
     headers: { "Content-Type": "text/xml" },

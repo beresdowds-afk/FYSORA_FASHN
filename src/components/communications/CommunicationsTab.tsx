@@ -1,10 +1,11 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, History, UserCog, Inbox, Route } from "lucide-react";
+import { Settings, History, UserCog, Inbox, Route, Phone } from "lucide-react";
 import NotificationSettingsPanel from "./NotificationSettingsPanel";
 import MessageLogViewer from "./MessageLogViewer";
 import UserNotificationPreferences from "./UserNotificationPreferences";
 import MessageInbox from "./MessageInbox";
 import RoutingRulesPanel from "./RoutingRulesPanel";
+import CallHistoryPanel from "./CallHistoryPanel";
 
 interface CommunicationsTabProps {
   orgId: string;
@@ -35,6 +36,9 @@ const CommunicationsTab = ({ orgId, role }: CommunicationsTabProps) => {
           <TabsTrigger value="preferences" className="gap-2">
             <UserCog size={14} /> My Preferences
           </TabsTrigger>
+          <TabsTrigger value="calls" className="gap-2">
+            <Phone size={14} /> Calls
+          </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <History size={14} /> Message Log
           </TabsTrigger>
@@ -55,6 +59,9 @@ const CommunicationsTab = ({ orgId, role }: CommunicationsTabProps) => {
         )}
         <TabsContent value="preferences">
           <UserNotificationPreferences orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="calls">
+          <CallHistoryPanel orgId={orgId} />
         </TabsContent>
         <TabsContent value="logs">
           <MessageLogViewer orgId={orgId} />

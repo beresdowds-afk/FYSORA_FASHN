@@ -118,6 +118,90 @@ export type Database = {
           },
         ]
       }
+      call_logs: {
+        Row: {
+          answered_at: string | null
+          call_sid: string | null
+          caller_name: string | null
+          created_at: string
+          direction: string
+          duration_seconds: number | null
+          ended_at: string | null
+          forwarded_to: string | null
+          from_number: string
+          id: string
+          ivr_path: string[] | null
+          notes: string | null
+          org_id: string
+          recording_sid: string | null
+          recording_url: string | null
+          started_at: string | null
+          status: string
+          thread_id: string | null
+          to_number: string
+          updated_at: string
+        }
+        Insert: {
+          answered_at?: string | null
+          call_sid?: string | null
+          caller_name?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          forwarded_to?: string | null
+          from_number: string
+          id?: string
+          ivr_path?: string[] | null
+          notes?: string | null
+          org_id: string
+          recording_sid?: string | null
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string
+          thread_id?: string | null
+          to_number: string
+          updated_at?: string
+        }
+        Update: {
+          answered_at?: string | null
+          call_sid?: string | null
+          caller_name?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          forwarded_to?: string | null
+          from_number?: string
+          id?: string
+          ivr_path?: string[] | null
+          notes?: string | null
+          org_id?: string
+          recording_sid?: string | null
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string
+          thread_id?: string | null
+          to_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_registrations: {
         Row: {
           created_at: string
