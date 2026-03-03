@@ -44,3 +44,12 @@ verify_jwt = false
 
 [functions.virtual-tryon]
 verify_jwt = false
+
+[functions.termii-send]
+verify_jwt = false
+
+[functions.carrier-rates]
+verify_jwt = false
+
+[functions.tracking-webhook]
+verify_jwt = false

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, Bell, CreditCard, Crown, MessageCircle, ClipboardList, Video, Globe, Sparkles } from "lucide-react";
+import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, Bell, CreditCard, Crown, MessageCircle, ClipboardList, Video, Globe, Sparkles, Truck, Scale } from "lucide-react";
 import CommunicationsTab from "@/components/communications/CommunicationsTab";
 import SubscriptionTab from "@/components/billing/SubscriptionTab";
 import { useOrgSubscription } from "@/hooks/useSubscription";
@@ -23,6 +23,8 @@ import { useUserGlobalRole } from "@/hooks/useOrganization";
 import RevenueAnalysisCard from "@/components/dashboard/RevenueAnalysisCard";
 import WebsiteBuilderTab from "@/components/website-builder/WebsiteBuilderTab";
 import PremiumFeaturesTab from "@/components/premium/PremiumFeaturesTab";
+import LogisticsTab from "@/components/logistics/LogisticsTab";
+import DisputesTab from "@/components/disputes/DisputesTab";
 
 const roleLabels: Record<AppRole, string> = {
   super_admin: "Super Admin",
@@ -44,7 +46,7 @@ const Dashboard = () => {
   const { isSuperAdmin } = useUserGlobalRole();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "customers" | "registrations" | "bookings" | "premium" | "members" | "communications" | "billing" | "website" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "customers" | "registrations" | "bookings" | "premium" | "logistics" | "disputes" | "members" | "communications" | "billing" | "website" | "settings">("overview");
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -170,6 +172,8 @@ const Dashboard = () => {
             { id: "registrations" as const, icon: ClipboardList, label: "Registrations" },
             { id: "bookings" as const, icon: Video, label: "AI Measurements" },
             { id: "premium" as const, icon: Sparkles, label: "Premium" },
+            { id: "logistics" as const, icon: Truck, label: "Logistics" },
+            { id: "disputes" as const, icon: Scale, label: "Disputes" },
             { id: "members" as const, icon: Users, label: "Team Members" },
             { id: "communications" as const, icon: MessageCircle, label: "Communications" },
             { id: "billing" as const, icon: CreditCard, label: "Billing" },
@@ -195,7 +199,7 @@ const Dashboard = () => {
         <main className="flex-1 min-w-0">
           {/* Mobile tabs */}
           <div className="flex md:hidden gap-2 mb-6 overflow-x-auto">
-            {["overview", "orders", "customers", "registrations", "bookings", "premium", "members", "communications", "billing", "website", "settings"].map((tab) => (
+            {["overview", "orders", "customers", "registrations", "bookings", "premium", "logistics", "disputes", "members", "communications", "billing", "website", "settings"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as typeof activeTab)}
@@ -214,6 +218,8 @@ const Dashboard = () => {
           {activeTab === "registrations" && <CustomerRegistrationsTab orgId={currentOrg.id} />}
           {activeTab === "bookings" && <MeasurementBookingsTab orgId={currentOrg.id} isAdmin={role === "org_admin" || role === "super_admin"} />}
           {activeTab === "premium" && <PremiumFeaturesTab orgId={currentOrg.id} role={role} />}
+          {activeTab === "logistics" && <LogisticsTab orgId={currentOrg.id} role={role} currency={currentOrg.currency || "NGN"} />}
+          {activeTab === "disputes" && <DisputesTab orgId={currentOrg.id} role={role} />}
           {activeTab === "members" && <MembersTab orgId={currentOrg.id} role={role} />}
           {activeTab === "communications" && <CommunicationsTab orgId={currentOrg.id} role={role} />}
           {activeTab === "billing" && <SubscriptionTab orgId={currentOrg.id} role={role} />}

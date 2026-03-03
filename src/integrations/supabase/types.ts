@@ -261,6 +261,193 @@ export type Database = {
           },
         ]
       }
+      delivery_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          escalated_at: string | null
+          flag_type: string
+          id: string
+          org_id: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          shipment_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          escalated_at?: string | null
+          flag_type?: string
+          id?: string
+          org_id: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          shipment_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          escalated_at?: string | null
+          flag_type?: string
+          id?: string
+          org_id?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          shipment_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_flags_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_flags_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disputes: {
+        Row: {
+          ai_auto_resolved: boolean | null
+          ai_classification: Json | null
+          ai_recommendation: string | null
+          ai_sentiment: string | null
+          category: string | null
+          compensation_amount: number | null
+          compensation_currency: string | null
+          compensation_type: string | null
+          created_at: string
+          description: string | null
+          dispute_type: string
+          escalated_at: string | null
+          escalation_level: number | null
+          evidence_urls: string[] | null
+          filed_against: string | null
+          filed_by: string
+          id: string
+          mediation_notes: string | null
+          mediation_scheduled_at: string | null
+          order_id: string | null
+          org_id: string
+          priority: string
+          resolution_notes: string | null
+          resolution_type: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          shipment_id: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          ai_auto_resolved?: boolean | null
+          ai_classification?: Json | null
+          ai_recommendation?: string | null
+          ai_sentiment?: string | null
+          category?: string | null
+          compensation_amount?: number | null
+          compensation_currency?: string | null
+          compensation_type?: string | null
+          created_at?: string
+          description?: string | null
+          dispute_type?: string
+          escalated_at?: string | null
+          escalation_level?: number | null
+          evidence_urls?: string[] | null
+          filed_against?: string | null
+          filed_by: string
+          id?: string
+          mediation_notes?: string | null
+          mediation_scheduled_at?: string | null
+          order_id?: string | null
+          org_id: string
+          priority?: string
+          resolution_notes?: string | null
+          resolution_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          shipment_id?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          ai_auto_resolved?: boolean | null
+          ai_classification?: Json | null
+          ai_recommendation?: string | null
+          ai_sentiment?: string | null
+          category?: string | null
+          compensation_amount?: number | null
+          compensation_currency?: string | null
+          compensation_type?: string | null
+          created_at?: string
+          description?: string | null
+          dispute_type?: string
+          escalated_at?: string | null
+          escalation_level?: number | null
+          evidence_urls?: string[] | null
+          filed_against?: string | null
+          filed_by?: string
+          id?: string
+          mediation_notes?: string | null
+          mediation_scheduled_at?: string | null
+          order_id?: string | null
+          org_id?: string
+          priority?: string
+          resolution_notes?: string | null
+          resolution_type?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          shipment_id?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exchange_rates: {
         Row: {
           base_currency: string
@@ -870,6 +1057,64 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "org_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_carrier_settings: {
+        Row: {
+          carrier_id: string
+          created_at: string
+          credentials_key_id: string | null
+          id: string
+          is_enabled: boolean
+          markup_type: string
+          markup_value: number
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          carrier_id: string
+          created_at?: string
+          credentials_key_id?: string | null
+          id?: string
+          is_enabled?: boolean
+          markup_type?: string
+          markup_value?: number
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          carrier_id?: string
+          created_at?: string
+          credentials_key_id?: string | null
+          id?: string
+          is_enabled?: boolean
+          markup_type?: string
+          markup_value?: number
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_carrier_settings_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_carrier_settings_credentials_key_id_fkey"
+            columns: ["credentials_key_id"]
+            isOneToOne: false
+            referencedRelation: "org_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_carrier_settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1620,6 +1865,288 @@ export type Database = {
           {
             foreignKeyName: "profiles_current_org_id_fkey"
             columns: ["current_org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_tracking_events: {
+        Row: {
+          carrier_status_code: string | null
+          created_at: string
+          description: string | null
+          event_timestamp: string
+          id: string
+          location: string | null
+          raw_data: Json | null
+          shipment_id: string
+          status: string
+        }
+        Insert: {
+          carrier_status_code?: string | null
+          created_at?: string
+          description?: string | null
+          event_timestamp?: string
+          id?: string
+          location?: string | null
+          raw_data?: Json | null
+          shipment_id: string
+          status: string
+        }
+        Update: {
+          carrier_status_code?: string | null
+          created_at?: string
+          description?: string | null
+          event_timestamp?: string
+          id?: string
+          location?: string | null
+          raw_data?: Json | null
+          shipment_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_tracking_events_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          actual_delivery_date: string | null
+          carrier_cost: number | null
+          carrier_id: string | null
+          carrier_reference: string | null
+          created_at: string
+          currency: string
+          declared_value: number | null
+          delivered_at: string | null
+          estimated_delivery_date: string | null
+          id: string
+          insurance_amount: number | null
+          label_format: string | null
+          label_url: string | null
+          markup_amount: number | null
+          metadata: Json | null
+          notes: string | null
+          order_id: string | null
+          org_id: string
+          package_description: string | null
+          package_dimensions: Json | null
+          package_weight: number | null
+          recipient_address: Json | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          sender_address: Json | null
+          sender_name: string | null
+          sender_phone: string | null
+          shipped_at: string | null
+          shipping_cost: number | null
+          status: string
+          tracking_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_delivery_date?: string | null
+          carrier_cost?: number | null
+          carrier_id?: string | null
+          carrier_reference?: string | null
+          created_at?: string
+          currency?: string
+          declared_value?: number | null
+          delivered_at?: string | null
+          estimated_delivery_date?: string | null
+          id?: string
+          insurance_amount?: number | null
+          label_format?: string | null
+          label_url?: string | null
+          markup_amount?: number | null
+          metadata?: Json | null
+          notes?: string | null
+          order_id?: string | null
+          org_id: string
+          package_description?: string | null
+          package_dimensions?: Json | null
+          package_weight?: number | null
+          recipient_address?: Json | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          sender_address?: Json | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          shipped_at?: string | null
+          shipping_cost?: number | null
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_delivery_date?: string | null
+          carrier_cost?: number | null
+          carrier_id?: string | null
+          carrier_reference?: string | null
+          created_at?: string
+          currency?: string
+          declared_value?: number | null
+          delivered_at?: string | null
+          estimated_delivery_date?: string | null
+          id?: string
+          insurance_amount?: number | null
+          label_format?: string | null
+          label_url?: string | null
+          markup_amount?: number | null
+          metadata?: Json | null
+          notes?: string | null
+          order_id?: string | null
+          org_id?: string
+          package_description?: string | null
+          package_dimensions?: Json | null
+          package_weight?: number | null
+          recipient_address?: Json | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          sender_address?: Json | null
+          sender_name?: string | null
+          sender_phone?: string | null
+          shipped_at?: string | null
+          shipping_cost?: number | null
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_carriers: {
+        Row: {
+          api_base_url: string | null
+          carrier_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          slug: string
+          supported_regions: string[] | null
+          tracking_url_template: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_base_url?: string | null
+          carrier_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          slug: string
+          supported_regions?: string[] | null
+          tracking_url_template?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_base_url?: string | null
+          carrier_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          supported_regions?: string[] | null
+          tracking_url_template?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shipping_rate_quotes: {
+        Row: {
+          carrier_id: string
+          carrier_rate: number
+          created_at: string
+          currency: string
+          destination_address: Json
+          estimated_days: number | null
+          expires_at: string
+          final_rate: number
+          id: string
+          org_id: string
+          origin_address: Json
+          package_dimensions: Json | null
+          package_weight: number | null
+          service_type: string | null
+        }
+        Insert: {
+          carrier_id: string
+          carrier_rate: number
+          created_at?: string
+          currency?: string
+          destination_address: Json
+          estimated_days?: number | null
+          expires_at: string
+          final_rate: number
+          id?: string
+          org_id: string
+          origin_address: Json
+          package_dimensions?: Json | null
+          package_weight?: number | null
+          service_type?: string | null
+        }
+        Update: {
+          carrier_id?: string
+          carrier_rate?: number
+          created_at?: string
+          currency?: string
+          destination_address?: Json
+          estimated_days?: number | null
+          expires_at?: string
+          final_rate?: number
+          id?: string
+          org_id?: string
+          origin_address?: Json
+          package_dimensions?: Json | null
+          package_weight?: number | null
+          service_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_rate_quotes_carrier_id_fkey"
+            columns: ["carrier_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_carriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_rate_quotes_org_id_fkey"
+            columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
