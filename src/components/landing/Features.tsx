@@ -88,8 +88,8 @@ const Features = () => {
             <span className="text-gradient-brand">Scale Your Fashion Business</span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            From order management to AI-powered measurements, our platform
-            provides end-to-end solutions for African fashion enterprises.
+            From AI-powered measurements to seamless logistics, our platform
+            provides end-to-end infrastructure for African fashion enterprises.
           </p>
         </motion.div>
 

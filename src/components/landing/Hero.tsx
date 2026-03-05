@@ -46,9 +46,10 @@ const Hero = () => {
             transition={{ duration: 0.7, delay: 0.45 }}
             className="text-lg sm:text-xl text-ivory/70 max-w-xl mb-8 leading-relaxed"
           >
-            A comprehensive SaaS platform connecting African fashion designers,
-            tailors, and customers across the globe. Digitize and scale your
-            fashion business today.
+            The operating system for African fashion commerce, connecting
+            designers, tailors, organizations, and customers through AI-powered
+            measurement, virtual try-on, seamless logistics, and integrated
+            communication.
           </motion.p>
 
           <motion.div
