@@ -28,6 +28,10 @@ import DisputesTab from "@/components/disputes/DisputesTab";
 import FeatureGate from "@/components/shared/FeatureGate";
 import ContractsTab from "@/components/contracts/ContractsTab";
 import AvailabilityManager from "@/components/settings/AvailabilityManager";
+import TourGuide from "@/components/shared/TourGuide";
+import { useTourGuide } from "@/hooks/useTourGuide";
+import { orgAdminTourSteps, tailorTourSteps } from "@/config/tourSteps";
+import { HelpCircle } from "lucide-react";
 const roleLabels: Record<AppRole, string> = {
   super_admin: "Super Admin",
   org_admin: "Org Admin",
@@ -49,6 +53,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "orders" | "customers" | "registrations" | "bookings" | "premium" | "logistics" | "disputes" | "contracts" | "members" | "communications" | "billing" | "website" | "settings">("overview");
+
+  const tourSteps = role === "tailor" ? tailorTourSteps : orgAdminTourSteps;
+  const tourId = role === "tailor" ? "tailor-dashboard" : "org-admin-dashboard";
+  const tour = useTourGuide(tourId, tourSteps);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
@@ -121,6 +129,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <TourGuide {...tour} />
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-brand" />
 
       {/* Header */}
@@ -152,6 +161,9 @@ const Dashboard = () => {
                 <Shield size={14} className="mr-1" /> Admin Panel
               </Button>
             )}
+            <Button variant="ghost" size="icon" onClick={tour.restart} title="Restart tour guide" className="text-muted-foreground">
+              <HelpCircle size={16} />
+            </Button>
             <NotificationBell />
             <span className="text-sm text-muted-foreground hidden sm:block">
               {profile?.display_name || user.email}
@@ -185,6 +197,7 @@ const Dashboard = () => {
           ].map((item) => (
             <button
               key={item.id}
+              data-tour={`nav-${item.id}`}
               onClick={() => setActiveTab(item.id)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
                 activeTab === item.id
