@@ -2421,13 +2421,18 @@ export type Database = {
       }
       website_builder_requests: {
         Row: {
+          assigned_admin_id: string | null
           assigned_at: string | null
           assigned_to: string | null
           completed_at: string | null
+          contact_history: Json | null
           created_at: string
+          deadline: string | null
           gateway_checkout_url: string | null
           gateway_reference: string | null
           id: string
+          implementation_notes: string | null
+          launched_at: string | null
           monthly_maintenance: number
           notes: string | null
           one_time_fee: number
@@ -2437,19 +2442,30 @@ export type Database = {
           payment_status: string
           plan: string
           platform_fee: number
+          preview_url: string | null
+          priority: string
           requested_at: string
+          review_notes: string | null
+          review_status: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           updated_at: string
           website_url: string | null
         }
         Insert: {
+          assigned_admin_id?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
           completed_at?: string | null
+          contact_history?: Json | null
           created_at?: string
+          deadline?: string | null
           gateway_checkout_url?: string | null
           gateway_reference?: string | null
           id?: string
+          implementation_notes?: string | null
+          launched_at?: string | null
           monthly_maintenance?: number
           notes?: string | null
           one_time_fee?: number
@@ -2459,19 +2475,30 @@ export type Database = {
           payment_status?: string
           plan?: string
           platform_fee?: number
+          preview_url?: string | null
+          priority?: string
           requested_at?: string
+          review_notes?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           updated_at?: string
           website_url?: string | null
         }
         Update: {
+          assigned_admin_id?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
           completed_at?: string | null
+          contact_history?: Json | null
           created_at?: string
+          deadline?: string | null
           gateway_checkout_url?: string | null
           gateway_reference?: string | null
           id?: string
+          implementation_notes?: string | null
+          launched_at?: string | null
           monthly_maintenance?: number
           notes?: string | null
           one_time_fee?: number
@@ -2481,7 +2508,13 @@ export type Database = {
           payment_status?: string
           plan?: string
           platform_fee?: number
+          preview_url?: string | null
+          priority?: string
           requested_at?: string
+          review_notes?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           updated_at?: string
           website_url?: string | null
@@ -2628,6 +2661,41 @@ export type Database = {
             columns: ["config_id"]
             isOneToOne: false
             referencedRelation: "website_pricing_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_request_audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          request_id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          request_id: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_request_audit_log_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "website_builder_requests"
             referencedColumns: ["id"]
           },
         ]
