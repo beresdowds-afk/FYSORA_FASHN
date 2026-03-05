@@ -273,6 +273,82 @@ export type Database = {
           },
         ]
       }
+      contract_payments: {
+        Row: {
+          agency_fee_amount: number
+          contract_id: string
+          created_at: string
+          currency: string
+          customer_paid_amount: number
+          id: string
+          notes: string | null
+          order_id: string | null
+          org_id: string
+          org_net_amount: number
+          paid_at: string | null
+          status: string
+          tailor_id: string
+          tailor_payout_amount: number
+          updated_at: string
+        }
+        Insert: {
+          agency_fee_amount?: number
+          contract_id: string
+          created_at?: string
+          currency?: string
+          customer_paid_amount?: number
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          org_id: string
+          org_net_amount?: number
+          paid_at?: string | null
+          status?: string
+          tailor_id: string
+          tailor_payout_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          agency_fee_amount?: number
+          contract_id?: string
+          created_at?: string
+          currency?: string
+          customer_paid_amount?: number
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          org_id?: string
+          org_net_amount?: number
+          paid_at?: string | null
+          status?: string
+          tailor_id?: string
+          tailor_payout_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_payments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "tailor_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -366,6 +442,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "credit_wallets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_opt_outs: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          opt_out_type: string
+          opted_back_in_at: string | null
+          opted_out_at: string
+          opted_out_features: string[]
+          org_id: string
+          reason: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          opt_out_type?: string
+          opted_back_in_at?: string | null
+          opted_out_at?: string
+          opted_out_features?: string[]
+          org_id: string
+          reason?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          opt_out_type?: string
+          opted_back_in_at?: string | null
+          opted_out_at?: string
+          opted_out_features?: string[]
+          org_id?: string
+          reason?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_opt_outs_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -655,6 +778,53 @@ export type Database = {
             foreignKeyName: "download_tracking_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      embed_configurations: {
+        Row: {
+          allowed_domains: string[]
+          branding_text: string | null
+          created_at: string
+          enabled_features: string[]
+          id: string
+          is_enabled: boolean
+          org_id: string
+          theme_config: Json
+          updated_at: string
+          widget_key: string
+        }
+        Insert: {
+          allowed_domains?: string[]
+          branding_text?: string | null
+          created_at?: string
+          enabled_features?: string[]
+          id?: string
+          is_enabled?: boolean
+          org_id: string
+          theme_config?: Json
+          updated_at?: string
+          widget_key?: string
+        }
+        Update: {
+          allowed_domains?: string[]
+          branding_text?: string | null
+          created_at?: string
+          enabled_features?: string[]
+          id?: string
+          is_enabled?: boolean
+          org_id?: string
+          theme_config?: Json
+          updated_at?: string
+          widget_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embed_configurations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -1134,6 +1304,88 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "opt_out_registry_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_delegations: {
+        Row: {
+          accepted_at: string | null
+          admin_notes: string | null
+          completed_at: string | null
+          contract_id: string | null
+          created_at: string
+          deadline: string | null
+          delegated_by: string
+          id: string
+          order_id: string
+          org_id: string
+          priority: string
+          quality_rating: number | null
+          started_at: string | null
+          status: string
+          tailor_id: string
+          tailor_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          admin_notes?: string | null
+          completed_at?: string | null
+          contract_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          delegated_by: string
+          id?: string
+          order_id: string
+          org_id: string
+          priority?: string
+          quality_rating?: number | null
+          started_at?: string | null
+          status?: string
+          tailor_id: string
+          tailor_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          admin_notes?: string | null
+          completed_at?: string | null
+          contract_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          delegated_by?: string
+          id?: string
+          order_id?: string
+          org_id?: string
+          priority?: string
+          quality_rating?: number | null
+          started_at?: string | null
+          status?: string
+          tailor_id?: string
+          tailor_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_delegations_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "tailor_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_delegations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_delegations_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2567,6 +2819,83 @@ export type Database = {
           virtual_tryon_price?: number | null
         }
         Relationships: []
+      }
+      tailor_contracts: {
+        Row: {
+          agency_fee_percent: number
+          auto_renew: boolean
+          contract_number: string
+          contract_type: string
+          created_at: string
+          end_date: string | null
+          id: string
+          max_concurrent_orders: number | null
+          notes: string | null
+          org_id: string
+          payment_terms: string
+          start_date: string
+          status: string
+          tailor_id: string
+          tailor_rate_type: string
+          tailor_rate_value: number
+          terminated_at: string | null
+          terminated_by: string | null
+          termination_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_fee_percent?: number
+          auto_renew?: boolean
+          contract_number: string
+          contract_type?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          max_concurrent_orders?: number | null
+          notes?: string | null
+          org_id: string
+          payment_terms?: string
+          start_date?: string
+          status?: string
+          tailor_id: string
+          tailor_rate_type?: string
+          tailor_rate_value?: number
+          terminated_at?: string | null
+          terminated_by?: string | null
+          termination_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_fee_percent?: number
+          auto_renew?: boolean
+          contract_number?: string
+          contract_type?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          max_concurrent_orders?: number | null
+          notes?: string | null
+          org_id?: string
+          payment_terms?: string
+          start_date?: string
+          status?: string
+          tailor_id?: string
+          tailor_rate_type?: string
+          tailor_rate_value?: number
+          terminated_at?: string | null
+          terminated_by?: string | null
+          termination_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tailor_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_notification_preferences: {
         Row: {
