@@ -27,6 +27,7 @@ import LogisticsTab from "@/components/logistics/LogisticsTab";
 import DisputesTab from "@/components/disputes/DisputesTab";
 import FeatureGate from "@/components/shared/FeatureGate";
 import ContractsTab from "@/components/contracts/ContractsTab";
+import AvailabilityManager from "@/components/settings/AvailabilityManager";
 const roleLabels: Record<AppRole, string> = {
   super_admin: "Super Admin",
   org_admin: "Org Admin",
@@ -857,6 +858,13 @@ const SettingsTab = ({ org, role }: { org: any; role: AppRole | null }) => {
         <Button variant="hero" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save All Settings"}
         </Button>
+      )}
+
+      {/* Availability Manager */}
+      {canEdit && (
+        <div className="mt-8">
+          <AvailabilityManager orgId={org.id} />
+        </div>
       )}
     </motion.div>
   );
