@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, Image, Type, Palette, Building2, Loader2 } from "lucide-react";
+import { Upload, X, Image, Type, Palette, Building2, Loader2, Sparkles } from "lucide-react";
 
 interface OrgBrandingPanelProps {
   org: { id: string; name: string; slug: string; description?: string | null; email?: string | null; phone?: string | null; address?: string | null; logo_url?: string | null };
@@ -13,6 +13,8 @@ interface OrgBrandingPanelProps {
     font_body?: string;
     color_palette?: Record<string, string>;
     favicon_url?: string | null;
+    vision_statement?: string | null;
+    mission_statement?: string | null;
   };
   canEdit: boolean;
   onSettingsChange: (updates: Record<string, any>) => void;
@@ -204,6 +206,35 @@ const OrgBrandingPanel = ({ org, websiteSettings, canEdit, onSettingsChange, onO
               {FONT_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
             <p className="text-sm" style={{ fontFamily: fontBody }}>This is sample body text to preview the font selection.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Vision & Mission */}
+      <div className="rounded-xl bg-card border border-border p-6 space-y-4">
+        <h3 className="font-heading font-semibold text-base flex items-center gap-2"><Sparkles size={16} /> Vision & Mission</h3>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Vision Statement</label>
+            <textarea
+              value={websiteSettings.vision_statement || ""}
+              disabled={!canEdit}
+              onChange={(e) => onSettingsChange({ vision_statement: e.target.value })}
+              rows={3}
+              placeholder="What future does your brand aspire to create?"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Mission Statement</label>
+            <textarea
+              value={websiteSettings.mission_statement || ""}
+              disabled={!canEdit}
+              onChange={(e) => onSettingsChange({ mission_statement: e.target.value })}
+              rows={3}
+              placeholder="What is your brand's purpose and how do you serve your customers?"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
+            />
           </div>
         </div>
       </div>

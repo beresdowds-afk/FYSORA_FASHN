@@ -25,6 +25,8 @@ interface OrgWebsiteData {
   font_body?: string | null;
   color_palette?: Record<string, string> | null;
   favicon_url?: string | null;
+  vision_statement?: string | null;
+  mission_statement?: string | null;
 }
 
 interface OfficerData {
@@ -499,6 +501,34 @@ const HomePage = ({ org, website, brandColor, accentColor, fontHeading, officers
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    {/* Vision & Mission */}
+    {(website.vision_statement || website.mission_statement) && (
+      <section className="py-24 border-t border-white/10">
+        <div className="container mx-auto px-4 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            {website.vision_statement && (
+              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-px w-8" style={{ background: accentColor }} />
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: accentColor }}>Our Vision</span>
+                </div>
+                <p className="text-lg text-gray-300 leading-relaxed">{website.vision_statement}</p>
+              </motion.div>
+            )}
+            {website.mission_statement && (
+              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-px w-8" style={{ background: brandColor }} />
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: brandColor }}>Our Mission</span>
+                </div>
+                <p className="text-lg text-gray-300 leading-relaxed">{website.mission_statement}</p>
+              </motion.div>
+            )}
           </div>
         </div>
       </section>
