@@ -11,12 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Package, CreditCard, Bell, Ruler, Clock, ChevronRight,
   CheckCircle2, AlertCircle, Lock, KeyRound, Loader2, Video, Search,
-  Building2, MapPin, Heart, Star
+  Building2, MapPin, Heart, Star, HelpCircle
 } from "lucide-react";
 import UserNotificationPreferences from "@/components/communications/UserNotificationPreferences";
 import BookMeasurementDialog from "@/components/measurements/BookMeasurementDialog";
 import MeasurementBookingsTab from "@/components/measurements/MeasurementBookingsTab";
 import WishlistReviewsPanel from "@/components/customer/WishlistReviewsPanel";
+import TourGuide from "@/components/shared/TourGuide";
+import { useTourGuide } from "@/hooks/useTourGuide";
+import { customerTourSteps } from "@/config/tourSteps";
 import { useToast } from "@/hooks/use-toast";
 import { DisclaimerBanner } from "@/components/shared/DisclaimerDialog";
 
@@ -55,6 +58,7 @@ const CustomerPortal = () => {
   const [loading, setLoading] = useState(true);
   const [exchangeRate, setExchangeRate] = useState<number | null>(null);
   const [payingReg, setPayingReg] = useState(false);
+  const tour = useTourGuide("customer-portal", customerTourSteps);
 
   // Self-registration state
   const [inviteCode, setInviteCode] = useState("");
@@ -269,6 +273,7 @@ const CustomerPortal = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <TourGuide {...tour} />
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-brand" />
 
       {/* Header */}
@@ -286,6 +291,9 @@ const CustomerPortal = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={tour.restart} title="Restart tour guide" className="text-muted-foreground">
+              <HelpCircle size={16} />
+            </Button>
             <span className="text-sm text-muted-foreground hidden sm:block">
               {profile?.display_name || user.email}
             </span>
@@ -356,11 +364,11 @@ const CustomerPortal = () => {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Tabs defaultValue="orders">
               <TabsList className="mb-6 flex-wrap">
-                <TabsTrigger value="orders" className="gap-2"><Package size={14} /> My Orders</TabsTrigger>
+                <TabsTrigger value="orders" data-tour="customer-orders-tab" className="gap-2"><Package size={14} /> My Orders</TabsTrigger>
                 <TabsTrigger value="browse" className="gap-2"><Search size={14} /> Browse</TabsTrigger>
-                <TabsTrigger value="measurements" className="gap-2"><Ruler size={14} /> AI Measurements</TabsTrigger>
-                <TabsTrigger value="payments" className="gap-2"><CreditCard size={14} /> Payments</TabsTrigger>
-                <TabsTrigger value="wishlist" className="gap-2"><Heart size={14} /> Wishlist & Reviews</TabsTrigger>
+                <TabsTrigger value="measurements" data-tour="customer-measurements-tab" className="gap-2"><Ruler size={14} /> AI Measurements</TabsTrigger>
+                <TabsTrigger value="payments" data-tour="customer-payments-tab" className="gap-2"><CreditCard size={14} /> Payments</TabsTrigger>
+                <TabsTrigger value="wishlist" data-tour="customer-wishlist-tab" className="gap-2"><Heart size={14} /> Wishlist & Reviews</TabsTrigger>
                 <TabsTrigger value="notifications" className="gap-2"><Bell size={14} /> Notifications</TabsTrigger>
               </TabsList>
 

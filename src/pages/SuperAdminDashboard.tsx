@@ -13,7 +13,10 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Smartphone, ScrollText } from "lucide-react";
+import { DollarSign, Smartphone, ScrollText, HelpCircle } from "lucide-react";
+import TourGuide from "@/components/shared/TourGuide";
+import { useTourGuide } from "@/hooks/useTourGuide";
+import { superAdminTourSteps } from "@/config/tourSteps";
 import {
   LogOut,
   Users,
@@ -47,6 +50,7 @@ const SuperAdminDashboard = () => {
   const [stats, setStats] = useState({ orgs: 0, users: 0 });
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "revenue" | "keys" | "rates" | "websites" | "pricing" | "backups" | "features" | "mobile" | "audit">("overview");
+  const tour = useTourGuide("super-admin-dashboard", superAdminTourSteps);
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
@@ -95,6 +99,7 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <TourGuide {...tour} />
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-brand" />
 
       {/* Header */}
@@ -132,6 +137,9 @@ const SuperAdminDashboard = () => {
               <Plus size={14} className="mr-1" />
               New Org
             </Button>
+            <Button variant="ghost" size="icon" onClick={tour.restart} title="Restart tour guide" className="text-ivory/70 hover:text-ivory">
+              <HelpCircle size={16} />
+            </Button>
             <div className="w-px h-6 bg-border/30 mx-1" />
             <Button
               variant="ghost"
@@ -152,6 +160,7 @@ const SuperAdminDashboard = () => {
           {sidebarItems.map((item) => (
             <button
               key={item.id}
+              data-tour={`sa-${item.id}`}
               onClick={() => setActiveTab(item.id)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
                 activeTab === item.id
