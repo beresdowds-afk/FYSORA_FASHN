@@ -189,6 +189,45 @@ export type Database = {
           },
         ]
       }
+      app_fee_settings: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          fee_type: string
+          generation_fee: number
+          id: string
+          is_active: boolean | null
+          monthly_fee: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          fee_type?: string
+          generation_fee?: number
+          id?: string
+          is_active?: boolean | null
+          monthly_fee?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          fee_type?: string
+          generation_fee?: number
+          id?: string
+          is_active?: boolean | null
+          monthly_fee?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       billing_queries: {
         Row: {
           category: string
@@ -1711,6 +1750,77 @@ export type Database = {
             foreignKeyName: "org_api_keys_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_app_configs: {
+        Row: {
+          app_description: string | null
+          app_name: string
+          created_at: string
+          download_count: number | null
+          gateway_reference: string | null
+          generation_currency: string
+          generation_fee: number
+          icon_url: string | null
+          id: string
+          is_generated: boolean | null
+          is_published: boolean | null
+          last_generated_at: string | null
+          monthly_maintenance_fee: number
+          org_id: string
+          paid_at: string | null
+          payment_status: string
+          theme_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          app_description?: string | null
+          app_name?: string
+          created_at?: string
+          download_count?: number | null
+          gateway_reference?: string | null
+          generation_currency?: string
+          generation_fee?: number
+          icon_url?: string | null
+          id?: string
+          is_generated?: boolean | null
+          is_published?: boolean | null
+          last_generated_at?: string | null
+          monthly_maintenance_fee?: number
+          org_id: string
+          paid_at?: string | null
+          payment_status?: string
+          theme_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          app_description?: string | null
+          app_name?: string
+          created_at?: string
+          download_count?: number | null
+          gateway_reference?: string | null
+          generation_currency?: string
+          generation_fee?: number
+          icon_url?: string | null
+          id?: string
+          is_generated?: boolean | null
+          is_published?: boolean | null
+          last_generated_at?: string | null
+          monthly_maintenance_fee?: number
+          org_id?: string
+          paid_at?: string | null
+          payment_status?: string
+          theme_color?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_app_configs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
