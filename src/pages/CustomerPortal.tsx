@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Package, CreditCard, Bell, Ruler, Clock, ChevronRight,
   CheckCircle2, AlertCircle, Lock, KeyRound, Loader2, Video, Search,
-  Building2, MapPin, Heart, Star, HelpCircle
+  MapPin, Heart, HelpCircle, Sparkles
 } from "lucide-react";
 import UserNotificationPreferences from "@/components/communications/UserNotificationPreferences";
 import BookMeasurementDialog from "@/components/measurements/BookMeasurementDialog";
@@ -366,6 +366,7 @@ const CustomerPortal = () => {
               <TabsList className="mb-6 flex-wrap">
                 <TabsTrigger value="orders" data-tour="customer-orders-tab" className="gap-2"><Package size={14} /> My Orders</TabsTrigger>
                 <TabsTrigger value="browse" className="gap-2"><Search size={14} /> Browse</TabsTrigger>
+                <TabsTrigger value="features" className="gap-2"><Sparkles size={14} /> Features</TabsTrigger>
                 <TabsTrigger value="measurements" data-tour="customer-measurements-tab" className="gap-2"><Ruler size={14} /> AI Measurements</TabsTrigger>
                 <TabsTrigger value="payments" data-tour="customer-payments-tab" className="gap-2"><CreditCard size={14} /> Payments</TabsTrigger>
                 <TabsTrigger value="wishlist" data-tour="customer-wishlist-tab" className="gap-2"><Heart size={14} /> Wishlist & Reviews</TabsTrigger>
@@ -437,6 +438,11 @@ const CustomerPortal = () => {
               {/* Browse Organizations Tab */}
               <TabsContent value="browse">
                 <BrowseOrgsMini navigate={navigate} user={user} />
+              </TabsContent>
+
+              {/* Feature Access Requests Tab */}
+              <TabsContent value="features">
+                <FeatureRequestsTab userId={user.id} />
               </TabsContent>
 
               {/* AI Measurements Tab */}
@@ -677,6 +683,121 @@ const BrowseOrgsMini = ({ navigate, user }: { navigate: any; user: any }) => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Feature Requests Tab
+const PLATFORM_FEATURES = [
+  { key: "ai_measurements", name: "AI Body Measurements", desc: "Video-based AI measurements for precise tailoring", icon: Ruler, price: 10, billing: "per_session" },
+  { key: "virtual_tryon", name: "Virtual Try-On", desc: "See garments on your body using AI", icon: Sparkles, price: 5, billing: "per_use" },
+  { key: "video_consultation", name: "Video Consultation", desc: "Live video sessions with tailors", icon: Video, price: 15, billing: "per_session" },
+  { key: "priority_orders", name: "Priority Orders", desc: "Fast-tracked order handling", icon: Package, price: 25, billing: "one_time" },
+  { key: "premium_catalogue", name: "Premium Catalogue Access", desc: "Access exclusive premium garment collections", icon: Heart, price: 10, billing: "monthly" },
+];
+
+const FeatureRequestsTab = ({ userId }: { userId: string }) => {
+  const { toast } = useToast();
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [requestingKey, setRequestingKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.from("feature_access_requests").select("*").eq("user_id", userId).then(({ data }) => {
+      setRequests(data || []);
+      setLoading(false);
+    });
+  }, [userId]);
+
+  const handleRequest = async (feature: typeof PLATFORM_FEATURES[0]) => {
+    setRequestingKey(feature.key);
+    const { error } = await supabase.from("feature_access_requests").insert({
+      user_id: userId,
+      feature_key: feature.key,
+      feature_name: feature.name,
+      description: feature.desc,
+      billing_type: feature.billing,
+      price_amount: feature.price,
+      price_currency: "USD",
+    } as any);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Request submitted!", description: `Your request for ${feature.name} is pending approval.` });
+      setRequests(prev => [...prev, { feature_key: feature.key, status: "pending" }]);
+    }
+    setRequestingKey(null);
+  };
+
+  if (loading) return <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-heading font-bold text-xl mb-1">Premium Features</h2>
+        <p className="text-sm text-muted-foreground">Request access to billed premium platform features.</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {PLATFORM_FEATURES.map(feature => {
+          const existing = requests.find(r => r.feature_key === feature.key);
+          const Icon = feature.icon;
+          return (
+            <div key={feature.key} className="rounded-xl border border-border bg-card p-5 hover:border-primary/20 transition-colors">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Icon size={20} className="text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-heading font-semibold text-sm">{feature.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{feature.desc}</p>
+                  <div className="flex items-center justify-between mt-3">
+                    <Badge variant="outline" className="text-xs">${feature.price} / {feature.billing.replace("_", " ")}</Badge>
+                    {existing ? (
+                      <Badge className={
+                        existing.status === "approved" ? "bg-secondary/10 text-secondary" :
+                        existing.status === "rejected" ? "bg-destructive/10 text-destructive" :
+                        "bg-primary/10 text-primary"
+                      }>
+                        {existing.status === "approved" ? <><CheckCircle2 size={10} className="mr-1" /> Approved</> :
+                         existing.status === "rejected" ? "Rejected" : "Pending"}
+                      </Badge>
+                    ) : (
+                      <Button size="sm" variant="hero" onClick={() => handleRequest(feature)} disabled={requestingKey === feature.key} className="gap-1">
+                        {requestingKey === feature.key ? <Loader2 size={12} className="animate-spin" /> : <CreditCard size={12} />}
+                        Request
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Existing requests */}
+      {requests.length > 0 && (
+        <div className="mt-6">
+          <h3 className="font-heading font-semibold text-base mb-3">Your Requests</h3>
+          <div className="space-y-2">
+            {requests.map((r, i) => (
+              <div key={i} className="rounded-lg border border-border p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">{r.feature_name || r.feature_key}</p>
+                  <p className="text-[10px] text-muted-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "Just now"}</p>
+                </div>
+                <Badge className={
+                  r.status === "approved" ? "bg-secondary/10 text-secondary" :
+                  r.status === "paid" ? "bg-secondary/10 text-secondary" :
+                  r.status === "rejected" ? "bg-destructive/10 text-destructive" :
+                  "bg-muted text-muted-foreground"
+                }>
+                  {r.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

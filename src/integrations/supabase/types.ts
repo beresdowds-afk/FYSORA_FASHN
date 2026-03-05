@@ -1245,6 +1245,86 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_access_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          billing_type: string
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          feature_key: string
+          feature_name: string
+          gateway_checkout_url: string | null
+          gateway_reference: string | null
+          id: string
+          metadata: Json | null
+          org_id: string | null
+          paid_at: string | null
+          price_amount: number
+          price_currency: string
+          rejected_at: string | null
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_type?: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          feature_key: string
+          feature_name: string
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          id?: string
+          metadata?: Json | null
+          org_id?: string | null
+          paid_at?: string | null
+          price_amount?: number
+          price_currency?: string
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          billing_type?: string
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          feature_key?: string
+          feature_name?: string
+          gateway_checkout_url?: string | null
+          gateway_reference?: string | null
+          id?: string
+          metadata?: Json | null
+          org_id?: string | null
+          paid_at?: string | null
+          price_amount?: number
+          price_currency?: string
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_access_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       garment_catalog: {
         Row: {
           category: string | null
@@ -2613,7 +2693,9 @@ export type Database = {
           logo_url: string | null
           name: string
           phone: string | null
+          region: string | null
           slug: string
+          specialties: string[] | null
           updated_at: string
         }
         Insert: {
@@ -2633,7 +2715,9 @@ export type Database = {
           logo_url?: string | null
           name: string
           phone?: string | null
+          region?: string | null
           slug: string
+          specialties?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -2653,7 +2737,9 @@ export type Database = {
           logo_url?: string | null
           name?: string
           phone?: string | null
+          region?: string | null
           slug?: string
+          specialties?: string[] | null
           updated_at?: string
         }
         Relationships: []
