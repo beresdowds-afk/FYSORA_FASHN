@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.embed-widget]
 verify_jwt = false
+
+[functions.generate-legal-doc]
+verify_jwt = false

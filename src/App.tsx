@@ -16,6 +16,8 @@ import Install from "./pages/Install";
 import BrowseOrganizations from "./pages/BrowseOrganizations";
 import CataloguePage from "./pages/CataloguePage";
 import ResetPassword from "./pages/ResetPassword";
+import ApiDocs from "./pages/ApiDocs";
+import LegalDocs from "./pages/LegalDocs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +42,8 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/browse" element={<BrowseOrganizations />} />
             <Route path="/catalogue/:orgId" element={<CataloguePage />} />
+            <Route path="/docs/api" element={<ApiDocs />} />
+            <Route path="/legal" element={<LegalDocs />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
