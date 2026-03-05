@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_job_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          credits_cost: number
+          credits_deducted: boolean
+          error_message: string | null
+          id: string
+          input_data: Json
+          job_type: string
+          max_retries: number
+          next_retry_at: string | null
+          org_id: string
+          priority: number
+          result_data: Json | null
+          retry_count: number
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          credits_cost?: number
+          credits_deducted?: boolean
+          error_message?: string | null
+          id?: string
+          input_data?: Json
+          job_type: string
+          max_retries?: number
+          next_retry_at?: string | null
+          org_id: string
+          priority?: number
+          result_data?: Json | null
+          retry_count?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          credits_cost?: number
+          credits_deducted?: boolean
+          error_message?: string | null
+          id?: string
+          input_data?: Json
+          job_type?: string
+          max_retries?: number
+          next_retry_at?: string | null
+          org_id?: string
+          priority?: number
+          result_data?: Json | null
+          retry_count?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_job_queue_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_measurement_bookings: {
         Row: {
           actual_duration_minutes: number | null
@@ -198,6 +269,106 @@ export type Database = {
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          expired: boolean
+          expires_at: string | null
+          feature_type: string | null
+          id: string
+          metadata: Json | null
+          session_id: string | null
+          type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          expired?: boolean
+          expires_at?: string | null
+          feature_type?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          type?: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          expired?: boolean
+          expires_at?: string | null
+          feature_type?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "credit_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          id: string
+          lifetime_purchased: number
+          lifetime_used: number
+          org_id: string | null
+          owner_id: string
+          owner_type: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          lifetime_purchased?: number
+          lifetime_used?: number
+          org_id?: string | null
+          owner_id: string
+          owner_type?: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          lifetime_purchased?: number
+          lifetime_used?: number
+          org_id?: string | null
+          owner_id?: string
+          owner_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -448,6 +619,47 @@ export type Database = {
           },
         ]
       }
+      download_tracking: {
+        Row: {
+          created_at: string
+          credits_charged: number
+          file_url: string | null
+          id: string
+          org_id: string
+          resource_id: string | null
+          resource_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_charged?: number
+          file_url?: string | null
+          id?: string
+          org_id: string
+          resource_id?: string | null
+          resource_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_charged?: number
+          file_url?: string | null
+          id?: string
+          org_id?: string
+          resource_id?: string | null
+          resource_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "download_tracking_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exchange_rates: {
         Row: {
           base_currency: string
@@ -474,6 +686,80 @@ export type Database = {
           target_currency?: string
         }
         Relationships: []
+      }
+      garment_catalog: {
+        Row: {
+          category: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          download_count: number
+          id: string
+          image_url: string | null
+          is_published: boolean
+          metadata: Json | null
+          name: string
+          org_id: string
+          price: number | null
+          sync_to_catalogue: boolean
+          sync_to_website: boolean
+          tags: string[] | null
+          tryon_count: number
+          tryon_enabled: boolean
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          download_count?: number
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          metadata?: Json | null
+          name: string
+          org_id: string
+          price?: number | null
+          sync_to_catalogue?: boolean
+          sync_to_website?: boolean
+          tags?: string[] | null
+          tryon_count?: number
+          tryon_enabled?: boolean
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          download_count?: number
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          metadata?: Json | null
+          name?: string
+          org_id?: string
+          price?: number | null
+          sync_to_catalogue?: boolean
+          sync_to_website?: boolean
+          tags?: string[] | null
+          tryon_count?: number
+          tryon_enabled?: boolean
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garment_catalog_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inbound_messages: {
         Row: {

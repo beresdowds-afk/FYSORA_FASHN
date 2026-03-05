@@ -1,9 +1,11 @@
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Camera, Ruler, Video, BarChart3 } from "lucide-react";
+import { Sparkles, Camera, Ruler, BarChart3, ShirtIcon, Wallet, Zap } from "lucide-react";
 import VirtualTryOnPanel from "./VirtualTryOnPanel";
 import PremiumUsagePanel from "./PremiumUsagePanel";
 import EnhancedMeasurementsPanel from "./EnhancedMeasurementsPanel";
+import GarmentCatalogPanel from "./GarmentCatalogPanel";
+import CreditWalletPanel from "./CreditWalletPanel";
+import JobQueuePanel from "./JobQueuePanel";
 import FeatureGate from "@/components/shared/FeatureGate";
 
 interface PremiumFeaturesTabProps {
@@ -22,13 +24,28 @@ const PremiumFeaturesTab = ({ orgId, role }: PremiumFeaturesTabProps) => {
       </div>
 
       <Tabs defaultValue="tryon">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="tryon" className="gap-2">
             <Camera size={14} /> FASHN Try-On
           </TabsTrigger>
           <TabsTrigger value="measurements" className="gap-2">
             <Ruler size={14} /> 360° Measurements
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="catalog" className="gap-2">
+              <ShirtIcon size={14} /> Garment Catalog
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="credits" className="gap-2">
+              <Wallet size={14} /> Credits
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="queue" className="gap-2">
+              <Zap size={14} /> Job Queue
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="usage" className="gap-2">
               <BarChart3 size={14} /> Usage & Billing
@@ -46,6 +63,21 @@ const PremiumFeaturesTab = ({ orgId, role }: PremiumFeaturesTabProps) => {
             <EnhancedMeasurementsPanel orgId={orgId} role={role} />
           </FeatureGate>
         </TabsContent>
+        {isAdmin && (
+          <TabsContent value="catalog">
+            <GarmentCatalogPanel orgId={orgId} role={role} />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="credits">
+            <CreditWalletPanel orgId={orgId} />
+          </TabsContent>
+        )}
+        {isAdmin && (
+          <TabsContent value="queue">
+            <JobQueuePanel orgId={orgId} />
+          </TabsContent>
+        )}
         {isAdmin && (
           <TabsContent value="usage">
             <PremiumUsagePanel orgId={orgId} />
