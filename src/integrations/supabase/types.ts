@@ -2496,15 +2496,19 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_enabled: boolean
+          linkedin_url: string | null
           mission_statement: string | null
           mode: string
           org_id: string
           tagline: string | null
           theme: string
+          tiktok_url: string | null
+          twitter_url: string | null
           updated_at: string
           vision_statement: string | null
           webhook_url: string | null
           whatsapp_number: string | null
+          youtube_url: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -2522,15 +2526,19 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
+          linkedin_url?: string | null
           mission_statement?: string | null
           mode?: string
           org_id: string
           tagline?: string | null
           theme?: string
+          tiktok_url?: string | null
+          twitter_url?: string | null
           updated_at?: string
           vision_statement?: string | null
           webhook_url?: string | null
           whatsapp_number?: string | null
+          youtube_url?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -2548,15 +2556,19 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
+          linkedin_url?: string | null
           mission_statement?: string | null
           mode?: string
           org_id?: string
           tagline?: string | null
           theme?: string
+          tiktok_url?: string | null
+          twitter_url?: string | null
           updated_at?: string
           vision_statement?: string | null
           webhook_url?: string | null
           whatsapp_number?: string | null
+          youtube_url?: string | null
         }
         Relationships: [
           {

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { Instagram, MessageCircle, Phone, Mail, MapPin, ExternalLink, Scissors, Calendar, BookOpen, Home, Menu, X, Sparkles, Lock } from "lucide-react";
+import { Instagram, MessageCircle, Phone, Mail, MapPin, ExternalLink, Scissors, Calendar, BookOpen, Home, Menu, X, Sparkles, Lock, Facebook, Twitter, Linkedin, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface OrgWebsiteData {
@@ -21,6 +21,10 @@ interface OrgWebsiteData {
   facebook_url: string | null;
   whatsapp_number: string | null;
   webhook_url: string | null;
+  twitter_url?: string | null;
+  linkedin_url?: string | null;
+  tiktok_url?: string | null;
+  youtube_url?: string | null;
   font_heading?: string | null;
   font_body?: string | null;
   color_palette?: Record<string, string> | null;
@@ -283,9 +287,34 @@ const OrgWebsite = () => {
                       <Instagram size={18} />
                     </a>
                   )}
+                  {website.facebook_url && (
+                    <a href={website.facebook_url} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                      <Facebook size={18} />
+                    </a>
+                  )}
                   {website.whatsapp_number && (
                     <a href={`https://wa.me/${website.whatsapp_number.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="hover:text-white">
                       <MessageCircle size={18} />
+                    </a>
+                  )}
+                  {website.twitter_url && (
+                    <a href={website.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                      <Twitter size={18} />
+                    </a>
+                  )}
+                  {website.linkedin_url && (
+                    <a href={website.linkedin_url} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                      <Linkedin size={18} />
+                    </a>
+                  )}
+                  {website.tiktok_url && (
+                    <a href={website.tiktok_url} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.88-2.88 2.89 2.89 0 0 1 2.88-2.88c.28 0 .54.04.8.1V9.01a6.37 6.37 0 0 0-.8-.05 6.34 6.34 0 0 0-6.34 6.34A6.34 6.34 0 0 0 9.49 21.64a6.34 6.34 0 0 0 6.34-6.34V9.06a8.16 8.16 0 0 0 4.77 1.52V7.15a4.82 4.82 0 0 1-1.01-.46z"/></svg>
+                    </a>
+                  )}
+                  {website.youtube_url && (
+                    <a href={website.youtube_url} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                      <Youtube size={18} />
                     </a>
                   )}
                 </div>

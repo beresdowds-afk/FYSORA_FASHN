@@ -2,7 +2,8 @@ import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, Image, Type, Palette, Building2, Loader2, Sparkles } from "lucide-react";
+import { Upload, Image, Type, Palette, Building2, Loader2, Sparkles, Eye } from "lucide-react";
+import BrandingLivePreview from "./BrandingLivePreview";
 
 interface OrgBrandingPanelProps {
   org: { id: string; name: string; slug: string; description?: string | null; email?: string | null; phone?: string | null; address?: string | null; logo_url?: string | null };
@@ -74,9 +75,45 @@ const OrgBrandingPanel = ({ org, websiteSettings, canEdit, onSettingsChange, onO
   const handlePaletteChange = (key: string, value: string) => {
     onSettingsChange({ color_palette: { ...palette, [key]: value } });
   };
+  const [showPreview, setShowPreview] = useState(false);
 
   return (
     <div className="space-y-6">
+      {/* Live Preview Toggle */}
+      <div className="flex items-center justify-between">
+        <h2 className="font-heading font-semibold text-lg">Branding & Identity</h2>
+        <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="gap-2">
+          <Eye size={14} />
+          {showPreview ? "Hide Preview" : "Live Preview"}
+        </Button>
+      </div>
+
+      {/* Live Preview Panel */}
+      {showPreview && (
+        <div className="sticky top-4 z-10">
+          <div className="rounded-xl bg-card border border-border p-4">
+            <p className="text-xs text-muted-foreground mb-3 flex items-center gap-1.5">
+              <Eye size={12} /> Live preview — changes update in real-time
+            </p>
+            <div className="max-w-sm mx-auto">
+              <BrandingLivePreview
+                orgName={org.name}
+                logoUrl={org.logo_url}
+                brandColor={websiteSettings.brand_color}
+                accentColor={websiteSettings.accent_color}
+                palette={palette}
+                fontHeading={fontHeading}
+                fontBody={fontBody}
+                tagline=""
+                description={org.description}
+                visionStatement={websiteSettings.vision_statement}
+                missionStatement={websiteSettings.mission_statement}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Logo Upload */}
       <div className="rounded-xl bg-card border border-border p-6 space-y-4">
         <h3 className="font-heading font-semibold text-base flex items-center gap-2"><Image size={16} /> Logo</h3>

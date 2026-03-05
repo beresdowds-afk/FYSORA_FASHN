@@ -30,6 +30,10 @@ interface WebsiteSettings {
   instagram_url: string;
   facebook_url: string;
   whatsapp_number: string;
+  twitter_url: string;
+  linkedin_url: string;
+  tiktok_url: string;
+  youtube_url: string;
 }
 
 interface CatalogueItem {
@@ -94,6 +98,10 @@ const defaultSettings = (orgId: string): WebsiteSettings => ({
   instagram_url: "",
   facebook_url: "",
   whatsapp_number: "",
+  twitter_url: "",
+  linkedin_url: "",
+  tiktok_url: "",
+  youtube_url: "",
 });
 
 // ── Tier Banner with Usage ────────────────────────────────────────────────────
@@ -583,6 +591,10 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
         instagram_url: ws.instagram_url || "",
         facebook_url: ws.facebook_url || "",
         whatsapp_number: ws.whatsapp_number || "",
+        twitter_url: ws.twitter_url || "",
+        linkedin_url: ws.linkedin_url || "",
+        tiktok_url: ws.tiktok_url || "",
+        youtube_url: ws.youtube_url || "",
         mode: (ws.mode as "auto_builder" | "custom_integration") || "auto_builder",
         theme: (ws.theme as "dark" | "light") || "dark",
         font_heading: ws.font_heading || "Inter",
@@ -877,6 +889,30 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
                   <label className="text-sm font-medium">WhatsApp Number</label>
                   <input value={settings.whatsapp_number} onChange={(e) => setSettings({ ...settings, whatsapp_number: e.target.value })}
                     disabled={!canEdit} placeholder="+234 800 000 0000" className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Twitter / X URL</label>
+                  <input value={settings.twitter_url} onChange={(e) => setSettings({ ...settings, twitter_url: e.target.value })}
+                    disabled={!canEdit} placeholder="https://x.com/..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">LinkedIn URL</label>
+                  <input value={settings.linkedin_url} onChange={(e) => setSettings({ ...settings, linkedin_url: e.target.value })}
+                    disabled={!canEdit} placeholder="https://linkedin.com/company/..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">TikTok URL</label>
+                  <input value={settings.tiktok_url} onChange={(e) => setSettings({ ...settings, tiktok_url: e.target.value })}
+                    disabled={!canEdit} placeholder="https://tiktok.com/@..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">YouTube URL</label>
+                  <input value={settings.youtube_url} onChange={(e) => setSettings({ ...settings, youtube_url: e.target.value })}
+                    disabled={!canEdit} placeholder="https://youtube.com/@..." className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                   />
                 </div>
               </div>
