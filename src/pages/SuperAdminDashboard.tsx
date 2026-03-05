@@ -7,12 +7,13 @@ import DataBackupPanel from "@/components/super-admin/DataBackupPanel";
 import FeatureFlagsPanel from "@/components/super-admin/FeatureFlagsPanel";
 import WebsiteRequestsDashboard from "@/components/super-admin/WebsiteRequestsDashboard";
 import MobileAppManagementPanel from "@/components/super-admin/MobileAppManagementPanel";
+import AuditLogsPanel from "@/components/super-admin/AuditLogsPanel";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Smartphone } from "lucide-react";
+import { DollarSign, Smartphone, ScrollText } from "lucide-react";
 import {
   LogOut,
   Users,
@@ -45,7 +46,7 @@ const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ orgs: 0, users: 0 });
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
-  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "revenue" | "keys" | "rates" | "websites" | "pricing" | "backups" | "features" | "mobile">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "revenue" | "keys" | "rates" | "websites" | "pricing" | "backups" | "features" | "mobile" | "audit">("overview");
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
@@ -89,6 +90,7 @@ const SuperAdminDashboard = () => {
     { id: "backups" as const, icon: Activity, label: "Backups" },
     { id: "features" as const, icon: Shield, label: "Feature Flags" },
     { id: "mobile" as const, icon: Smartphone, label: "Mobile App" },
+    { id: "audit" as const, icon: ScrollText, label: "Audit Logs" },
   ];
 
   return (
@@ -192,6 +194,7 @@ const SuperAdminDashboard = () => {
           {activeTab === "backups" && <DataBackupPanel />}
           {activeTab === "features" && <FeatureFlagsPanel />}
           {activeTab === "mobile" && <MobileAppManagementPanel />}
+          {activeTab === "audit" && <AuditLogsPanel />}
         </main>
       </div>
     </div>

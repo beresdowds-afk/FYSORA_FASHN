@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Package, CreditCard, Bell, Ruler, Clock, ChevronRight,
   CheckCircle2, AlertCircle, Lock, KeyRound, Loader2, Video, Search,
-  Building2, MapPin
+  Building2, MapPin, Heart, Star
 } from "lucide-react";
 import UserNotificationPreferences from "@/components/communications/UserNotificationPreferences";
 import BookMeasurementDialog from "@/components/measurements/BookMeasurementDialog";
 import MeasurementBookingsTab from "@/components/measurements/MeasurementBookingsTab";
+import WishlistReviewsPanel from "@/components/customer/WishlistReviewsPanel";
 import { useToast } from "@/hooks/use-toast";
 import { DisclaimerBanner } from "@/components/shared/DisclaimerDialog";
 
@@ -359,8 +360,14 @@ const CustomerPortal = () => {
                 <TabsTrigger value="browse" className="gap-2"><Search size={14} /> Browse</TabsTrigger>
                 <TabsTrigger value="measurements" className="gap-2"><Ruler size={14} /> AI Measurements</TabsTrigger>
                 <TabsTrigger value="payments" className="gap-2"><CreditCard size={14} /> Payments</TabsTrigger>
+                <TabsTrigger value="wishlist" className="gap-2"><Heart size={14} /> Wishlist & Reviews</TabsTrigger>
                 <TabsTrigger value="notifications" className="gap-2"><Bell size={14} /> Notifications</TabsTrigger>
               </TabsList>
+
+              {/* Wishlist & Reviews Tab */}
+              <TabsContent value="wishlist">
+                <WishlistReviewsPanel />
+              </TabsContent>
 
               {/* Orders Tab */}
               <TabsContent value="orders">
