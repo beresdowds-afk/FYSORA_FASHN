@@ -2496,11 +2496,13 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_enabled: boolean
+          mission_statement: string | null
           mode: string
           org_id: string
           tagline: string | null
           theme: string
           updated_at: string
+          vision_statement: string | null
           webhook_url: string | null
           whatsapp_number: string | null
         }
@@ -2520,11 +2522,13 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
+          mission_statement?: string | null
           mode?: string
           org_id: string
           tagline?: string | null
           theme?: string
           updated_at?: string
+          vision_statement?: string | null
           webhook_url?: string | null
           whatsapp_number?: string | null
         }
@@ -2544,11 +2548,13 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
+          mission_statement?: string | null
           mode?: string
           org_id?: string
           tagline?: string | null
           theme?: string
           updated_at?: string
+          vision_statement?: string | null
           webhook_url?: string | null
           whatsapp_number?: string | null
         }
