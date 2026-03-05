@@ -25,7 +25,7 @@ import WebsiteBuilderTab from "@/components/website-builder/WebsiteBuilderTab";
 import PremiumFeaturesTab from "@/components/premium/PremiumFeaturesTab";
 import LogisticsTab from "@/components/logistics/LogisticsTab";
 import DisputesTab from "@/components/disputes/DisputesTab";
-
+import FeatureGate from "@/components/shared/FeatureGate";
 const roleLabels: Record<AppRole, string> = {
   super_admin: "Super Admin",
   org_admin: "Org Admin",
@@ -217,13 +217,13 @@ const Dashboard = () => {
           {activeTab === "customers" && <CustomersTab orgId={currentOrg.id} currency={currentOrg.currency || "NGN"} />}
           {activeTab === "registrations" && <CustomerRegistrationsTab orgId={currentOrg.id} />}
           {activeTab === "bookings" && <MeasurementBookingsTab orgId={currentOrg.id} isAdmin={role === "org_admin" || role === "super_admin"} />}
-          {activeTab === "premium" && <PremiumFeaturesTab orgId={currentOrg.id} role={role} />}
-          {activeTab === "logistics" && <LogisticsTab orgId={currentOrg.id} role={role} currency={currentOrg.currency || "NGN"} />}
-          {activeTab === "disputes" && <DisputesTab orgId={currentOrg.id} role={role} />}
+          {activeTab === "premium" && <FeatureGate featureKey="basic_measurement" showLocked><PremiumFeaturesTab orgId={currentOrg.id} role={role} /></FeatureGate>}
+          {activeTab === "logistics" && <FeatureGate featureKey="local_logistics" showLocked><LogisticsTab orgId={currentOrg.id} role={role} currency={currentOrg.currency || "NGN"} /></FeatureGate>}
+          {activeTab === "disputes" && <FeatureGate featureKey="ai_disputes" showLocked><DisputesTab orgId={currentOrg.id} role={role} /></FeatureGate>}
           {activeTab === "members" && <MembersTab orgId={currentOrg.id} role={role} />}
           {activeTab === "communications" && <CommunicationsTab orgId={currentOrg.id} role={role} />}
           {activeTab === "billing" && <SubscriptionTab orgId={currentOrg.id} role={role} />}
-          {activeTab === "website" && <WebsiteBuilderTab org={currentOrg} role={role} />}
+          {activeTab === "website" && <FeatureGate featureKey="website_builder_pro" fallback={<WebsiteBuilderTab org={currentOrg} role={role} />}><WebsiteBuilderTab org={currentOrg} role={role} /></FeatureGate>}
           {activeTab === "settings" && <SettingsTab org={currentOrg} role={role} />}
         </main>
       </div>

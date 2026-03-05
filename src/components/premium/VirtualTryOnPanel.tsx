@@ -96,10 +96,10 @@ const VirtualTryOnPanel = ({ orgId }: VirtualTryOnPanelProps) => {
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
           <Sparkles size={18} className="text-primary" />
-          <h3 className="font-heading font-semibold text-lg">AI Virtual Try-On</h3>
+          <h3 className="font-heading font-semibold text-lg">FASHN Virtual Try-On</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
-          Upload a photo and describe the garment you'd like to try on. Our AI will generate a visualization.
+          Upload a photo and describe the garment. FASHN AI generates a photorealistic visualization of you wearing it.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

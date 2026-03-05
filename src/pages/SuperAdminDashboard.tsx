@@ -4,6 +4,7 @@ import ExchangeRatesPanel from "@/components/super-admin/ExchangeRatesPanel";
 import PlatformRevenuePanel from "@/components/super-admin/PlatformRevenuePanel";
 import WebsitePricingPanel from "@/components/super-admin/WebsitePricingPanel";
 import DataBackupPanel from "@/components/super-admin/DataBackupPanel";
+import FeatureFlagsPanel from "@/components/super-admin/FeatureFlagsPanel";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -45,7 +46,7 @@ const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ orgs: 0, users: 0 });
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
-  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "revenue" | "keys" | "rates" | "websites" | "pricing" | "backups">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "revenue" | "keys" | "rates" | "websites" | "pricing" | "backups" | "features">("overview");
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
@@ -87,6 +88,7 @@ const SuperAdminDashboard = () => {
     { id: "keys" as const, icon: Shield, label: "Keys & Secrets" },
     { id: "rates" as const, icon: Globe, label: "Exchange Rates" },
     { id: "backups" as const, icon: Activity, label: "Backups" },
+    { id: "features" as const, icon: Shield, label: "Feature Flags" },
   ];
 
   return (
@@ -188,6 +190,7 @@ const SuperAdminDashboard = () => {
           {activeTab === "keys" && <KeysSecretsPanel />}
           {activeTab === "rates" && <ExchangeRatesPanel />}
           {activeTab === "backups" && <DataBackupPanel />}
+          {activeTab === "features" && <FeatureFlagsPanel />}
         </main>
       </div>
     </div>

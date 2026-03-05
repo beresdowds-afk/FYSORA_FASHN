@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a professional AI body measurement assistant for a premium tailoring platform. Analyze the image of a person and estimate their body measurements with high accuracy based on visual proportions, standard anthropometric ratios, and visible reference points.
+            content: `You are a professional 360° AI body measurement assistant for a premium tailoring platform. Analyze the image of a person and estimate their body measurements with high accuracy based on visual proportions, standard anthropometric ratios, and visible reference points.
 
 Return a JSON array of measurements. Each measurement should have:
 - "label": The measurement name

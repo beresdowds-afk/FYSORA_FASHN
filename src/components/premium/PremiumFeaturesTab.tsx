@@ -4,6 +4,7 @@ import { Sparkles, Camera, Ruler, Video, BarChart3 } from "lucide-react";
 import VirtualTryOnPanel from "./VirtualTryOnPanel";
 import PremiumUsagePanel from "./PremiumUsagePanel";
 import EnhancedMeasurementsPanel from "./EnhancedMeasurementsPanel";
+import FeatureGate from "@/components/shared/FeatureGate";
 
 interface PremiumFeaturesTabProps {
   orgId: string;
@@ -23,10 +24,10 @@ const PremiumFeaturesTab = ({ orgId, role }: PremiumFeaturesTabProps) => {
       <Tabs defaultValue="tryon">
         <TabsList className="mb-6">
           <TabsTrigger value="tryon" className="gap-2">
-            <Camera size={14} /> Virtual Try-On
+            <Camera size={14} /> FASHN Try-On
           </TabsTrigger>
           <TabsTrigger value="measurements" className="gap-2">
-            <Ruler size={14} /> AI Measurements
+            <Ruler size={14} /> 360° Measurements
           </TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="usage" className="gap-2">
@@ -36,10 +37,14 @@ const PremiumFeaturesTab = ({ orgId, role }: PremiumFeaturesTabProps) => {
         </TabsList>
 
         <TabsContent value="tryon">
-          <VirtualTryOnPanel orgId={orgId} />
+          <FeatureGate featureKey="virtual_tryon" showLocked>
+            <VirtualTryOnPanel orgId={orgId} />
+          </FeatureGate>
         </TabsContent>
         <TabsContent value="measurements">
-          <EnhancedMeasurementsPanel orgId={orgId} role={role} />
+          <FeatureGate featureKey="basic_measurement" showLocked>
+            <EnhancedMeasurementsPanel orgId={orgId} role={role} />
+          </FeatureGate>
         </TabsContent>
         {isAdmin && (
           <TabsContent value="usage">

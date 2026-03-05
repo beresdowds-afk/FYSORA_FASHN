@@ -1716,6 +1716,60 @@ export type Database = {
           },
         ]
       }
+      platform_feature_flags: {
+        Row: {
+          api_provider: string | null
+          category: string
+          created_at: string
+          description: string | null
+          feature_key: string
+          feature_name: string
+          full_platform_default: boolean
+          id: string
+          is_enabled: boolean
+          metadata: Json | null
+          mvp_default: boolean
+          required_secret_names: string[] | null
+          requires_api_key: boolean
+          toggle_mechanism: string
+          updated_at: string
+        }
+        Insert: {
+          api_provider?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          feature_key: string
+          feature_name: string
+          full_platform_default?: boolean
+          id?: string
+          is_enabled?: boolean
+          metadata?: Json | null
+          mvp_default?: boolean
+          required_secret_names?: string[] | null
+          requires_api_key?: boolean
+          toggle_mechanism?: string
+          updated_at?: string
+        }
+        Update: {
+          api_provider?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          feature_key?: string
+          feature_name?: string
+          full_platform_default?: boolean
+          id?: string
+          is_enabled?: boolean
+          metadata?: Json | null
+          mvp_default?: boolean
+          required_secret_names?: string[] | null
+          requires_api_key?: boolean
+          toggle_mechanism?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_fee_ledger: {
         Row: {
           amount: number
