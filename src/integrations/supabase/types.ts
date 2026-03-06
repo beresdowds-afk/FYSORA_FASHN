@@ -435,6 +435,88 @@ export type Database = {
           },
         ]
       }
+      call_billing_records: {
+        Row: {
+          billing_status: string
+          call_log_id: string | null
+          call_type: string
+          caller_type: string
+          caller_user_id: string
+          charged_at: string | null
+          created_at: string
+          duration_seconds: number
+          id: string
+          metadata: Json | null
+          org_id: string
+          rate_per_minute: number
+          refund_reason: string | null
+          refunded_at: string | null
+          total_credits_charged: number
+          updated_at: string
+          wallet_id: string | null
+        }
+        Insert: {
+          billing_status?: string
+          call_log_id?: string | null
+          call_type?: string
+          caller_type?: string
+          caller_user_id: string
+          charged_at?: string | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          metadata?: Json | null
+          org_id: string
+          rate_per_minute?: number
+          refund_reason?: string | null
+          refunded_at?: string | null
+          total_credits_charged?: number
+          updated_at?: string
+          wallet_id?: string | null
+        }
+        Update: {
+          billing_status?: string
+          call_log_id?: string | null
+          call_type?: string
+          caller_type?: string
+          caller_user_id?: string
+          charged_at?: string | null
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          metadata?: Json | null
+          org_id?: string
+          rate_per_minute?: number
+          refund_reason?: string | null
+          refunded_at?: string | null
+          total_credits_charged?: number
+          updated_at?: string
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_billing_records_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_billing_records_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_billing_records_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "credit_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_logs: {
         Row: {
           answered_at: string | null
@@ -1493,6 +1575,78 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "measurement_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_documents: {
+        Row: {
+          ai_generated: boolean | null
+          call_log_id: string | null
+          content: string | null
+          created_at: string
+          created_by: string
+          doc_type: string
+          duration_seconds: number | null
+          id: string
+          is_archived: boolean | null
+          language: string | null
+          metadata: Json | null
+          org_id: string
+          participants: Json | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          call_log_id?: string | null
+          content?: string | null
+          created_at?: string
+          created_by: string
+          doc_type?: string
+          duration_seconds?: number | null
+          id?: string
+          is_archived?: boolean | null
+          language?: string | null
+          metadata?: Json | null
+          org_id: string
+          participants?: Json | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          call_log_id?: string | null
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          doc_type?: string
+          duration_seconds?: number | null
+          id?: string
+          is_archived?: boolean | null
+          language?: string | null
+          metadata?: Json | null
+          org_id?: string
+          participants?: Json | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_documents_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_documents_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -2890,6 +3044,104 @@ export type Database = {
           },
           {
             foreignKeyName: "payments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_call_archives: {
+        Row: {
+          archived_at: string
+          billing_record_id: string | null
+          call_log_id: string | null
+          call_type: string
+          caller_id: string
+          caller_type: string
+          created_at: string
+          credits_charged: number | null
+          direction: string
+          duration_seconds: number | null
+          feedback_notes: string | null
+          from_number: string | null
+          id: string
+          meeting_doc_id: string | null
+          metadata: Json | null
+          org_id: string
+          quality_score: number | null
+          recording_url: string | null
+          to_number: string | null
+          transcript_url: string | null
+        }
+        Insert: {
+          archived_at?: string
+          billing_record_id?: string | null
+          call_log_id?: string | null
+          call_type?: string
+          caller_id: string
+          caller_type?: string
+          created_at?: string
+          credits_charged?: number | null
+          direction?: string
+          duration_seconds?: number | null
+          feedback_notes?: string | null
+          from_number?: string | null
+          id?: string
+          meeting_doc_id?: string | null
+          metadata?: Json | null
+          org_id: string
+          quality_score?: number | null
+          recording_url?: string | null
+          to_number?: string | null
+          transcript_url?: string | null
+        }
+        Update: {
+          archived_at?: string
+          billing_record_id?: string | null
+          call_log_id?: string | null
+          call_type?: string
+          caller_id?: string
+          caller_type?: string
+          created_at?: string
+          credits_charged?: number | null
+          direction?: string
+          duration_seconds?: number | null
+          feedback_notes?: string | null
+          from_number?: string | null
+          id?: string
+          meeting_doc_id?: string | null
+          metadata?: Json | null
+          org_id?: string
+          quality_score?: number | null
+          recording_url?: string | null
+          to_number?: string | null
+          transcript_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_call_archives_billing_record_id_fkey"
+            columns: ["billing_record_id"]
+            isOneToOne: false
+            referencedRelation: "call_billing_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_call_archives_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_call_archives_meeting_doc_id_fkey"
+            columns: ["meeting_doc_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_call_archives_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"

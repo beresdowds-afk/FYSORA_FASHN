@@ -1,11 +1,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, History, UserCog, Inbox, Route, Phone } from "lucide-react";
+import { Settings, History, UserCog, Inbox, Route, Phone, Wallet } from "lucide-react";
 import NotificationSettingsPanel from "./NotificationSettingsPanel";
 import MessageLogViewer from "./MessageLogViewer";
 import UserNotificationPreferences from "./UserNotificationPreferences";
 import MessageInbox from "./MessageInbox";
 import RoutingRulesPanel from "./RoutingRulesPanel";
 import CallHistoryPanel from "./CallHistoryPanel";
+import VoipBillingPanel from "./VoipBillingPanel";
 
 interface CommunicationsTabProps {
   orgId: string;
@@ -19,7 +20,7 @@ const CommunicationsTab = ({ orgId, role }: CommunicationsTabProps) => {
     <div>
       <h2 className="font-heading font-bold text-2xl mb-6">Communications Hub</h2>
       <Tabs defaultValue="inbox">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="inbox" className="gap-2">
             <Inbox size={14} /> Inbox
           </TabsTrigger>
@@ -38,6 +39,9 @@ const CommunicationsTab = ({ orgId, role }: CommunicationsTabProps) => {
           </TabsTrigger>
           <TabsTrigger value="calls" className="gap-2">
             <Phone size={14} /> Calls
+          </TabsTrigger>
+          <TabsTrigger value="voip-billing" className="gap-2">
+            <Wallet size={14} /> VoIP Billing
           </TabsTrigger>
           <TabsTrigger value="logs" className="gap-2">
             <History size={14} /> Message Log
@@ -62,6 +66,9 @@ const CommunicationsTab = ({ orgId, role }: CommunicationsTabProps) => {
         </TabsContent>
         <TabsContent value="calls">
           <CallHistoryPanel orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="voip-billing">
+          <VoipBillingPanel orgId={orgId} role={role} />
         </TabsContent>
         <TabsContent value="logs">
           <MessageLogViewer orgId={orgId} />
