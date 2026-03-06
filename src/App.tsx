@@ -21,6 +21,7 @@ import ResetPassword from "./pages/ResetPassword";
 import OrgTailorPage from "./pages/OrgTailorPage";
 import ApiDocs from "./pages/ApiDocs";
 import LegalDocs from "./pages/LegalDocs";
+import DemoOrgWebsite from "./pages/DemoOrgWebsite";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/catalogue/:orgId" element={<CataloguePage />} />
             <Route path="/docs/api" element={<ApiDocs />} />
             <Route path="/legal" element={<LegalDocs />} />
+            <Route path="/demo-org" element={<DemoOrgWebsite />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
