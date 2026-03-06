@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Play, Download } from "lucide-react";
+import { ArrowRight, Download, Users, Scissors, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
@@ -53,28 +53,55 @@ const Hero = () => {
             communication.
           </motion.p>
 
+          {/* Role-specific CTAs */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.6 }}
-            className="flex flex-col sm:flex-row gap-4"
+            className="space-y-4"
           >
-            <Link to="/auth">
-              <Button variant="hero" size="lg" className="text-base">
-                Start Free Trial
-                <ArrowRight className="ml-2" size={18} />
-              </Button>
-            </Link>
-            <Link to="/install">
-              <Button
-                variant="heroOutline"
-                size="lg"
-                className="text-base border-ivory/30 text-ivory hover:bg-ivory/10 hover:text-ivory"
-              >
-                <Download size={18} className="mr-2" />
-                Get the App
-              </Button>
-            </Link>
+            <p className="text-ivory/50 text-sm font-medium uppercase tracking-wider">Get Started As</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link to="/auth?role=customer">
+                <Button variant="hero" size="lg" className="text-base w-full sm:w-auto">
+                  <Users size={18} className="mr-2" />
+                  Customer
+                  <ArrowRight className="ml-2" size={16} />
+                </Button>
+              </Link>
+              <Link to="/auth?role=tailor">
+                <Button
+                  size="lg"
+                  className="text-base w-full sm:w-auto bg-ivory/10 border border-ivory/20 text-ivory hover:bg-ivory/20"
+                >
+                  <Scissors size={18} className="mr-2" />
+                  Tailor
+                  <ArrowRight className="ml-2" size={16} />
+                </Button>
+              </Link>
+              <Link to="/auth?role=organization">
+                <Button
+                  size="lg"
+                  className="text-base w-full sm:w-auto bg-ivory/10 border border-ivory/20 text-ivory hover:bg-ivory/20"
+                >
+                  <Building2 size={18} className="mr-2" />
+                  Organization
+                  <ArrowRight className="ml-2" size={16} />
+                </Button>
+              </Link>
+            </div>
+            <div className="pt-2">
+              <Link to="/install">
+                <Button
+                  variant="heroOutline"
+                  size="sm"
+                  className="border-ivory/20 text-ivory/60 hover:bg-ivory/10 hover:text-ivory"
+                >
+                  <Download size={14} className="mr-2" />
+                  Get the App
+                </Button>
+              </Link>
+            </div>
           </motion.div>
 
           <motion.div

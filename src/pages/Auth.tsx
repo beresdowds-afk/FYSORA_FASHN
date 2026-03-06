@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,12 +6,50 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Lock, User, Shield } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, Shield, Users, Scissors, Building2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import DisclaimerDialog, { DisclaimerBanner } from "@/components/shared/DisclaimerDialog";
 
 type AuthMode = "signin" | "signup" | "forgot";
+type UserRole = "customer" | "tailor" | "organization";
+
+const ROLE_CONFIG: Record<UserRole, { label: string; icon: any; heading: string; sub: string; color: string }> = {
+  customer: {
+    label: "Customer",
+    icon: Users,
+    heading: "Join as a Customer",
+    sub: "Browse fashion houses, place orders & access AI tools",
+    color: "bg-secondary/15 text-secondary",
+  },
+  tailor: {
+    label: "Tailor",
+    icon: Scissors,
+    heading: "Register as a Tailor",
+    sub: "Manage orders, use AI measurements & grow your craft",
+    color: "bg-primary/15 text-primary",
+  },
+  organization: {
+    label: "Organization",
+    icon: Building2,
+    heading: "Create an Organization",
+    sub: "Full dashboard, team management & business analytics",
+    color: "bg-accent/15 text-accent-foreground",
+  },
+};
+
+const ID_TYPES = [
+  { value: "nin", label: "National ID (NIN)", pattern: "11-digit number" },
+  { value: "bvn", label: "BVN", pattern: "11-digit number" },
+  { value: "passport", label: "International Passport", pattern: "Passport number" },
+  { value: "drivers_license", label: "Driver's License", pattern: "License number" },
+  { value: "voters_card", label: "Voter's Card", pattern: "VIN number" },
+  { value: "ghana_card", label: "Ghana Card", pattern: "GHA-XXXXXXXXX-X" },
+  { value: "kenyan_id", label: "Kenyan National ID", pattern: "8-digit number" },
+  { value: "sa_id", label: "South African ID", pattern: "13-digit number" },
+];
 
 const Auth = () => {
   const [mode, setMode] = useState<AuthMode>("signin");
@@ -25,13 +63,61 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isPortal = searchParams.get("portal") === "1";
+  const roleParam = searchParams.get("role") as UserRole | null;
   const { toast } = useToast();
+
+  const [selectedRole, setSelectedRole] = useState<UserRole>(roleParam && ROLE_CONFIG[roleParam] ? roleParam : "customer");
+
+  // Identity verification fields (for customer & tailor)
+  const [identityType, setIdentityType] = useState("");
+  const [identityNumber, setIdentityNumber] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<"idle" | "valid" | "invalid">("idle");
+
+  useEffect(() => {
+    if (roleParam && ROLE_CONFIG[roleParam as UserRole]) {
+      setSelectedRole(roleParam as UserRole);
+      if (mode === "signin") setMode("signup");
+    }
+  }, [roleParam]);
+
+  const handleVerifyIdentity = async () => {
+    if (!identityNumber.trim() || !identityType) return;
+    setVerifying(true);
+    setVerificationStatus("idle");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-identity", {
+        body: { id_type: identityType, id_number: identityNumber.trim(), country: "auto" },
+      });
+
+      if (error || !data?.valid) {
+        setVerificationStatus("invalid");
+        toast({ title: "Verification failed", description: data?.message || "Could not verify identity number.", variant: "destructive" });
+      } else {
+        setVerificationStatus("valid");
+        toast({ title: "Identity verified", description: "Your identity number has been validated." });
+      }
+    } catch {
+      setVerificationStatus("invalid");
+      toast({ title: "Verification error", description: "Please check your details and try again.", variant: "destructive" });
+    }
+    setVerifying(false);
+  };
+
+  const requiresIdentity = selectedRole === "customer" || selectedRole === "tailor";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     if (mode === "signup" && !termsAccepted) {
       toast({ title: "Please accept the platform terms", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    if (mode === "signup" && requiresIdentity && verificationStatus !== "valid") {
+      toast({ title: "Identity verification required", description: "Please verify your identity number before registering.", variant: "destructive" });
       setLoading(false);
       return;
     }
@@ -44,10 +130,7 @@ const Auth = () => {
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
-        toast({
-          title: "Reset link sent",
-          description: "Check your email for a password reset link.",
-        });
+        toast({ title: "Reset link sent", description: "Check your email for a password reset link." });
         setMode("signin");
       }
       return;
@@ -62,12 +145,30 @@ const Auth = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else if (mode === "signup") {
+      // Save identity info to profile after signup
+      if (requiresIdentity && identityType && identityNumber) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          await supabase.from("profiles").update({
+            identity_type: identityType,
+            identity_number: identityNumber.trim(),
+            identity_verified: true,
+            identity_verified_at: new Date().toISOString(),
+          } as any).eq("id", userData.user.id);
+        }
+      }
+
       toast({
         title: "Check your email",
         description: "We've sent you a confirmation link to verify your account.",
       });
+
+      // Redirect organization role to create org page
+      if (selectedRole === "organization") {
+        toast({ description: "After verifying your email, sign in and create your organization." });
+      }
     } else {
-      // Check if user is a tailor (no org admin role) and redirect accordingly
+      // Sign in redirect
       const { data: memberData } = await supabase
         .from("org_members")
         .select("role")
@@ -84,9 +185,12 @@ const Auth = () => {
     }
   };
 
+  const roleConfig = ROLE_CONFIG[selectedRole];
+  const RoleIcon = roleConfig.icon;
+
   const titles: Record<AuthMode, { heading: string; sub: string }> = {
     signin: { heading: "Welcome back", sub: "Sign in to manage your fashion business" },
-    signup: { heading: "Create your account", sub: "Start your journey with Fashion Stitches Africa" },
+    signup: { heading: roleConfig.heading, sub: roleConfig.sub },
     forgot: { heading: "Reset password", sub: "We'll send a reset link to your email" },
   };
 
@@ -118,22 +222,53 @@ const Auth = () => {
           <h1 className="font-heading font-bold text-2xl mt-4 mb-1">
             {titles[mode].heading}
           </h1>
-          <p className="text-muted-foreground text-sm mb-6">
+          <p className="text-muted-foreground text-sm mb-4">
             {titles[mode].sub}
           </p>
+
+          {/* Role selector for signup */}
+          {mode === "signup" && (
+            <div className="flex gap-2 mb-6">
+              {(Object.keys(ROLE_CONFIG) as UserRole[]).map((role) => {
+                const config = ROLE_CONFIG[role];
+                const Icon = config.icon;
+                const isSelected = selectedRole === role;
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => { setSelectedRole(role); setVerificationStatus("idle"); }}
+                    className={`flex-1 rounded-lg border p-3 text-center transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border bg-muted/30 hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <Icon size={18} className={`mx-auto mb-1 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                    <span className={`text-xs font-medium ${isSelected ? "text-foreground" : "text-muted-foreground"}`}>
+                      {config.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "signup" && (
               <div className="space-y-2">
-                <Label htmlFor="name">Display Name</Label>
+                <Label htmlFor="name">
+                  {selectedRole === "organization" ? "Organization Admin Name" : "Full Name"}
+                </Label>
                 <div className="relative">
                   <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="name"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Your name or business name"
+                    placeholder={selectedRole === "organization" ? "Admin's full name" : "Your full name"}
                     className="pl-10"
+                    required
                   />
                 </div>
               </div>
@@ -185,6 +320,63 @@ const Auth = () => {
               </div>
             )}
 
+            {/* Identity Verification for Customer & Tailor signup */}
+            {mode === "signup" && requiresIdentity && (
+              <div className="space-y-3 p-4 rounded-lg border border-border bg-muted/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield size={14} className="text-primary" />
+                  <span className="text-sm font-medium">Identity Verification</span>
+                  {verificationStatus === "valid" && (
+                    <Badge className="bg-secondary/15 text-secondary text-[10px] ml-auto">
+                      <CheckCircle2 size={10} className="mr-1" /> Verified
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="id-type" className="text-xs">ID Type</Label>
+                  <Select value={identityType} onValueChange={(v) => { setIdentityType(v); setVerificationStatus("idle"); }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select ID type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ID_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="id-number" className="text-xs">ID Number</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="id-number"
+                      value={identityNumber}
+                      onChange={(e) => { setIdentityNumber(e.target.value); setVerificationStatus("idle"); }}
+                      placeholder={ID_TYPES.find((t) => t.value === identityType)?.pattern || "Enter ID number"}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleVerifyIdentity}
+                      disabled={verifying || !identityType || !identityNumber.trim()}
+                      className="shrink-0"
+                    >
+                      {verifying ? <Loader2 size={14} className="animate-spin" /> : "Verify"}
+                    </Button>
+                  </div>
+                  {verificationStatus === "invalid" && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle size={10} /> Verification failed. Please check and try again.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {mode === "signup" && (
               <div className="space-y-3">
                 <DisclaimerBanner compact />
@@ -204,13 +396,20 @@ const Auth = () => {
               </div>
             )}
 
-            <Button variant="hero" className="w-full" type="submit" disabled={loading || (mode === "signup" && !termsAccepted)}>
+            <Button
+              variant="hero"
+              className="w-full"
+              type="submit"
+              disabled={loading || (mode === "signup" && !termsAccepted) || (mode === "signup" && requiresIdentity && verificationStatus !== "valid")}
+            >
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                   {mode === "forgot" ? "Sending..." : mode === "signup" ? "Creating..." : "Signing in..."}
                 </span>
-              ) : mode === "forgot" ? "Send Reset Link" : mode === "signup" ? "Create Account" : "Sign In"}
+              ) : mode === "forgot" ? "Send Reset Link" : mode === "signup" ? (
+                selectedRole === "organization" ? "Create Account & Set Up Org" : "Create Account"
+              ) : "Sign In"}
             </Button>
           </form>
 
