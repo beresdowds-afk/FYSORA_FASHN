@@ -205,6 +205,7 @@ const SuperAdminDashboard = () => {
           {activeTab === "users" && <UsersPanel />}
           {activeTab === "accounts" && <AccountManagementPanel />}
           {activeTab === "revenue" && <PlatformRevenuePanel />}
+          {activeTab === "invoicing" && <AdminInvoicingPaymentsPanel />}
           {activeTab === "websites" && <WebsiteRequestsDashboard />}
           {activeTab === "unified_pricing" && <UnifiedPricingPanel />}
           {activeTab === "pricing" && <WebsitePricingPanel />}
