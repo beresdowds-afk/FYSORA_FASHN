@@ -449,7 +449,7 @@ const UsersPanel = () => {
   const handleChangeOrgRole = async (memberId: string, newRole: string) => {
     const { error } = await supabase
       .from("org_members")
-      .update({ role: newRole })
+      .update({ role: newRole as "org_admin" | "tailor" | "customer" | "super_admin" })
       .eq("id", memberId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
