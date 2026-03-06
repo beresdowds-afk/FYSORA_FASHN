@@ -135,12 +135,14 @@ const Pricing = () => {
                 </span>
               </div>
 
-              <Button
-                variant={plan.popular ? "hero" : "heroOutline"}
-                className="w-full mb-8"
-              >
-                Start Free Trial
-              </Button>
+              <Link to={`/auth?role=${plan.popular ? "organization" : plan.name === "Starter" ? "tailor" : "organization"}`}>
+                <Button
+                  variant={plan.popular ? "hero" : "heroOutline"}
+                  className="w-full mb-8"
+                >
+                  Start Free Trial
+                </Button>
+              </Link>
 
               <ul className="space-y-3">
                 {plan.features.map((feature) => (

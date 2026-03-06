@@ -4022,6 +4022,51 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_rates: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          plan_name: string
+          price_amount: number
+          price_currency: string
+          role_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle?: string
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          plan_name: string
+          price_amount?: number
+          price_currency?: string
+          role_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          plan_name?: string
+          price_amount?: number
+          price_currency?: string
+          role_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tailor_catalogue_items: {
         Row: {
           category: string | null
