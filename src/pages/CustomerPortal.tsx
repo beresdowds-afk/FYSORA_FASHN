@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Package, CreditCard, Bell, Ruler, Clock, ChevronRight,
   CheckCircle2, AlertCircle, KeyRound, Loader2, Video, Search,
-  MapPin, Heart, HelpCircle, Sparkles
+  MapPin, Heart, HelpCircle, Sparkles, Crown
 } from "lucide-react";
 import FeatureGate from "@/components/shared/FeatureGate";
 import UserNotificationPreferences from "@/components/communications/UserNotificationPreferences";
