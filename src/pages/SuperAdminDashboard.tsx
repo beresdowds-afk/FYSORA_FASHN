@@ -572,24 +572,35 @@ const UsersPanel = () => {
         </div>
       ) : tab === "fsa_roles" ? (
         <div className="space-y-4">
-          {/* Grant Super Admin */}
+          {/* Grant Global Role — only super_admin can grant */}
+          {isSuperAdmin && (
           <div className="rounded-xl bg-card border border-border p-5">
             <h3 className="font-heading font-semibold text-sm mb-3 flex items-center gap-2">
-              <Shield size={16} className="text-primary" /> Grant Super Admin Role
+              <Shield size={16} className="text-primary" /> Grant Platform Role
             </h3>
-            <div className="flex gap-2 max-w-md">
+            <div className="flex gap-2 max-w-lg">
               <Input
                 placeholder="User email address..."
                 value={addEmail}
                 onChange={(e) => setAddEmail(e.target.value)}
                 className="flex-1"
               />
-              <Button variant="hero" size="sm" onClick={handleGrantSuperAdmin} disabled={adding}>
+              <Select value={addRole} onValueChange={(v) => setAddRole(v as "super_admin" | "super_assistant")}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="super_assistant">Super Assistant</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="hero" size="sm" onClick={handleGrantGlobalRole} disabled={adding}>
                 {adding ? "Granting..." : "Grant"}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">The user must have an existing FSA account.</p>
+            <p className="text-xs text-muted-foreground mt-2">The user must have an existing FSA account. Super Assistants have full access except pricing and feature management.</p>
           </div>
+          )}
 
           {/* Current Global Roles */}
           {globalRoles.length === 0 ? (
