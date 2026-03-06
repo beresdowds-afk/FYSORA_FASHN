@@ -57,7 +57,6 @@ const CustomerPortal = () => {
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const tour = useTourGuide("customer-portal", customerTourSteps);
-  const tour = useTourGuide("customer-portal", customerTourSteps);
 
   // Self-registration state
   const [inviteCode, setInviteCode] = useState("");
