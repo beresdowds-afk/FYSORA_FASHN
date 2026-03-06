@@ -70,7 +70,7 @@ interface FeeEntry {
 /* ─── Component ─── */
 const AdminInvoicingPaymentsPanel = () => {
   const { toast } = useToast();
-  const [activeView, setActiveView] = useState<"overview" | "invoices" | "payments" | "fees">("overview");
+  const [activeView, setActiveView] = useState<"overview" | "invoices" | "payments" | "fees" | "premium" | "verifications">("overview");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -80,6 +80,8 @@ const AdminInvoicingPaymentsPanel = () => {
   const [payments, setPayments] = useState<PlatformPayment[]>([]);
   const [fees, setFees] = useState<FeeEntry[]>([]);
   const [orgMap, setOrgMap] = useState<Record<string, string>>({});
+  const [measurementBookings, setMeasurementBookings] = useState<any[]>([]);
+  const [verifications, setVerifications] = useState<{ orgs: any[]; profiles: any[] }>({ orgs: [], profiles: [] });
 
   const loadAll = useCallback(async () => {
     setLoading(true);
