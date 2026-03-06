@@ -36,6 +36,7 @@ import { HelpCircle } from "lucide-react";
 const roleLabels: Record<AppRole, string> = {
   super_admin: "Super Admin",
   org_admin: "Org Admin",
+  manager: "Manager",
   tailor: "Tailor",
   customer: "Customer",
 };
@@ -43,6 +44,7 @@ const roleLabels: Record<AppRole, string> = {
 const roleColors: Record<AppRole, string> = {
   super_admin: "bg-accent text-accent-foreground",
   org_admin: "bg-primary text-primary-foreground",
+  manager: "bg-primary/80 text-primary-foreground",
   tailor: "bg-secondary text-secondary-foreground",
   customer: "bg-muted text-muted-foreground",
 };
@@ -445,7 +447,7 @@ const OverviewTab = ({ org, role }: { org: any; role: AppRole | null }) => {
       <div className="rounded-xl bg-card border border-border p-6">
         <h3 className="font-heading font-semibold text-lg mb-2">Welcome to {org.name}</h3>
         <p className="text-muted-foreground text-sm">
-          {role === "org_admin"
+          {role === "org_admin" || role === "manager"
             ? "As an Organization Admin, you can manage team members, settings, and orders."
             : role === "tailor"
             ? "View and manage your assigned orders and production workflow."
@@ -647,7 +649,8 @@ const MembersTab = ({ orgId, role }: { orgId: string; role: AppRole | null }) =>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="org_admin">Org Admin</SelectItem>
+                        <SelectItem value="org_admin">Org Admin</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
                           <SelectItem value="tailor">Tailor</SelectItem>
                           <SelectItem value="customer">Customer</SelectItem>
                         </SelectContent>
