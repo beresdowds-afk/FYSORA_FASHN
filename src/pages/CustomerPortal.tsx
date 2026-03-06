@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   LogOut, Package, CreditCard, Bell, Ruler, Clock, ChevronRight,
-  CheckCircle2, AlertCircle, Lock, KeyRound, Loader2, Video, Search,
+  CheckCircle2, AlertCircle, KeyRound, Loader2, Video, Search,
   MapPin, Heart, HelpCircle, Sparkles
 } from "lucide-react";
+import FeatureGate from "@/components/shared/FeatureGate";
 import UserNotificationPreferences from "@/components/communications/UserNotificationPreferences";
 import BookMeasurementDialog from "@/components/measurements/BookMeasurementDialog";
 import MeasurementBookingsTab from "@/components/measurements/MeasurementBookingsTab";
@@ -54,10 +55,7 @@ const CustomerPortal = () => {
   const [payments, setPayments] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
-  const [registration, setRegistration] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
-  const [payingReg, setPayingReg] = useState(false);
   const tour = useTourGuide("customer-portal", customerTourSteps);
 
   // Self-registration state
@@ -68,22 +66,10 @@ const CustomerPortal = () => {
     if (!authLoading && !user) navigate("/auth?portal=1");
   }, [user, authLoading, navigate]);
 
-  // Verify registration payment callback
+  // Verify measurement payment callback
   useEffect(() => {
-    const regStatus = searchParams.get("reg_status");
     const measStatus = searchParams.get("meas_status");
     const trxref = searchParams.get("trxref") || searchParams.get("reference");
-    
-    if (regStatus === "success" && trxref) {
-      supabase.functions.invoke("verify-registration-payment", {
-        body: { reference: trxref },
-      }).then(({ data }) => {
-        if (data?.status === "success" || data?.status === "already_paid") {
-          toast({ title: "Registration payment confirmed!" });
-          setRegistration((prev: any) => prev ? { ...prev, status: "paid" } : prev);
-        }
-      });
-    }
 
     if (measStatus === "success" && trxref) {
       supabase.functions.invoke("verify-measurement-payment", {
@@ -122,22 +108,18 @@ const CustomerPortal = () => {
     load();
   }, [user]);
 
-  // Fetch orders, payments, registration for selected org
+  // Fetch orders and payments for selected org
   useEffect(() => {
     if (!user || !selectedOrgId) return;
     const load = async () => {
-      const [ordersRes, paymentsRes, regRes, rateRes] = await Promise.all([
+      const [ordersRes, paymentsRes] = await Promise.all([
         supabase.from("orders").select("*").eq("org_id", selectedOrgId).eq("customer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("payments").select("*").eq("org_id", selectedOrgId).order("created_at", { ascending: false }),
-        supabase.from("customer_registrations").select("*").eq("org_id", selectedOrgId).eq("user_id", user.id).maybeSingle(),
-        supabase.from("exchange_rates").select("rate").eq("target_currency", "USD").single(),
       ]);
 
       setOrders(ordersRes.data || []);
       const customerOrderIds = new Set((ordersRes.data || []).map((o: any) => o.id));
       setPayments((paymentsRes.data || []).filter((p: any) => customerOrderIds.has(p.order_id)));
-      setRegistration(regRes.data);
-      if (rateRes.data) setExchangeRate(rateRes.data.rate);
     };
     load();
   }, [user, selectedOrgId]);
@@ -155,48 +137,8 @@ const CustomerPortal = () => {
     navigate("/");
   };
 
-  const isPaid = registration?.status === "paid" || registration?.status === "waived";
   const selectedOrg = orgs.find((o) => o.id === selectedOrgId);
   const orgCurrency = selectedOrg?.currency || "NGN";
-
-  const localFeeAmount = exchangeRate && exchangeRate > 0 ? Math.round(5 / exchangeRate) : null;
-
-  const handlePayRegistration = async () => {
-    if (!user || !selectedOrgId) return;
-    setPayingReg(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("initialize-registration-payment", {
-        body: {
-          org_id: selectedOrgId,
-          callback_url: `${window.location.origin}/portal?reg_status=success`,
-        },
-      });
-
-      if (error || !data?.checkout_url) {
-        // Fallback to manual if Paystack not configured
-        if (!registration) {
-          await supabase.from("customer_registrations").insert({
-            user_id: user.id,
-            org_id: selectedOrgId,
-            fee_amount: 5,
-            fee_currency: "USD",
-            local_amount: localFeeAmount,
-            local_currency: orgCurrency,
-          });
-        }
-        toast({ title: "Payment gateway not configured", description: "Contact your tailor to complete registration.", variant: "destructive" });
-        setPayingReg(false);
-        return;
-      }
-
-      // Redirect to Paystack checkout
-      window.location.href = data.checkout_url;
-    } catch {
-      toast({ title: "Error", description: "Failed to initialize payment", variant: "destructive" });
-      setPayingReg(false);
-    }
-  };
 
   // Join org via invite code
   const handleJoinOrg = async () => {
@@ -333,34 +275,8 @@ const CustomerPortal = () => {
           </motion.div>
         )}
 
-        {/* Registration Fee Gate */}
-        {!isPaid && selectedOrgId && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl bg-card border border-border p-8 text-center mb-8"
-          >
-            <Lock size={40} className="mx-auto text-primary mb-4" />
-            <h2 className="font-heading font-bold text-xl mb-2">Registration Fee Required</h2>
-            <p className="text-muted-foreground text-sm mb-4">
-              A one-time registration fee of <strong>$5.00 USD</strong>
-              {localFeeAmount && ` (≈ ${orgCurrency} ${localFeeAmount.toLocaleString()})`} is required to access your orders and portal features.
-            </p>
-            <Button variant="hero" onClick={handlePayRegistration} className="min-w-[200px]" disabled={payingReg}>
-              {payingReg ? (
-                <><Loader2 size={16} className="mr-2 animate-spin" /> Redirecting to Paystack...</>
-              ) : (
-                <><CreditCard size={16} className="mr-2" /> Pay with Paystack</>
-              )}
-            </Button>
-            <p className="text-[10px] text-muted-foreground mt-3">
-              Secure payment powered by Paystack
-            </p>
-          </motion.div>
-        )}
-
-        {/* Portal Content (locked behind payment) */}
-        {isPaid && selectedOrgId && (
+        {/* Portal Content (free access to dashboard) */}
+        {selectedOrgId && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Tabs defaultValue="orders">
               <TabsList className="mb-6 flex-wrap">
@@ -445,19 +361,21 @@ const CustomerPortal = () => {
                 <FeatureRequestsTab userId={user.id} />
               </TabsContent>
 
-              {/* AI Measurements Tab */}
+              {/* AI Measurements Tab (Paid Feature) */}
               <TabsContent value="measurements">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-heading font-bold text-xl">AI Measurement Sessions</h2>
-                    <BookMeasurementDialog orgId={selectedOrgId}>
-                      <Button variant="hero" size="sm">
-                        <Video size={14} className="mr-1" /> Book Session
-                      </Button>
-                    </BookMeasurementDialog>
+                <FeatureGate featureKey="basic_measurement" showLocked>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-heading font-bold text-xl">AI Measurement Sessions</h2>
+                      <BookMeasurementDialog orgId={selectedOrgId}>
+                        <Button variant="hero" size="sm">
+                          <Video size={14} className="mr-1" /> Book Session
+                        </Button>
+                      </BookMeasurementDialog>
+                    </div>
+                    <MeasurementBookingsTab orgId={selectedOrgId} />
                   </div>
-                  <MeasurementBookingsTab orgId={selectedOrgId} />
-                </div>
+                </FeatureGate>
               </TabsContent>
 
               {/* Payments Tab */}
@@ -495,9 +413,11 @@ const CustomerPortal = () => {
                 )}
               </TabsContent>
 
-              {/* Notifications Tab */}
+              {/* Notifications Tab (Paid Feature) */}
               <TabsContent value="notifications">
-                <UserNotificationPreferences orgId={selectedOrgId} />
+                <FeatureGate featureKey="email_notifications" showLocked>
+                  <UserNotificationPreferences orgId={selectedOrgId} />
+                </FeatureGate>
               </TabsContent>
             </Tabs>
           </motion.div>
