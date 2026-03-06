@@ -584,7 +584,7 @@ const TailorWorkQueue = ({ orgId, userId, currency }: { orgId: string; userId: s
 const MembersTab = ({ orgId, role }: { orgId: string; role: AppRole | null }) => {
   const { members, loading, updateMemberRole, removeMember, refetch } = useOrgMembers(orgId);
   const { toast } = useToast();
-  const canManage = role === "org_admin" || role === "super_admin";
+  const canManage = role === "org_admin" || role === "manager" || role === "super_admin";
 
   const handleRoleChange = async (memberId: string, newRole: AppRole) => {
     const { error } = await updateMemberRole(memberId, newRole);
