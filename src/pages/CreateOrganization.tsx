@@ -58,7 +58,7 @@ const CreateOrganization = () => {
   const [orgTermsAccepted, setOrgTermsAccepted] = useState(false);
   const { createOrg } = useOrganizations();
   const { user } = useAuth();
-  const { isSuperAdmin } = useUserGlobalRole();
+  const { isSuperAdmin, isSuperAssistant } = useUserGlobalRole();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -130,7 +130,7 @@ const CreateOrganization = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      {isSuperAdmin && (
+      {(isSuperAdmin || isSuperAssistant) && (
         <div className="absolute top-4 left-4">
           <Button variant="ghost" size="sm" onClick={() => navigate("/super-admin")}>
             <ArrowLeft size={16} className="mr-1" /> Super Admin Panel

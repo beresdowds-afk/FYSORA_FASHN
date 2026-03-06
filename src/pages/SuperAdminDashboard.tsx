@@ -51,19 +51,20 @@ interface OrgRow {
 
 const SuperAdminDashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { isSuperAdmin, loading: roleLoading } = useUserGlobalRole();
+  const { isSuperAdmin, isSuperAssistant, loading: roleLoading } = useUserGlobalRole();
   const navigate = useNavigate();
   const [stats, setStats] = useState({ orgs: 0, users: 0 });
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
+  const hasAccess = isSuperAdmin || isSuperAssistant;
   const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit">("overview");
   const tour = useTourGuide("super-admin-dashboard", superAdminTourSteps);
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
       if (!user) navigate("/auth");
-      else if (!isSuperAdmin) navigate("/dashboard");
+      else if (!hasAccess) navigate("/dashboard");
     }
-  }, [user, authLoading, isSuperAdmin, roleLoading, navigate]);
+  }, [user, authLoading, hasAccess, roleLoading, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,8 +76,8 @@ const SuperAdminDashboard = () => {
       setStats({ orgs: orgCount || 0, users: memberCount || 0 });
       setOrgs((orgData as OrgRow[]) || []);
     };
-    if (isSuperAdmin) fetchData();
-  }, [isSuperAdmin]);
+    if (hasAccess) fetchData();
+  }, [hasAccess]);
 
   if (authLoading || roleLoading) {
     return (
@@ -86,7 +87,10 @@ const SuperAdminDashboard = () => {
     );
   }
 
-  if (!isSuperAdmin) return null;
+  if (!hasAccess) return null;
+
+  // Tabs restricted from super_assistant: pricing, features, subscription rates
+  const restrictedTabs = new Set(["sub_rates", "unified_pricing", "pricing", "features"]);
 
   const sidebarItems = [
     { id: "overview" as const, icon: BarChart3, label: "Overview" },
@@ -105,7 +109,7 @@ const SuperAdminDashboard = () => {
     { id: "features" as const, icon: Shield, label: "Feature Flags" },
     { id: "mobile" as const, icon: Smartphone, label: "Mobile App" },
     { id: "audit" as const, icon: ScrollText, label: "Audit Logs" },
-  ];
+  ].filter(item => isSuperAdmin || !restrictedTabs.has(item.id));
 
   return (
     <div className="min-h-screen bg-background">
@@ -124,7 +128,7 @@ const SuperAdminDashboard = () => {
                 Fashion Stitches Africa
               </span>
               <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
-                Super Admin
+                {isSuperAdmin ? "Super Admin" : "Super Assistant"}
               </span>
             </div>
           </div>
@@ -208,14 +212,14 @@ const SuperAdminDashboard = () => {
           {activeTab === "accounts" && <AccountManagementPanel />}
           {activeTab === "revenue" && <PlatformRevenuePanel />}
           {activeTab === "invoicing" && <AdminInvoicingPaymentsPanel />}
-          {activeTab === "sub_rates" && <SubscriptionRatesPanel />}
+          {activeTab === "sub_rates" && isSuperAdmin && <SubscriptionRatesPanel />}
           {activeTab === "websites" && <WebsiteRequestsDashboard />}
-          {activeTab === "unified_pricing" && <UnifiedPricingPanel />}
-          {activeTab === "pricing" && <WebsitePricingPanel />}
+          {activeTab === "unified_pricing" && isSuperAdmin && <UnifiedPricingPanel />}
+          {activeTab === "pricing" && isSuperAdmin && <WebsitePricingPanel />}
           {activeTab === "keys" && <KeysSecretsPanel />}
           {activeTab === "rates" && <ExchangeRatesPanel />}
           {activeTab === "backups" && <DataBackupPanel />}
-          {activeTab === "features" && <FeatureFlagsPanel />}
+          {activeTab === "features" && isSuperAdmin && <FeatureFlagsPanel />}
           {activeTab === "mobile" && <MobileAppManagementPanel />}
           {activeTab === "audit" && <AuditLogsPanel />}
         </main>
@@ -391,6 +395,7 @@ const OrganizationsPanel = ({ orgs }: { orgs: OrgRow[] }) => {
 /* ───────────── Users & Roles Panel ───────────── */
 const UsersPanel = () => {
   const { user } = useAuth();
+  const { isSuperAdmin } = useUserGlobalRole();
   const [members, setMembers] = useState<
     { user_id: string; member_id: string; role: string; org_id: string; org_name: string; display_name: string | null }[]
   >([]);
@@ -399,6 +404,7 @@ const UsersPanel = () => {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"org_roles" | "fsa_roles">("fsa_roles");
   const [addEmail, setAddEmail] = useState("");
+  const [addRole, setAddRole] = useState<"super_admin" | "super_assistant">("super_assistant");
   const [adding, setAdding] = useState(false);
   const { toast } = useToast();
 
@@ -487,12 +493,11 @@ const UsersPanel = () => {
     }
   };
 
-  const handleGrantSuperAdmin = async () => {
+  const handleGrantGlobalRole = async () => {
     const trimmed = addEmail.trim().toLowerCase();
     if (!trimmed) return;
     setAdding(true);
 
-    // Find user by display_name (email fallback from signup)
     const { data: profiles } = await supabase
       .from("profiles")
       .select("id, display_name");
@@ -504,19 +509,18 @@ const UsersPanel = () => {
       return;
     }
 
-    // Check if already super_admin
-    const existing = globalRoles.find((r) => r.user_id === matched.id && r.role === "super_admin");
+    const existing = globalRoles.find((r) => r.user_id === matched.id && r.role === addRole);
     if (existing) {
-      toast({ title: "Already a Super Admin", variant: "destructive" });
+      toast({ title: `Already a ${addRole.replace("_", " ")}`, variant: "destructive" });
       setAdding(false);
       return;
     }
 
-    const { error } = await supabase.from("user_roles").insert({ user_id: matched.id, role: "super_admin" });
+    const { error } = await supabase.from("user_roles").insert({ user_id: matched.id, role: addRole });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Super Admin role granted", description: `${matched.display_name} is now a Super Admin.` });
+      toast({ title: "Role granted", description: `${matched.display_name} is now a ${addRole.replace("_", " ")}.` });
       setAddEmail("");
       await fetchGlobalRoles();
     }
@@ -529,6 +533,7 @@ const UsersPanel = () => {
 
   const roleColors: Record<string, string> = {
     super_admin: "bg-accent/10 text-accent",
+    super_assistant: "bg-accent/10 text-accent",
     org_admin: "bg-primary/10 text-primary",
     manager: "bg-primary/10 text-primary",
     tailor: "bg-secondary/10 text-secondary",
@@ -567,24 +572,35 @@ const UsersPanel = () => {
         </div>
       ) : tab === "fsa_roles" ? (
         <div className="space-y-4">
-          {/* Grant Super Admin */}
+          {/* Grant Global Role — only super_admin can grant */}
+          {isSuperAdmin && (
           <div className="rounded-xl bg-card border border-border p-5">
             <h3 className="font-heading font-semibold text-sm mb-3 flex items-center gap-2">
-              <Shield size={16} className="text-primary" /> Grant Super Admin Role
+              <Shield size={16} className="text-primary" /> Grant Platform Role
             </h3>
-            <div className="flex gap-2 max-w-md">
+            <div className="flex gap-2 max-w-lg">
               <Input
                 placeholder="User email address..."
                 value={addEmail}
                 onChange={(e) => setAddEmail(e.target.value)}
                 className="flex-1"
               />
-              <Button variant="hero" size="sm" onClick={handleGrantSuperAdmin} disabled={adding}>
+              <Select value={addRole} onValueChange={(v) => setAddRole(v as "super_admin" | "super_assistant")}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                  <SelectItem value="super_assistant">Super Assistant</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="hero" size="sm" onClick={handleGrantGlobalRole} disabled={adding}>
                 {adding ? "Granting..." : "Grant"}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">The user must have an existing FSA account.</p>
+            <p className="text-xs text-muted-foreground mt-2">The user must have an existing FSA account. Super Assistants have full access except pricing and feature management.</p>
           </div>
+          )}
 
           {/* Current Global Roles */}
           {globalRoles.length === 0 ? (
@@ -616,8 +632,8 @@ const UsersPanel = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {/* Prevent revoking own role */}
-                          {r.user_id !== user?.id ? (
+                          {/* Only super_admin can revoke, and not their own role */}
+                          {isSuperAdmin && r.user_id !== user?.id ? (
                             <Button
                               variant="ghost"
                               size="sm"
