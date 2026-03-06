@@ -3,6 +3,7 @@ import KeysSecretsPanel from "@/components/super-admin/KeysSecretsPanel";
 import ExchangeRatesPanel from "@/components/super-admin/ExchangeRatesPanel";
 import PlatformRevenuePanel from "@/components/super-admin/PlatformRevenuePanel";
 import WebsitePricingPanel from "@/components/super-admin/WebsitePricingPanel";
+import UnifiedPricingPanel from "@/components/super-admin/UnifiedPricingPanel";
 import DataBackupPanel from "@/components/super-admin/DataBackupPanel";
 import FeatureFlagsPanel from "@/components/super-admin/FeatureFlagsPanel";
 import WebsiteRequestsDashboard from "@/components/super-admin/WebsiteRequestsDashboard";
@@ -52,7 +53,7 @@ const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ orgs: 0, users: 0 });
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
-  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "accounts" | "revenue" | "keys" | "rates" | "websites" | "pricing" | "backups" | "features" | "mobile" | "audit">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "accounts" | "revenue" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit">("overview");
   const tour = useTourGuide("super-admin-dashboard", superAdminTourSteps);
 
   useEffect(() => {
@@ -92,7 +93,8 @@ const SuperAdminDashboard = () => {
     { id: "accounts" as const, icon: UserX, label: "Account Mgmt" },
     { id: "revenue" as const, icon: TrendingUp, label: "Platform Revenue" },
     { id: "websites" as const, icon: Crown, label: "Website Requests" },
-    { id: "pricing" as const, icon: DollarSign, label: "Pricing" },
+    { id: "unified_pricing" as const, icon: DollarSign, label: "Pricing Center" },
+    { id: "pricing" as const, icon: Globe, label: "Website Pricing" },
     { id: "keys" as const, icon: Shield, label: "Keys & Secrets" },
     { id: "rates" as const, icon: Globe, label: "Exchange Rates" },
     { id: "backups" as const, icon: Activity, label: "Backups" },
@@ -202,6 +204,7 @@ const SuperAdminDashboard = () => {
           {activeTab === "accounts" && <AccountManagementPanel />}
           {activeTab === "revenue" && <PlatformRevenuePanel />}
           {activeTab === "websites" && <WebsiteRequestsDashboard />}
+          {activeTab === "unified_pricing" && <UnifiedPricingPanel />}
           {activeTab === "pricing" && <WebsitePricingPanel />}
           {activeTab === "keys" && <KeysSecretsPanel />}
           {activeTab === "rates" && <ExchangeRatesPanel />}

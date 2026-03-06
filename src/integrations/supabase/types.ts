@@ -3259,6 +3259,51 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_fee_config: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          fee_category: string
+          fee_key: string
+          fee_label: string
+          fee_unit: string
+          fee_value: number
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          fee_category?: string
+          fee_key: string
+          fee_label: string
+          fee_unit?: string
+          fee_value?: number
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          fee_category?: string
+          fee_key?: string
+          fee_label?: string
+          fee_unit?: string
+          fee_value?: number
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       platform_fee_ledger: {
         Row: {
           amount: number
@@ -3375,6 +3420,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pricing_audit_log: {
+        Row: {
+          changed_at: string | null
+          changed_by: string
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by: string
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
