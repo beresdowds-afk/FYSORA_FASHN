@@ -87,15 +87,17 @@ const AdminInvoicingPaymentsPanel = () => {
     setLoading(true);
 
     // Load orgs for name mapping
-    const { data: orgs } = await supabase.from("organizations").select("id, name");
+    const { data: orgs } = await supabase.from("organizations").select("id, name, business_reg_number, business_reg_verified, business_reg_verification_status, business_reg_type");
     const map: Record<string, string> = {};
     (orgs || []).forEach((o: any) => { map[o.id] = o.name; });
     setOrgMap(map);
 
-    const [orderRes, payRes, feeRes] = await Promise.all([
+    const [orderRes, payRes, feeRes, bookingsRes, profilesRes] = await Promise.all([
       supabase.from("orders").select("id, order_number, title, org_id, total_amount, amount_paid, currency, payment_status, created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("payments").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("platform_fee_ledger").select("*").order("created_at", { ascending: false }).limit(500),
+      supabase.from("ai_measurement_bookings").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("profiles").select("id, display_name, identity_number, identity_type, identity_verified, identity_verification_status").not("identity_number", "is", null),
     ]);
 
     setInvoices(
@@ -120,6 +122,18 @@ const AdminInvoicingPaymentsPanel = () => {
         org_name: map[f.org_id] || "Unknown",
       }))
     );
+
+    setMeasurementBookings(
+      (bookingsRes.data || []).map((b: any) => ({
+        ...b,
+        org_name: map[b.org_id] || "Unknown",
+      }))
+    );
+
+    setVerifications({
+      orgs: (orgs || []).filter((o: any) => o.business_reg_number),
+      profiles: profilesRes.data || [],
+    });
 
     setLoading(false);
   }, []);
