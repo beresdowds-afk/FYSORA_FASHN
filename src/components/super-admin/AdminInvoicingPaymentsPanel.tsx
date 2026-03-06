@@ -253,13 +253,15 @@ const AdminInvoicingPaymentsPanel = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         {[
-          { label: "Total Order Volume", value: `$${totalOrderVolume.toLocaleString()}`, icon: TrendingUp, color: "text-primary" },
+          { label: "Order Volume", value: `$${totalOrderVolume.toLocaleString()}`, icon: TrendingUp, color: "text-primary" },
           { label: "Platform Revenue", value: `$${totalPlatformRevenue.toLocaleString()}`, icon: DollarSign, color: "text-chart-2" },
-          { label: "Customer Surcharges", value: `$${totalSurcharges.toLocaleString()}`, icon: ArrowUpRight, color: "text-chart-3" },
+          { label: "Surcharges", value: `$${totalSurcharges.toLocaleString()}`, icon: ArrowUpRight, color: "text-chart-3" },
           { label: "Admin Fees", value: `$${totalAdminFees.toLocaleString()}`, icon: ArrowDownLeft, color: "text-chart-4" },
-          { label: "Pending Invoices", value: pendingCount, icon: Clock, color: "text-chart-5" },
+          { label: "Pending", value: pendingCount, icon: Clock, color: "text-chart-5" },
+          { label: "AI Revenue", value: `$${premiumRevenue.toLocaleString()}`, icon: Sparkles, color: "text-primary" },
+          { label: "Verified", value: `${verifiedOrgs + verifiedTailors}`, icon: Shield, color: "text-chart-2" },
         ].map((stat, i) => (
           <div key={i} className="p-4 rounded-xl border border-border bg-card">
             <stat.icon size={20} className={`${stat.color} mb-2`} />
