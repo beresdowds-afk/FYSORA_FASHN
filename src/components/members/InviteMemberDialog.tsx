@@ -3,10 +3,22 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CheckCircle2, XCircle, Loader2, Shield } from "lucide-react";
 import type { AppRole } from "@/hooks/useOrganization";
+
+const identityTypes = [
+  { value: "nin", label: "NIN (Nigeria)", hint: "11-digit number" },
+  { value: "bvn", label: "BVN (Nigeria)", hint: "11-digit number" },
+  { value: "ghana_card", label: "Ghana Card", hint: "GHA-XXXXXXXXX-X" },
+  { value: "kenyan_id", label: "Kenyan National ID", hint: "7-8 digit number" },
+  { value: "sa_id", label: "SA ID Number", hint: "13-digit number" },
+  { value: "passport", label: "Passport", hint: "6-12 characters" },
+  { value: "national_id", label: "Other National ID", hint: "6-20 characters" },
+];
 
 interface InviteMemberDialogProps {
   orgId: string;
@@ -21,6 +33,72 @@ const InviteMemberDialog = ({ orgId, onInvited, children }: InviteMemberDialogPr
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
+  // Identity verification for tailors
+  const [idType, setIdType] = useState("");
+  const [idNumber, setIdNumber] = useState("");
+  const [idVerifyStatus, setIdVerifyStatus] = useState<"idle" | "verifying" | "verified" | "failed">("idle");
+
+  const isTailor = role === "tailor";
+
+  const handleVerifyIdentity = async (profileId: string) => {
+    if (!idNumber.trim() || !idType) return false;
+    setIdVerifyStatus("verifying");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-identity", {
+        body: {
+          type: idType,
+          number: idNumber.trim(),
+          entity_type: "profile",
+          entity_id: profileId,
+        },
+      });
+
+      if (error || data?.status !== "verified") {
+        setIdVerifyStatus("failed");
+        toast({
+          title: "Identity verification failed",
+          description: data?.message || "Invalid identity number format.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      setIdVerifyStatus("verified");
+      return true;
+    } catch {
+      setIdVerifyStatus("failed");
+      return false;
+    }
+  };
+
+  const handlePreVerify = async () => {
+    if (!idNumber.trim() || !idType) return;
+    setIdVerifyStatus("verifying");
+
+    // Pre-verify format without a real profile ID
+    try {
+      const { data } = await supabase.functions.invoke("verify-identity", {
+        body: {
+          type: idType,
+          number: idNumber.trim(),
+          entity_type: "profile",
+          entity_id: "00000000-0000-0000-0000-000000000000",
+        },
+      });
+
+      if (data?.status === "verified") {
+        setIdVerifyStatus("verified");
+        toast({ title: "Identity format verified!" });
+      } else {
+        setIdVerifyStatus("failed");
+        toast({ title: "Invalid format", description: data?.message, variant: "destructive" });
+      }
+    } catch {
+      setIdVerifyStatus("failed");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedEmail = email.trim().toLowerCase();
@@ -30,49 +108,23 @@ const InviteMemberDialog = ({ orgId, onInvited, children }: InviteMemberDialogPr
       return;
     }
 
+    // Require identity verification for tailors
+    if (isTailor && idVerifyStatus !== "verified") {
+      toast({ title: "Identity verification required", description: "Tailors must have a verified identity number.", variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
 
-    // Look up user by email via profiles — we need to find them in auth
-    // Since we can't query auth.users directly, we check if a profile exists
-    // by looking up users who signed up with this email
-    const { data: authData, error: authError } = await supabase.auth.admin?.listUsers?.() || { data: null, error: new Error("Not available") };
-
-    // Alternative: use a simpler approach — look up by the supabase auth API
-    // For now, we search profiles by display_name or use RPC
-    // The simplest approach: try to find the user via their email in the system
-    
-    // Since client can't query auth.users, we'll use a workaround:
-    // Look for an existing org_member or profile match
-    // Better approach: just try to find any user with this email by checking if they exist
-    
-    // Use supabase admin functions or just look for email in user metadata
-    // For MVP, we'll look up profiles that match (profiles are created on signup with display_name from email)
-    
-    // Actually the cleanest way: use RPC or edge function. For now, let's use a simple approach:
-    // We'll search profiles where display_name might contain the email, but that's unreliable.
-    // Best MVP: Ask the admin to provide the user's ID, or we create an invitations table.
-    
-    // Simplest working approach: Try to find user by matching email in profiles
-    // Since handle_new_user sets display_name to email as fallback, and we store email in auth,
-    // we can't directly query. Let's create a lookup approach.
-
-    // For a practical MVP, let's just add the member if we can find them:
     const { data: allMembers } = await supabase
       .from("org_members")
       .select("user_id")
       .eq("org_id", orgId);
 
-    // Try to find the user - since we can't query auth.users from client,
-    // we'll need to use an edge function. For now, show a helpful message.
-    
-    // Actually, let's use a practical approach: query all profiles and find by display_name
-    // This works because handle_new_user stores email as display_name fallback
     const { data: profiles } = await supabase
       .from("profiles")
       .select("id, display_name");
 
-    // Find profile where display_name matches email (set during signup as fallback)
-    // Note: This is an MVP approach. A production system should use an edge function.
     const matchedProfile = profiles?.find(
       (p) => p.display_name?.toLowerCase().trim() === trimmedEmail
     );
@@ -87,7 +139,6 @@ const InviteMemberDialog = ({ orgId, onInvited, children }: InviteMemberDialogPr
       return;
     }
 
-    // Check if already a member
     const existingMember = allMembers?.find((m) => m.user_id === matchedProfile.id);
     if (existingMember) {
       toast({ title: "Already a member", description: "This user is already in your organization.", variant: "destructive" });
@@ -95,7 +146,15 @@ const InviteMemberDialog = ({ orgId, onInvited, children }: InviteMemberDialogPr
       return;
     }
 
-    // Add as org member
+    // If tailor, verify identity against the real profile
+    if (isTailor) {
+      const verified = await handleVerifyIdentity(matchedProfile.id);
+      if (!verified) {
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const { error } = await supabase.from("org_members").insert({
       org_id: orgId,
       user_id: matchedProfile.id,
@@ -110,6 +169,9 @@ const InviteMemberDialog = ({ orgId, onInvited, children }: InviteMemberDialogPr
       setOpen(false);
       setEmail("");
       setRole("tailor");
+      setIdType("");
+      setIdNumber("");
+      setIdVerifyStatus("idle");
       onInvited();
     }
   };
@@ -137,7 +199,7 @@ const InviteMemberDialog = ({ orgId, onInvited, children }: InviteMemberDialogPr
 
           <div className="space-y-2">
             <Label>Role *</Label>
-            <Select value={role} onValueChange={(val) => setRole(val as AppRole)}>
+            <Select value={role} onValueChange={(val) => { setRole(val as AppRole); setIdVerifyStatus("idle"); }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -149,9 +211,69 @@ const InviteMemberDialog = ({ orgId, onInvited, children }: InviteMemberDialogPr
             </Select>
           </div>
 
+          {/* Identity Verification for Tailors */}
+          {isTailor && (
+            <div className="rounded-lg border border-border p-4 space-y-3 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <Shield size={14} className="text-primary" />
+                <Label className="text-xs font-semibold">Identity Verification</Label>
+                <Badge variant="outline" className="text-[9px]">Required for Tailors</Badge>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">ID Type</Label>
+                <Select value={idType} onValueChange={(v) => { setIdType(v); setIdVerifyStatus("idle"); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select ID type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {identityTypes.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">ID Number</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={idNumber}
+                    onChange={(e) => { setIdNumber(e.target.value); setIdVerifyStatus("idle"); }}
+                    placeholder={identityTypes.find(t => t.value === idType)?.hint || "Enter ID number"}
+                    className="flex-1 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreVerify}
+                    disabled={!idType || !idNumber.trim() || idVerifyStatus === "verifying"}
+                  >
+                    {idVerifyStatus === "verifying" ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : "Verify"}
+                  </Button>
+                </div>
+                {idVerifyStatus === "verified" && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle2 size={12} /> Identity format verified
+                  </p>
+                )}
+                {idVerifyStatus === "failed" && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <XCircle size={12} /> Invalid — check format and try again
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant="hero" type="submit" disabled={submitting}>
+            <Button variant="hero" type="submit" disabled={submitting || (isTailor && idVerifyStatus !== "verified")}>
               {submitting ? "Adding..." : "Add Member"}
             </Button>
           </div>

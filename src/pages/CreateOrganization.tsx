@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
-import { Building2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Building2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, Loader2, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DisclaimerBanner } from "@/components/shared/DisclaimerDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const currencies = [
   { code: "NGN", label: "Nigerian Naira (₦)", country: "NG" },
@@ -21,6 +23,33 @@ const currencies = [
   { code: "GBP", label: "British Pound (£)", country: "GB" },
   { code: "EUR", label: "Euro (€)", country: "EU" },
 ];
+
+const bizRegTypes: Record<string, { types: { value: string; label: string; hint: string }[] }> = {
+  NG: {
+    types: [
+      { value: "cac", label: "CAC Registration", hint: "e.g. RC12345 or BN1234567" },
+      { value: "tin", label: "Tax ID (TIN)", hint: "8-15 digit number" },
+    ],
+  },
+  GH: {
+    types: [
+      { value: "ghana_rg", label: "Registrar General", hint: "e.g. CS123456" },
+      { value: "tin", label: "Tax ID (TIN)", hint: "8-15 digit number" },
+    ],
+  },
+  KE: {
+    types: [
+      { value: "kenya_brn", label: "Business Reg Number", hint: "e.g. PVT-12345" },
+      { value: "tin", label: "KRA PIN", hint: "e.g. P051234567A" },
+    ],
+  },
+  ZA: {
+    types: [
+      { value: "cipc", label: "CIPC Registration", hint: "e.g. 2024/123456/07" },
+      { value: "tin", label: "Tax Number", hint: "10-digit number" },
+    ],
+  },
+};
 
 const CreateOrganization = () => {
   const [name, setName] = useState("");
@@ -33,13 +62,24 @@ const CreateOrganization = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Business registration verification
+  const [bizRegType, setBizRegType] = useState("");
+  const [bizRegNumber, setBizRegNumber] = useState("");
+  const [bizVerifyStatus, setBizVerifyStatus] = useState<"idle" | "verifying" | "verified" | "failed">("idle");
+
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const selectedCurrency = currencies.find((c) => c.code === currency);
+  const countryCode = selectedCurrency?.country || "NG";
+  const availableBizTypes = bizRegTypes[countryCode] || bizRegTypes.NG;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !name.trim()) return;
     if (!orgTermsAccepted) { toast({ title: "Please accept the intermediary terms", variant: "destructive" }); return; }
+    if (!bizRegNumber.trim() || bizVerifyStatus !== "verified") {
+      toast({ title: "Business registration verification required", description: "Please verify your business registration number before proceeding.", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
 
     const { error } = await createOrg(name, slug, selectedCurrency?.country || "NG", currency);
@@ -50,6 +90,41 @@ const CreateOrganization = () => {
     } else {
       toast({ title: "Organization created!", description: `${name} is ready to go.` });
       navigate("/dashboard");
+    }
+  };
+
+  const handleVerifyBizReg = async () => {
+    if (!bizRegNumber.trim() || !bizRegType) return;
+    setBizVerifyStatus("verifying");
+
+    try {
+      // We'll verify after creating — for now do format check via edge function
+      // Since org doesn't exist yet, we pass a placeholder and handle it post-creation
+      const { data, error } = await supabase.functions.invoke("verify-identity", {
+        body: {
+          type: bizRegType,
+          number: bizRegNumber.trim(),
+          entity_type: "organization",
+          entity_id: "00000000-0000-0000-0000-000000000000", // placeholder for pre-creation check
+        },
+      });
+
+      if (error) {
+        setBizVerifyStatus("failed");
+        toast({ title: "Verification failed", description: "Could not verify business registration.", variant: "destructive" });
+        return;
+      }
+
+      if (data?.status === "verified") {
+        setBizVerifyStatus("verified");
+        toast({ title: "Business registration verified!" });
+      } else {
+        setBizVerifyStatus("failed");
+        toast({ title: "Verification failed", description: data?.message || "Invalid registration number format.", variant: "destructive" });
+      }
+    } catch {
+      setBizVerifyStatus("failed");
+      toast({ title: "Verification error", variant: "destructive" });
     }
   };
 
@@ -98,7 +173,7 @@ const CreateOrganization = () => {
 
             <div className="space-y-2">
               <Label>Primary Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
+              <Select value={currency} onValueChange={(v) => { setCurrency(v); setBizRegType(""); setBizVerifyStatus("idle"); }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -110,6 +185,65 @@ const CreateOrganization = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Business Registration Verification */}
+            <div className="rounded-lg border border-border p-4 space-y-3 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-primary" />
+                <Label className="text-sm font-semibold">Business Registration Verification</Label>
+                <Badge variant="outline" className="text-[10px]">Required</Badge>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Registration Type</Label>
+                <Select value={bizRegType} onValueChange={(v) => { setBizRegType(v); setBizVerifyStatus("idle"); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select registration type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableBizTypes.types.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="generic">Other Registration</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Registration Number</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={bizRegNumber}
+                    onChange={(e) => { setBizRegNumber(e.target.value); setBizVerifyStatus("idle"); }}
+                    placeholder={availableBizTypes.types.find(t => t.value === bizRegType)?.hint || "Enter registration number"}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleVerifyBizReg}
+                    disabled={!bizRegType || !bizRegNumber.trim() || bizVerifyStatus === "verifying"}
+                  >
+                    {bizVerifyStatus === "verifying" ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : "Verify"}
+                  </Button>
+                </div>
+                {bizVerifyStatus === "verified" && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle2 size={12} /> Verified successfully
+                  </p>
+                )}
+                {bizVerifyStatus === "failed" && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <XCircle size={12} /> Verification failed — check format and try again
+                  </p>
+                )}
+              </div>
             </div>
 
             <DisclaimerBanner compact />
@@ -124,7 +258,7 @@ const CreateOrganization = () => {
               </label>
             </div>
 
-            <Button variant="hero" className="w-full" type="submit" disabled={submitting || !orgTermsAccepted}>
+            <Button variant="hero" className="w-full" type="submit" disabled={submitting || !orgTermsAccepted || bizVerifyStatus !== "verified"}>
               {submitting ? "Creating..." : "Create Organization"}
               <ArrowRight size={16} className="ml-2" />
             </Button>

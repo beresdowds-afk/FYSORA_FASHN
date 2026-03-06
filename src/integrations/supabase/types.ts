@@ -2888,6 +2888,11 @@ export type Database = {
       organizations: {
         Row: {
           address: string | null
+          business_reg_number: string | null
+          business_reg_type: string | null
+          business_reg_verification_status: string | null
+          business_reg_verified: boolean | null
+          business_reg_verified_at: string | null
           country: string | null
           created_at: string
           currency: string | null
@@ -2910,6 +2915,11 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          business_reg_number?: string | null
+          business_reg_type?: string | null
+          business_reg_verification_status?: string | null
+          business_reg_verified?: boolean | null
+          business_reg_verified_at?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
@@ -2932,6 +2942,11 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          business_reg_number?: string | null
+          business_reg_type?: string | null
+          business_reg_verification_status?: string | null
+          business_reg_verified?: boolean | null
+          business_reg_verified_at?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
@@ -3465,6 +3480,11 @@ export type Database = {
           display_name: string | null
           facebook_url: string | null
           id: string
+          identity_number: string | null
+          identity_type: string | null
+          identity_verification_status: string | null
+          identity_verified: boolean | null
+          identity_verified_at: string | null
           instagram_url: string | null
           is_deactivated: boolean
           linkedin_url: string | null
@@ -3485,6 +3505,11 @@ export type Database = {
           display_name?: string | null
           facebook_url?: string | null
           id: string
+          identity_number?: string | null
+          identity_type?: string | null
+          identity_verification_status?: string | null
+          identity_verified?: boolean | null
+          identity_verified_at?: string | null
           instagram_url?: string | null
           is_deactivated?: boolean
           linkedin_url?: string | null
@@ -3505,6 +3530,11 @@ export type Database = {
           display_name?: string | null
           facebook_url?: string | null
           id?: string
+          identity_number?: string | null
+          identity_type?: string | null
+          identity_verification_status?: string | null
+          identity_verified?: boolean | null
+          identity_verified_at?: string | null
           instagram_url?: string | null
           is_deactivated?: boolean
           linkedin_url?: string | null
