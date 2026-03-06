@@ -273,7 +273,7 @@ const AppUsersSection = () => {
           total: mapped.length,
           customers: mapped.filter(u => u.role === "customer").length,
           tailors: mapped.filter(u => u.role === "tailor").length,
-          admins: mapped.filter(u => u.role === "org_admin").length,
+          admins: mapped.filter(u => u.role === "org_admin" || u.role === "manager").length,
         });
       }
       setLoading(false);
@@ -291,6 +291,7 @@ const AppUsersSection = () => {
 
   const roleColors: Record<string, string> = {
     org_admin: "bg-primary/10 text-primary",
+    manager: "bg-primary/10 text-primary",
     tailor: "bg-secondary/10 text-secondary",
     customer: "bg-muted text-muted-foreground",
   };
@@ -325,7 +326,7 @@ const AppUsersSection = () => {
           />
         </div>
         <div className="flex gap-1.5">
-          {["all", "customer", "tailor", "org_admin"].map(r => (
+          {["all", "customer", "tailor", "org_admin", "manager"].map(r => (
             <Button
               key={r}
               size="sm"

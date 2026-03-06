@@ -247,7 +247,7 @@ const Dashboard = () => {
           {activeTab === "orders" && <OrdersTab orgId={currentOrg.id} currency={currentOrg.currency || "NGN"} role={role} orgName={currentOrg.name} orgSettings={currentOrg} />}
           {activeTab === "customers" && <CustomersTab orgId={currentOrg.id} currency={currentOrg.currency || "NGN"} />}
           {activeTab === "registrations" && <CustomerRegistrationsTab orgId={currentOrg.id} />}
-          {activeTab === "bookings" && <MeasurementBookingsTab orgId={currentOrg.id} isAdmin={role === "org_admin" || role === "super_admin"} />}
+          {activeTab === "bookings" && <MeasurementBookingsTab orgId={currentOrg.id} isAdmin={role === "org_admin" || role === "manager" || role === "super_admin"} />}
           {activeTab === "premium" && <FeatureGate featureKey="basic_measurement" showLocked><PremiumFeaturesTab orgId={currentOrg.id} role={role} /></FeatureGate>}
           {activeTab === "logistics" && <FeatureGate featureKey="local_logistics" showLocked><LogisticsTab orgId={currentOrg.id} role={role} currency={currentOrg.currency || "NGN"} /></FeatureGate>}
           {activeTab === "disputes" && <FeatureGate featureKey="ai_disputes" showLocked><DisputesTab orgId={currentOrg.id} role={role} /></FeatureGate>}
@@ -392,14 +392,14 @@ const OverviewTab = ({ org, role }: { org: any; role: AppRole | null }) => {
       )}
 
       {/* Revenue Analysis */}
-      {(role === "org_admin" || role === "super_admin") && (
+      {(role === "org_admin" || role === "manager" || role === "super_admin") && (
         <div className="mb-6">
           <RevenueAnalysisCard orgId={org.id} currency={currency} />
         </div>
       )}
 
       {/* Exchange Rates */}
-      {(role === "org_admin" || role === "super_admin") && (
+      {(role === "org_admin" || role === "manager" || role === "super_admin") && (
         <div className="rounded-xl bg-card border border-border p-6 mb-6">
           <OrgExchangeRates />
         </div>
@@ -698,7 +698,7 @@ const SettingsTab = ({ org, role }: { org: any; role: AppRole | null }) => {
   const [invoiceLogoUrl, setInvoiceLogoUrl] = useState(org.invoice_logo_url || "");
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const canEdit = role === "org_admin" || role === "super_admin";
+  const canEdit = role === "org_admin" || role === "manager" || role === "super_admin";
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -205,6 +205,7 @@ const InviteMemberDialog = ({ orgId, onInvited, children }: InviteMemberDialogPr
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="org_admin">Org Admin</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="tailor">Tailor</SelectItem>
                 <SelectItem value="customer">Customer</SelectItem>
               </SelectContent>

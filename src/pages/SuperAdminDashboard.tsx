@@ -457,7 +457,7 @@ const UsersPanel = () => {
   const handleChangeOrgRole = async (memberId: string, newRole: string) => {
     const { error } = await supabase
       .from("org_members")
-      .update({ role: newRole as "org_admin" | "tailor" | "customer" | "super_admin" })
+      .update({ role: newRole as "org_admin" | "manager" | "tailor" | "customer" | "super_admin" })
       .eq("id", memberId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -530,6 +530,7 @@ const UsersPanel = () => {
   const roleColors: Record<string, string> = {
     super_admin: "bg-accent/10 text-accent",
     org_admin: "bg-primary/10 text-primary",
+    manager: "bg-primary/10 text-primary",
     tailor: "bg-secondary/10 text-secondary",
     customer: "bg-muted text-muted-foreground",
   };
@@ -681,6 +682,7 @@ const UsersPanel = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="org_admin">Org Admin</SelectItem>
+                              <SelectItem value="manager">Manager</SelectItem>
                               <SelectItem value="tailor">Tailor</SelectItem>
                               <SelectItem value="customer">Customer</SelectItem>
                             </SelectContent>
