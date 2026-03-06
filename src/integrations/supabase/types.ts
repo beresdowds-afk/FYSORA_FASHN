@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_archives: {
+        Row: {
+          account_email: string | null
+          account_id: string
+          account_name: string | null
+          account_type: string
+          action: string
+          archived_at: string
+          archived_by: string
+          archived_data: Json | null
+          created_at: string
+          expires_at: string
+          id: string
+          org_id: string | null
+          reason: string | null
+        }
+        Insert: {
+          account_email?: string | null
+          account_id: string
+          account_name?: string | null
+          account_type: string
+          action: string
+          archived_at?: string
+          archived_by: string
+          archived_data?: Json | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          org_id?: string | null
+          reason?: string | null
+        }
+        Update: {
+          account_email?: string | null
+          account_id?: string
+          account_name?: string | null
+          account_type?: string
+          action?: string
+          archived_at?: string
+          archived_by?: string
+          archived_data?: Json | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          org_id?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_archives_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_job_queue: {
         Row: {
           completed_at: string | null
@@ -3327,10 +3383,12 @@ export type Database = {
           business_name: string | null
           created_at: string
           current_org_id: string | null
+          deactivated_at: string | null
           display_name: string | null
           facebook_url: string | null
           id: string
           instagram_url: string | null
+          is_deactivated: boolean
           linkedin_url: string | null
           portfolio_url: string | null
           specialty: string | null
@@ -3345,10 +3403,12 @@ export type Database = {
           business_name?: string | null
           created_at?: string
           current_org_id?: string | null
+          deactivated_at?: string | null
           display_name?: string | null
           facebook_url?: string | null
           id: string
           instagram_url?: string | null
+          is_deactivated?: boolean
           linkedin_url?: string | null
           portfolio_url?: string | null
           specialty?: string | null
@@ -3363,10 +3423,12 @@ export type Database = {
           business_name?: string | null
           created_at?: string
           current_org_id?: string | null
+          deactivated_at?: string | null
           display_name?: string | null
           facebook_url?: string | null
           id?: string
           instagram_url?: string | null
+          is_deactivated?: boolean
           linkedin_url?: string | null
           portfolio_url?: string | null
           specialty?: string | null
