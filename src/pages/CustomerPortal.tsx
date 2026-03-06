@@ -18,6 +18,7 @@ import UserNotificationPreferences from "@/components/communications/UserNotific
 import BookMeasurementDialog from "@/components/measurements/BookMeasurementDialog";
 import MeasurementBookingsTab from "@/components/measurements/MeasurementBookingsTab";
 import WishlistReviewsPanel from "@/components/customer/WishlistReviewsPanel";
+import CustomerSubscriptionPanel from "@/components/customer/CustomerSubscriptionPanel";
 import TourGuide from "@/components/shared/TourGuide";
 import { useTourGuide } from "@/hooks/useTourGuide";
 import { customerTourSteps } from "@/config/tourSteps";
