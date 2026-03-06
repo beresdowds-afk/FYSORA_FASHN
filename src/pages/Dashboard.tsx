@@ -54,7 +54,8 @@ const roleColors: Record<AppRole, string> = {
 const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { currentOrg, role, loading: orgLoading } = useCurrentOrg();
-  const { isSuperAdmin } = useUserGlobalRole();
+  const { isSuperAdmin, isSuperAssistant } = useUserGlobalRole();
+  const hasPlatformAccess = isSuperAdmin || isSuperAssistant;
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "orders" | "customers" | "registrations" | "bookings" | "premium" | "logistics" | "disputes" | "contracts" | "members" | "communications" | "billing" | "invoicing" | "website" | "settings">("overview");
@@ -79,14 +80,14 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!authLoading && !orgLoading && user && !currentOrg && !isSuperAdmin) {
+    if (!authLoading && !orgLoading && user && !currentOrg && !hasPlatformAccess) {
       navigate("/create-organization");
     }
     // Redirect tailors to their dedicated dashboard
     if (!authLoading && !orgLoading && user && currentOrg && role === "tailor") {
       navigate("/tailor-dashboard");
     }
-  }, [authLoading, orgLoading, user, currentOrg, isSuperAdmin, role, navigate]);
+  }, [authLoading, orgLoading, user, currentOrg, hasPlatformAccess, role, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -104,7 +105,7 @@ const Dashboard = () => {
   if (!user) return null;
 
   // Super admin without an org - show a simplified view
-  if (!currentOrg && isSuperAdmin) {
+  if (!currentOrg && hasPlatformAccess) {
     return (
       <div className="min-h-screen bg-background">
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-brand" />
@@ -117,16 +118,16 @@ const Dashboard = () => {
               <span className="font-heading font-bold text-sm">Fashion Stitches Africa</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/super-admin")}>Super Admin Panel</Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/super-admin")}>{isSuperAdmin ? "Super Admin" : "Admin"} Panel</Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut}><LogOut size={16} /></Button>
             </div>
           </div>
         </header>
         <main className="container mx-auto px-4 lg:px-8 py-12 text-center">
-          <h2 className="font-heading font-bold text-2xl mb-4">Welcome, Super Admin</h2>
+          <h2 className="font-heading font-bold text-2xl mb-4">Welcome, {isSuperAdmin ? "Super Admin" : "Super Assistant"}</h2>
           <p className="text-muted-foreground mb-6">You can manage the platform or create an organization.</p>
           <div className="flex gap-3 justify-center">
-            <Button variant="hero" onClick={() => navigate("/super-admin")}>Go to Super Admin Panel</Button>
+            <Button variant="hero" onClick={() => navigate("/super-admin")}>Go to Admin Panel</Button>
             <Button variant="heroOutline" onClick={() => navigate("/create-organization")}>Create Organization</Button>
           </div>
         </main>
@@ -156,16 +157,16 @@ const Dashboard = () => {
                     {roleLabels[role]}
                   </span>
                 )}
-                {isSuperAdmin && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${roleColors.super_admin}`}>
-                    Super Admin
+                {hasPlatformAccess && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${roleColors[isSuperAdmin ? 'super_admin' : 'super_assistant']}`}>
+                    {isSuperAdmin ? "Super Admin" : "Super Assistant"}
                   </span>
                 )}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isSuperAdmin && (
+            {hasPlatformAccess && (
               <Button variant="ghost" size="sm" onClick={() => navigate("/super-admin")} className="text-xs">
                 <Shield size={14} className="mr-1" /> Admin Panel
               </Button>
