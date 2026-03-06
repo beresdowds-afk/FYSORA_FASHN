@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const plans = [
   {

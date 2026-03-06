@@ -1,0 +1,385 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
+import {
+  Users, Scissors, Building2, DollarSign, Save, Plus, Trash2,
+  Edit2, Loader2, CheckCircle2, Crown
+} from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+} from "@/components/ui/dialog";
+
+interface SubscriptionRate {
+  id: string;
+  role_type: string;
+  plan_name: string;
+  price_amount: number;
+  price_currency: string;
+  billing_cycle: string;
+  description: string | null;
+  features: string[];
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+const ROLE_ICONS: Record<string, any> = {
+  customer: Users,
+  tailor: Scissors,
+  organization: Building2,
+};
+
+const ROLE_COLORS: Record<string, string> = {
+  customer: "bg-secondary/10 text-secondary",
+  tailor: "bg-primary/10 text-primary",
+  organization: "bg-accent/10 text-accent-foreground",
+};
+
+const emptyRate: Omit<SubscriptionRate, "id" | "created_at" | "updated_at"> = {
+  role_type: "customer",
+  plan_name: "",
+  price_amount: 0,
+  price_currency: "USD",
+  billing_cycle: "yearly",
+  description: null,
+  features: [],
+  is_active: true,
+  sort_order: 0,
+};
+
+export default function SubscriptionRatesPanel() {
+  const { toast } = useToast();
+  const [rates, setRates] = useState<SubscriptionRate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingRate, setEditingRate] = useState<Partial<SubscriptionRate> | null>(null);
+  const [featuresText, setFeaturesText] = useState("");
+
+  const fetchRates = async () => {
+    const { data, error } = await supabase
+      .from("subscription_rates" as any)
+      .select("*")
+      .order("role_type")
+      .order("sort_order");
+    if (!error) setRates((data || []) as unknown as SubscriptionRate[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchRates(); }, []);
+
+  const openCreate = () => {
+    setEditingRate({ ...emptyRate });
+    setFeaturesText("");
+    setEditDialogOpen(true);
+  };
+
+  const openEdit = (rate: SubscriptionRate) => {
+    setEditingRate({ ...rate });
+    setFeaturesText((rate.features || []).join("\n"));
+    setEditDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!editingRate?.plan_name?.trim()) {
+      toast({ title: "Plan name required", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+
+    const features = featuresText.split("\n").map(f => f.trim()).filter(Boolean);
+    const payload = {
+      role_type: editingRate.role_type,
+      plan_name: editingRate.plan_name,
+      price_amount: editingRate.price_amount || 0,
+      price_currency: editingRate.price_currency || "USD",
+      billing_cycle: editingRate.billing_cycle || "yearly",
+      description: editingRate.description || null,
+      features,
+      is_active: editingRate.is_active ?? true,
+      sort_order: editingRate.sort_order || 0,
+      updated_at: new Date().toISOString(),
+    };
+
+    let error;
+    if (editingRate.id) {
+      ({ error } = await supabase
+        .from("subscription_rates" as any)
+        .update(payload as any)
+        .eq("id", editingRate.id));
+    } else {
+      ({ error } = await supabase
+        .from("subscription_rates" as any)
+        .insert(payload as any));
+    }
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: editingRate.id ? "Rate updated" : "Rate created" });
+      setEditDialogOpen(false);
+      setEditingRate(null);
+      await fetchRates();
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from("subscription_rates" as any)
+      .delete()
+      .eq("id", id);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Rate deleted" });
+      await fetchRates();
+    }
+  };
+
+  const handleToggle = async (id: string, is_active: boolean) => {
+    await supabase
+      .from("subscription_rates" as any)
+      .update({ is_active, updated_at: new Date().toISOString() } as any)
+      .eq("id", id);
+    await fetchRates();
+  };
+
+  const groupedRates = rates.reduce<Record<string, SubscriptionRate[]>>((acc, r) => {
+    if (!acc[r.role_type]) acc[r.role_type] = [];
+    acc[r.role_type].push(r);
+    return acc;
+  }, {});
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-heading font-bold text-2xl flex items-center gap-2">
+            <Crown size={22} className="text-primary" /> Subscription Rates
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage subscription pricing for customers, tailors, and organizations.
+          </p>
+        </div>
+        <Button variant="hero" size="sm" onClick={openCreate}>
+          <Plus size={14} className="mr-1" /> Add Rate
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {(["customer", "tailor", "organization"] as const).map((role) => {
+          const Icon = ROLE_ICONS[role];
+          const count = groupedRates[role]?.length || 0;
+          const active = groupedRates[role]?.filter(r => r.is_active).length || 0;
+          return (
+            <div key={role} className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${ROLE_COLORS[role]}`}>
+                  <Icon size={16} />
+                </div>
+                <span className="font-heading font-semibold text-sm capitalize">{role}s</span>
+              </div>
+              <p className="text-2xl font-heading font-bold">{count}</p>
+              <p className="text-xs text-muted-foreground">{active} active plan{active !== 1 ? "s" : ""}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Rates by role */}
+      {(["customer", "tailor", "organization"] as const).map((role) => {
+        const Icon = ROLE_ICONS[role];
+        const roleRates = groupedRates[role] || [];
+        return (
+          <div key={role} className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="px-5 py-3 border-b border-border bg-muted/30 flex items-center gap-2">
+              <Icon size={16} className="text-primary" />
+              <h3 className="font-heading font-semibold text-sm capitalize">{role} Plans</h3>
+              <Badge variant="outline" className="ml-auto text-xs">{roleRates.length} plan{roleRates.length !== 1 ? "s" : ""}</Badge>
+            </div>
+            {roleRates.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                No plans configured for {role}s.
+                <Button variant="outline" size="sm" className="ml-2" onClick={() => { setEditingRate({ ...emptyRate, role_type: role }); setFeaturesText(""); setEditDialogOpen(true); }}>
+                  Add Plan
+                </Button>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {roleRates.map((rate) => (
+                  <div key={rate.id} className="px-5 py-4 flex items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{rate.plan_name}</p>
+                        {!rate.is_active && <Badge variant="outline" className="text-[10px]">Disabled</Badge>}
+                      </div>
+                      {rate.description && <p className="text-xs text-muted-foreground mt-0.5">{rate.description}</p>}
+                      {rate.features.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {rate.features.slice(0, 4).map((f, i) => (
+                            <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{f}</span>
+                          ))}
+                          {rate.features.length > 4 && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">+{rate.features.length - 4} more</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-heading font-bold text-lg">
+                        {rate.price_currency === "USD" ? "$" : rate.price_currency}{" "}
+                        {rate.price_amount.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">/{rate.billing_cycle}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch
+                        checked={rate.is_active}
+                        onCheckedChange={(v) => handleToggle(rate.id, v)}
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(rate)}>
+                        <Edit2 size={14} />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(rate.id)} className="text-destructive hover:text-destructive">
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Edit/Create Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingRate?.id ? "Edit" : "Create"} Subscription Rate</DialogTitle>
+          </DialogHeader>
+          {editingRate && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Role Type</Label>
+                  <Select value={editingRate.role_type} onValueChange={(v) => setEditingRate({ ...editingRate, role_type: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="customer">Customer</SelectItem>
+                      <SelectItem value="tailor">Tailor</SelectItem>
+                      <SelectItem value="organization">Organization</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Plan Name</Label>
+                  <Input
+                    value={editingRate.plan_name || ""}
+                    onChange={(e) => setEditingRate({ ...editingRate, plan_name: e.target.value })}
+                    placeholder="e.g. Premium Access"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Price</Label>
+                  <Input
+                    type="number"
+                    value={editingRate.price_amount || 0}
+                    onChange={(e) => setEditingRate({ ...editingRate, price_amount: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Currency</Label>
+                  <Select value={editingRate.price_currency || "USD"} onValueChange={(v) => setEditingRate({ ...editingRate, price_currency: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="NGN">NGN</SelectItem>
+                      <SelectItem value="GHS">GHS</SelectItem>
+                      <SelectItem value="KES">KES</SelectItem>
+                      <SelectItem value="ZAR">ZAR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Billing Cycle</Label>
+                  <Select value={editingRate.billing_cycle || "yearly"} onValueChange={(v) => setEditingRate({ ...editingRate, billing_cycle: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="yearly">Yearly</SelectItem>
+                      <SelectItem value="one_time">One-time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Input
+                  value={editingRate.description || ""}
+                  onChange={(e) => setEditingRate({ ...editingRate, description: e.target.value })}
+                  placeholder="Brief plan description"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Features (one per line)</Label>
+                <Textarea
+                  value={featuresText}
+                  onChange={(e) => setFeaturesText(e.target.value)}
+                  placeholder={"AI Body Measurements\nVirtual Try-On\nPriority Support"}
+                  rows={5}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Sort Order</Label>
+                  <Input
+                    type="number"
+                    value={editingRate.sort_order || 0}
+                    onChange={(e) => setEditingRate({ ...editingRate, sort_order: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="flex items-center gap-3 pt-6">
+                  <Switch
+                    checked={editingRate.is_active ?? true}
+                    onCheckedChange={(v) => setEditingRate({ ...editingRate, is_active: v })}
+                  />
+                  <Label>Active</Label>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button variant="hero" onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Save size={14} className="mr-1" />}
+              {editingRate?.id ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </motion.div>
+  );
+}
