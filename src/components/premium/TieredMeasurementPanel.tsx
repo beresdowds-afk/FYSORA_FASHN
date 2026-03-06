@@ -3,12 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Camera, CameraIcon, Scan, Loader2, CheckCircle2, AlertCircle,
+  Camera, Loader2, CheckCircle2, AlertCircle,
   Info, Star, Crown, Sparkles, Upload, X, BookOpen, ChevronDown, ChevronUp,
   Smartphone, RotateCcw, Target, Layers, Box
 } from "lucide-react";

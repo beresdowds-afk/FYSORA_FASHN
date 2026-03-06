@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { image, images, step, prompt, tier, booking_id } = await req.json();
+    const { image, images, step, prompt, tier } = await req.json();
 
     // Support both single image (legacy/tier1) and multiple images (tier2/tier3)
     const imageList: string[] = images || (image ? [image] : []);
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
     const systemPrompt = TIER_SYSTEM_PROMPTS[measurementTier] || TIER_SYSTEM_PROMPTS.tier1;
 
     // Build user content with all images
-    const userContent: any[] = imageList.map((img: string, idx: number) => ({
+    const userContent: any[] = imageList.map((img: string) => ({
       type: "image_url",
       image_url: { url: img },
     }));

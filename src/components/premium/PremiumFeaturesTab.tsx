@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Camera, Ruler, BarChart3, ShirtIcon, Wallet, Zap } from "lucide-react";
+import { Sparkles, Camera, Ruler, BarChart3, ShirtIcon, Wallet, Zap, Layers } from "lucide-react";
 import VirtualTryOnPanel from "./VirtualTryOnPanel";
 import PremiumUsagePanel from "./PremiumUsagePanel";
 import EnhancedMeasurementsPanel from "./EnhancedMeasurementsPanel";
+import TieredMeasurementPanel from "./TieredMeasurementPanel";
 import GarmentCatalogPanel from "./GarmentCatalogPanel";
 import CreditWalletPanel from "./CreditWalletPanel";
 import JobQueuePanel from "./JobQueuePanel";
