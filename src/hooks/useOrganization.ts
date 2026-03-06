@@ -171,6 +171,7 @@ export const useOrgMembers = (orgId: string | undefined) => {
 export const useUserGlobalRole = () => {
   const { user } = useAuth();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isSuperAssistant, setIsSuperAssistant] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -180,12 +181,13 @@ export const useUserGlobalRole = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .eq("role", "super_admin");
-      setIsSuperAdmin((data?.length ?? 0) > 0);
+        .in("role", ["super_admin", "super_assistant"]);
+      setIsSuperAdmin((data || []).some(r => r.role === "super_admin"));
+      setIsSuperAssistant((data || []).some(r => r.role === "super_assistant"));
       setLoading(false);
     };
     fetch();
   }, [user]);
 
-  return { isSuperAdmin, loading };
+  return { isSuperAdmin, isSuperAssistant, loading };
 };

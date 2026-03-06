@@ -35,6 +35,7 @@ import { orgAdminTourSteps, tailorTourSteps } from "@/config/tourSteps";
 import { HelpCircle } from "lucide-react";
 const roleLabels: Record<AppRole, string> = {
   super_admin: "Super Admin",
+  super_assistant: "Super Assistant",
   org_admin: "Org Admin",
   manager: "Manager",
   tailor: "Tailor",
@@ -43,6 +44,7 @@ const roleLabels: Record<AppRole, string> = {
 
 const roleColors: Record<AppRole, string> = {
   super_admin: "bg-accent text-accent-foreground",
+  super_assistant: "bg-accent/80 text-accent-foreground",
   org_admin: "bg-primary text-primary-foreground",
   manager: "bg-primary/80 text-primary-foreground",
   tailor: "bg-secondary text-secondary-foreground",
