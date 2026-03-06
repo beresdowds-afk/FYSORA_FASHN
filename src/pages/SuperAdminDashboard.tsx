@@ -632,8 +632,8 @@ const UsersPanel = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {/* Prevent revoking own role */}
-                          {r.user_id !== user?.id ? (
+                          {/* Only super_admin can revoke, and not their own role */}
+                          {isSuperAdmin && r.user_id !== user?.id ? (
                             <Button
                               variant="ghost"
                               size="sm"
