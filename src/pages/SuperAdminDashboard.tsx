@@ -14,9 +14,12 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2 } from "lucide-react";
 import TourGuide from "@/components/shared/TourGuide";
 import { useTourGuide } from "@/hooks/useTourGuide";
+import { useToast } from "@/hooks/use-toast";
 import { superAdminTourSteps } from "@/config/tourSteps";
 import {
   LogOut,
@@ -30,7 +33,6 @@ import {
   TrendingUp,
   LayoutDashboard,
   Crown,
-  CheckCircle2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -377,33 +379,144 @@ const OrganizationsPanel = ({ orgs }: { orgs: OrgRow[] }) => {
   );
 };
 
-/* ───────────── Users Panel ───────────── */
+/* ───────────── Users & Roles Panel ───────────── */
 const UsersPanel = () => {
+  const { user } = useAuth();
   const [members, setMembers] = useState<
-    { user_id: string; role: string; org_name: string; display_name: string | null }[]
+    { user_id: string; member_id: string; role: string; org_id: string; org_name: string; display_name: string | null }[]
   >([]);
+  const [globalRoles, setGlobalRoles] = useState<{ id: string; user_id: string; role: string; display_name: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"org_roles" | "fsa_roles">("fsa_roles");
+  const [addEmail, setAddEmail] = useState("");
+  const [adding, setAdding] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchMembers = async () => {
-      const { data } = await supabase
-        .from("org_members")
-        .select("user_id, role, organizations(name), profiles:user_id(display_name)")
-        .order("joined_at", { ascending: false })
-        .limit(50);
+  const fetchMembers = async () => {
+    const { data } = await supabase
+      .from("org_members")
+      .select("id, user_id, role, org_id, organizations(name), profiles:user_id(display_name)")
+      .order("joined_at", { ascending: false })
+      .limit(100);
 
-      setMembers(
-        (data || []).map((m: any) => ({
-          user_id: m.user_id,
-          role: m.role,
-          org_name: m.organizations?.name || "—",
-          display_name: m.profiles?.display_name || "Unknown",
+    setMembers(
+      (data || []).map((m: any) => ({
+        user_id: m.user_id,
+        member_id: m.id,
+        role: m.role,
+        org_id: m.org_id,
+        org_name: m.organizations?.name || "—",
+        display_name: m.profiles?.display_name || "Unknown",
+      }))
+    );
+  };
+
+  const fetchGlobalRoles = async () => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("id, user_id, role");
+
+    if (data && data.length > 0) {
+      const userIds = data.map((r) => r.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", userIds);
+      const profileMap = new Map(profiles?.map((p) => [p.id, p.display_name]) || []);
+
+      setGlobalRoles(
+        data.map((r) => ({
+          ...r,
+          display_name: profileMap.get(r.user_id) || "Unknown",
         }))
       );
+    } else {
+      setGlobalRoles([]);
+    }
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      await Promise.all([fetchMembers(), fetchGlobalRoles()]);
       setLoading(false);
     };
-    fetchMembers();
+    load();
   }, []);
+
+  const handleChangeOrgRole = async (memberId: string, newRole: string) => {
+    const { error } = await supabase
+      .from("org_members")
+      .update({ role: newRole as "org_admin" | "tailor" | "customer" | "super_admin" })
+      .eq("id", memberId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Role updated" });
+      await fetchMembers();
+    }
+  };
+
+  const handleRemoveOrgMember = async (memberId: string) => {
+    const { error } = await supabase.from("org_members").delete().eq("id", memberId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Member removed" });
+      await fetchMembers();
+    }
+  };
+
+  const handleRevokeGlobalRole = async (roleId: string) => {
+    const { error } = await supabase.from("user_roles").delete().eq("id", roleId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Global role revoked" });
+      await fetchGlobalRoles();
+    }
+  };
+
+  const handleGrantSuperAdmin = async () => {
+    const trimmed = addEmail.trim().toLowerCase();
+    if (!trimmed) return;
+    setAdding(true);
+
+    // Find user by display_name (email fallback from signup)
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, display_name");
+
+    const matched = profiles?.find((p) => p.display_name?.toLowerCase().trim() === trimmed);
+    if (!matched) {
+      toast({ title: "User not found", description: "This email is not registered on FSA.", variant: "destructive" });
+      setAdding(false);
+      return;
+    }
+
+    // Check if already super_admin
+    const existing = globalRoles.find((r) => r.user_id === matched.id && r.role === "super_admin");
+    if (existing) {
+      toast({ title: "Already a Super Admin", variant: "destructive" });
+      setAdding(false);
+      return;
+    }
+
+    const { error } = await supabase.from("user_roles").insert({ user_id: matched.id, role: "super_admin" });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Super Admin role granted", description: `${matched.display_name} is now a Super Admin.` });
+      setAddEmail("");
+      await fetchGlobalRoles();
+    }
+    setAdding(false);
+  };
+
+  const filteredMembers = members.filter(
+    (m) => m.display_name?.toLowerCase().includes(search.toLowerCase()) || m.org_name.toLowerCase().includes(search.toLowerCase())
+  );
 
   const roleColors: Record<string, string> = {
     super_admin: "bg-accent/10 text-accent",
@@ -416,44 +529,171 @@ const UsersPanel = () => {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
         <h1 className="font-heading font-bold text-2xl">Users & Roles</h1>
-        <p className="text-muted-foreground text-sm mt-1">All platform members across organizations.</p>
+        <p className="text-muted-foreground text-sm mt-1">Manage FSA-level and organization-level roles across the platform.</p>
+      </div>
+
+      <div className="flex gap-2">
+        <Button
+          variant={tab === "fsa_roles" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setTab("fsa_roles")}
+          className="gap-1.5"
+        >
+          <Crown size={14} /> FSA Roles
+        </Button>
+        <Button
+          variant={tab === "org_roles" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setTab("org_roles")}
+          className="gap-1.5"
+        >
+          <Building2 size={14} /> Organization Roles
+        </Button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : members.length === 0 ? (
-        <div className="rounded-xl bg-card border border-border p-12 text-center">
-          <Users size={40} className="text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground text-sm">No members yet.</p>
+      ) : tab === "fsa_roles" ? (
+        <div className="space-y-4">
+          {/* Grant Super Admin */}
+          <div className="rounded-xl bg-card border border-border p-5">
+            <h3 className="font-heading font-semibold text-sm mb-3 flex items-center gap-2">
+              <Shield size={16} className="text-primary" /> Grant Super Admin Role
+            </h3>
+            <div className="flex gap-2 max-w-md">
+              <Input
+                placeholder="User email address..."
+                value={addEmail}
+                onChange={(e) => setAddEmail(e.target.value)}
+                className="flex-1"
+              />
+              <Button variant="hero" size="sm" onClick={handleGrantSuperAdmin} disabled={adding}>
+                {adding ? "Granting..." : "Grant"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">The user must have an existing FSA account.</p>
+          </div>
+
+          {/* Current Global Roles */}
+          {globalRoles.length === 0 ? (
+            <div className="rounded-xl bg-card border border-border p-12 text-center">
+              <Shield size={40} className="text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">No global roles assigned yet.</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border overflow-hidden">
+              <div className="px-5 py-3 border-b border-border">
+                <h3 className="font-heading font-semibold text-sm">Platform-Level Roles ({globalRoles.length})</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">User</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Role</th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {globalRoles.map((r) => (
+                      <tr key={r.id} className="border-t border-border">
+                        <td className="px-4 py-3 text-sm font-medium">{r.display_name}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${roleColors[r.role] || ""}`}>
+                            {r.role.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {/* Prevent revoking own role */}
+                          {r.user_id !== user?.id ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive text-xs h-7"
+                              onClick={() => handleRevokeGlobalRole(r.id)}
+                            >
+                              <Trash2 size={12} className="mr-1" /> Revoke
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">You</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-muted/50">
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Member</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Organization</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Role</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m, i) => (
-                  <tr key={`${m.user_id}-${i}`} className="border-t border-border">
-                    <td className="px-4 py-3 text-sm font-medium">{m.display_name}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{m.org_name}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${roleColors[m.role] || ""}`}>
-                        {m.role.replace("_", " ")}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="space-y-4">
+          <div className="relative max-w-sm">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search members or orgs..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
           </div>
+
+          {filteredMembers.length === 0 ? (
+            <div className="rounded-xl bg-card border border-border p-12 text-center">
+              <Users size={40} className="text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">No members found.</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Member</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Organization</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Role</th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMembers.map((m, i) => (
+                      <tr key={`${m.user_id}-${i}`} className="border-t border-border hover:bg-muted/30">
+                        <td className="px-4 py-3 text-sm font-medium">{m.display_name}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{m.org_name}</td>
+                        <td className="px-4 py-3">
+                          <Select
+                            value={m.role}
+                            onValueChange={(val) => handleChangeOrgRole(m.member_id, val)}
+                          >
+                            <SelectTrigger className="w-32 h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="org_admin">Org Admin</SelectItem>
+                              <SelectItem value="tailor">Tailor</SelectItem>
+                              <SelectItem value="customer">Customer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive text-xs h-7"
+                            onClick={() => handleRemoveOrgMember(m.member_id)}
+                          >
+                            <Trash2 size={12} className="mr-1" /> Remove
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </motion.div>
