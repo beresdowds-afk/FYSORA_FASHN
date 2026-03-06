@@ -128,7 +128,7 @@ const SuperAdminDashboard = () => {
                 Fashion Stitches Africa
               </span>
               <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
-                Super Admin
+                {isSuperAdmin ? "Super Admin" : "Super Assistant"}
               </span>
             </div>
           </div>
@@ -212,14 +212,14 @@ const SuperAdminDashboard = () => {
           {activeTab === "accounts" && <AccountManagementPanel />}
           {activeTab === "revenue" && <PlatformRevenuePanel />}
           {activeTab === "invoicing" && <AdminInvoicingPaymentsPanel />}
-          {activeTab === "sub_rates" && <SubscriptionRatesPanel />}
+          {activeTab === "sub_rates" && isSuperAdmin && <SubscriptionRatesPanel />}
           {activeTab === "websites" && <WebsiteRequestsDashboard />}
-          {activeTab === "unified_pricing" && <UnifiedPricingPanel />}
-          {activeTab === "pricing" && <WebsitePricingPanel />}
+          {activeTab === "unified_pricing" && isSuperAdmin && <UnifiedPricingPanel />}
+          {activeTab === "pricing" && isSuperAdmin && <WebsitePricingPanel />}
           {activeTab === "keys" && <KeysSecretsPanel />}
           {activeTab === "rates" && <ExchangeRatesPanel />}
           {activeTab === "backups" && <DataBackupPanel />}
-          {activeTab === "features" && <FeatureFlagsPanel />}
+          {activeTab === "features" && isSuperAdmin && <FeatureFlagsPanel />}
           {activeTab === "mobile" && <MobileAppManagementPanel />}
           {activeTab === "audit" && <AuditLogsPanel />}
         </main>
