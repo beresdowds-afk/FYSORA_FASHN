@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, Bell, CreditCard, Crown, MessageCircle, ClipboardList, Video, Globe, Sparkles, Truck, Scale, FileText } from "lucide-react";
+import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, CreditCard, Crown, MessageCircle, ClipboardList, Video, Globe, Sparkles, Truck, Scale, FileText, Download } from "lucide-react";
 import CommunicationsTab from "@/components/communications/CommunicationsTab";
 import SubscriptionTab from "@/components/billing/SubscriptionTab";
 import { useOrgSubscription } from "@/hooks/useSubscription";
@@ -169,6 +169,9 @@ const Dashboard = () => {
               <HelpCircle size={16} />
             </Button>
             <NotificationBell />
+            <Button variant="ghost" size="sm" onClick={() => navigate("/install")} title="Install FSA App" className="text-primary">
+              <Download size={16} className="mr-1" /> <span className="hidden sm:inline text-xs">Install App</span>
+            </Button>
             <span className="text-sm text-muted-foreground hidden sm:block">
               {profile?.display_name || user.email}
             </span>

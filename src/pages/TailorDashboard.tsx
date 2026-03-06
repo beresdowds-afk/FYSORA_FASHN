@@ -14,7 +14,7 @@ import TailorCatalogueManager from "@/components/catalogue/TailorCatalogueManage
 import {
   LogOut, Package, Clock, BarChart3, Scissors, FileText,
   Wallet, User, ShoppingBag, CheckCircle2, ArrowRight,
-  Shield, DollarSign, TrendingUp, Save, Globe
+  Shield, DollarSign, TrendingUp, Save, Globe, Download
 } from "lucide-react";
 import {
   SidebarProvider, SidebarTrigger, Sidebar, SidebarContent,
@@ -165,6 +165,9 @@ const TailorDashboard = () => {
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell />
+              <Button variant="ghost" size="sm" onClick={() => navigate("/install")} title="Install FSA App" className="text-primary">
+                <Download size={16} className="mr-1" /> <span className="hidden sm:inline text-xs">Install App</span>
+              </Button>
               <span className="text-sm text-muted-foreground hidden md:block">
                 {profile?.display_name || user.email}
               </span>
