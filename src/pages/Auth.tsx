@@ -484,6 +484,42 @@ const Auth = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Organization Picker for managers/admins with multiple orgs */}
+      <Dialog open={showOrgPicker} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 size={20} className="text-primary" />
+              Select Your Organization
+            </DialogTitle>
+            <DialogDescription>
+              You manage multiple organizations. Choose which one to sign into.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 mt-2">
+            {managerOrgs.map((org) => (
+              <button
+                key={org.org_id}
+                onClick={() => handleOrgSelect(org.org_id)}
+                disabled={selectingOrg}
+                className="w-full flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-left group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <Building2 size={18} className="text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-heading font-semibold text-sm truncate">{org.org_name}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{org.role === "org_admin" ? "Admin" : org.role}</p>
+                </div>
+                <Badge variant="outline" className="text-[10px] shrink-0">
+                  {org.role === "org_admin" ? "Admin" : "Manager"}
+                </Badge>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
