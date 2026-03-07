@@ -216,6 +216,17 @@ const Auth = () => {
     }
   };
 
+  const handleOrgSelect = async (orgId: string) => {
+    setSelectingOrg(true);
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user) {
+      await supabase.from("profiles").update({ current_org_id: orgId }).eq("id", userData.user.id);
+    }
+    setShowOrgPicker(false);
+    setSelectingOrg(false);
+    navigate(isPortal ? "/portal" : "/dashboard");
+  };
+
   const roleConfig = ROLE_CONFIG[selectedRole];
   const RoleIcon = roleConfig.icon;
 
