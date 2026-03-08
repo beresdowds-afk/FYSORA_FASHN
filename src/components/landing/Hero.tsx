@@ -32,7 +32,7 @@ const Hero = () => {
           >
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-primary text-sm font-medium">
-              The Future of African Fashion Tech
+              {settings.tagline || "The Future of African Fashion Tech"}
             </span>
           </motion.div>
 
