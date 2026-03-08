@@ -109,7 +109,11 @@ const BillingHistory = ({ orgId }: { orgId: string }) => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-bold ${fee.fee_type === "customer_surcharge" ? "text-secondary" : "text-accent"}`}>
+                  <p className={`text-sm font-bold ${
+                    fee.fee_type === "customer_surcharge" ? "text-secondary" :
+                    fee.fee_type.startsWith("messaging_") ? "text-emerald-500" :
+                    "text-accent"
+                  }`}>
                     ₦{Number(fee.amount).toLocaleString()}
                   </p>
                   <p className="text-[10px] text-muted-foreground">{fee.currency}</p>
