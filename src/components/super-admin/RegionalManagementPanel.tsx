@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Globe, Power, PowerOff, Search, MapPin, CheckCircle2,
+  Globe, Power, PowerOff, Search, MapPin,
   XCircle, ChevronDown, ChevronUp, Clock, Zap,
 } from "lucide-react";
 
