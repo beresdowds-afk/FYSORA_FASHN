@@ -140,7 +140,7 @@ const DashboardBillingPanel = ({ roleLabel }: DashboardBillingPanelProps) => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="bank">Bank Transfer</TabsTrigger>
+          <TabsTrigger value="dva">Pay via Transfer</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
