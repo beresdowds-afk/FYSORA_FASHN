@@ -390,6 +390,7 @@ const OrganizationsPanel = ({ orgs }: { orgs: OrgRow[] }) => {
                   <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Name</th>
                   <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Slug</th>
                   <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Currency</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Location KYC</th>
                   <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Status</th>
                   <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Created</th>
                 </tr>
