@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import {
   DollarSign, Building2, TrendingUp, Receipt, Video, UserPlus,
-  ArrowUpRight, Globe, CreditCard, Sparkles, Wallet, Crown, Coins
+  ArrowUpRight, Globe, CreditCard, Sparkles, Wallet, Crown, Coins,
+  Search, Scissors, Palette, Users
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 interface LedgerEntry {
   id: string;
@@ -22,6 +25,13 @@ interface LedgerEntry {
 interface OrgName {
   id: string;
   name: string;
+}
+
+interface MemberInfo {
+  user_id: string;
+  role: string;
+  org_id: string;
+  display_name: string;
 }
 
 const feeTypeLabels: Record<string, string> = {
@@ -54,17 +64,14 @@ const feeTypeIcons: Record<string, typeof DollarSign> = {
   photo_enhancement: Sparkles,
 };
 
-const feeCategory = (feeType: string): string => {
-  if (feeType.includes("website_builder")) return "website";
-  if (feeType.includes("ai_measurement")) return "measurements";
-  if (feeType.includes("registration")) return "registration";
-  if (feeType === "customer_surcharge" || feeType === "org_admin_fee") return "orders";
-  if (feeType === "subscription_revenue") return "subscriptions";
-  if (feeType === "credit_purchase") return "credits";
-  if (feeType === "feature_access") return "features";
-  if (feeType === "virtual_tryon" || feeType === "photo_enhancement") return "ai_services";
-  return "other";
-};
+type RoleFilter = "all" | "tailor" | "designer" | "customer";
+
+const roleFilterConfig: { value: RoleFilter; label: string; icon: typeof Users }[] = [
+  { value: "all", label: "All", icon: Users },
+  { value: "tailor", label: "Tailors", icon: Scissors },
+  { value: "designer", label: "Designers", icon: Palette },
+  { value: "customer", label: "Customers", icon: Users },
+];
 
 const PlatformRevenuePanel = () => {
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
@@ -73,36 +80,39 @@ const PlatformRevenuePanel = () => {
   const [subscriptionRevenue, setSubscriptionRevenue] = useState(0);
   const [creditPurchaseRevenue, setCreditPurchaseRevenue] = useState(0);
   const [featureAccessRevenue, setFeatureAccessRevenue] = useState(0);
+  const [members, setMembers] = useState<MemberInfo[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
 
   useEffect(() => {
     const fetchAll = async () => {
-      // Fetch all data sources in parallel
-      const [ledgerRes, subsRes, creditsRes, featuresRes] = await Promise.all([
+      const [ledgerRes, subsRes, creditsRes, featuresRes, membersRes] = await Promise.all([
         supabase
           .from("platform_fee_ledger")
           .select("*")
           .order("created_at", { ascending: false })
           .limit(500),
-        // Customer subscriptions (platform revenue)
         supabase
           .from("customer_subscriptions")
           .select("price_amount, price_currency, status")
           .eq("status", "active"),
-        // Credit wallet purchases (lifetime_purchased represents total bought)
         supabase
           .from("credit_wallets")
           .select("lifetime_purchased, currency"),
-        // Feature access payments
         supabase
           .from("feature_access_requests")
           .select("price_amount, price_currency, status")
           .eq("status", "approved"),
+        supabase
+          .from("org_members")
+          .select("user_id, role, org_id, profiles:user_id(display_name)")
+          .in("role", ["tailor", "designer", "customer"])
+          .limit(500),
       ]);
 
       const ledger = (ledgerRes.data as LedgerEntry[]) || [];
       setEntries(ledger);
 
-      // Calculate supplementary revenue
       const subTotal = (subsRes.data || []).reduce((sum, s) => sum + Number(s.price_amount || 0), 0);
       setSubscriptionRevenue(subTotal);
 
@@ -112,13 +122,24 @@ const PlatformRevenuePanel = () => {
       const featureTotal = (featuresRes.data || []).reduce((sum, f) => sum + Number(f.price_amount || 0), 0);
       setFeatureAccessRevenue(featureTotal);
 
+      // Process members
+      const memberList: MemberInfo[] = (membersRes.data || []).map((m: any) => ({
+        user_id: m.user_id,
+        role: m.role,
+        org_id: m.org_id,
+        display_name: m.profiles?.display_name || "Unknown",
+      }));
+      setMembers(memberList);
+
       // Get unique org IDs and fetch names
-      const orgIds = [...new Set(ledger.map((e) => e.org_id))];
-      if (orgIds.length > 0) {
+      const allOrgIds = [
+        ...new Set([...ledger.map((e) => e.org_id), ...memberList.map((m) => m.org_id)]),
+      ];
+      if (allOrgIds.length > 0) {
         const { data: orgs } = await supabase
           .from("organizations")
           .select("id, name")
-          .in("id", orgIds);
+          .in("id", allOrgIds);
         const map: Record<string, string> = {};
         (orgs || []).forEach((o: OrgName) => { map[o.id] = o.name; });
         setOrgNames(map);
@@ -129,6 +150,33 @@ const PlatformRevenuePanel = () => {
     fetchAll();
   }, []);
 
+  // Filter org IDs based on role and search
+  const filteredOrgIds = useMemo(() => {
+    if (roleFilter === "all" && !searchQuery.trim()) return null; // null = no filter
+
+    let filtered = members;
+
+    if (roleFilter !== "all") {
+      filtered = filtered.filter((m) => m.role === roleFilter);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (m) =>
+          m.display_name.toLowerCase().includes(q) ||
+          (orgNames[m.org_id] || "").toLowerCase().includes(q)
+      );
+    }
+
+    return new Set(filtered.map((m) => m.org_id));
+  }, [roleFilter, searchQuery, members, orgNames]);
+
+  const filteredEntries = useMemo(() => {
+    if (!filteredOrgIds) return entries;
+    return entries.filter((e) => filteredOrgIds.has(e.org_id));
+  }, [entries, filteredOrgIds]);
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -137,13 +185,12 @@ const PlatformRevenuePanel = () => {
     );
   }
 
-  // Aggregate by fee type from ledger
+  // Aggregate by fee type from filtered entries
   const byType: Record<string, number> = {};
-  entries.forEach((e) => {
+  filteredEntries.forEach((e) => {
     byType[e.fee_type] = (byType[e.fee_type] || 0) + Number(e.amount);
   });
 
-  // Platform-owned revenue (fees that go to FASHION STITCHES AFRICA)
   const orderFees = (byType["customer_surcharge"] || 0) + (byType["org_admin_fee"] || 0);
   const registrationFees = byType["registration_fee"] || 0;
   const measurementPlatform = byType["ai_measurement_platform_share"] || 0;
@@ -152,20 +199,28 @@ const PlatformRevenuePanel = () => {
 
   const totalPlatformRevenue =
     orderFees + registrationFees + measurementPlatform +
-    websiteFees + subscriptionRevenue + creditPurchaseRevenue +
-    featureAccessRevenue + aiServiceFees;
+    websiteFees + (filteredOrgIds ? 0 : subscriptionRevenue) +
+    (filteredOrgIds ? 0 : creditPurchaseRevenue) +
+    (filteredOrgIds ? 0 : featureAccessRevenue) + aiServiceFees;
 
   const totalMeasurementRevenue =
     (byType["ai_measurement_platform_share"] || 0) + (byType["ai_measurement_org_share"] || 0);
 
   // Aggregate by org
   const byOrg: Record<string, Record<string, number>> = {};
-  entries.forEach((e) => {
+  filteredEntries.forEach((e) => {
     if (!byOrg[e.org_id]) byOrg[e.org_id] = {};
     byOrg[e.org_id][e.fee_type] = (byOrg[e.org_id][e.fee_type] || 0) + Number(e.amount);
   });
 
-  // Revenue breakdown for cards
+  // Members matching current filter for the "By Role" tab
+  const filteredMembers = members.filter((m) => {
+    const matchRole = roleFilter === "all" || m.role === roleFilter;
+    const q = searchQuery.toLowerCase();
+    const matchSearch = !q || m.display_name.toLowerCase().includes(q) || (orgNames[m.org_id] || "").toLowerCase().includes(q);
+    return matchRole && matchSearch;
+  });
+
   const revenueStreams = [
     { label: "Total Platform Revenue", value: totalPlatformRevenue, icon: TrendingUp, color: "bg-primary/10 text-primary" },
     { label: "Order Platform Fees", value: orderFees, icon: Receipt, color: "bg-primary/10 text-primary",
@@ -175,10 +230,21 @@ const PlatformRevenuePanel = () => {
       detail: `Platform: $${measurementPlatform.toLocaleString()} · Orgs: $${(byType["ai_measurement_org_share"] || 0).toLocaleString()}` },
     { label: "Website Builder Revenue", value: websiteFees, icon: Globe, color: "bg-primary/10 text-primary",
       detail: `Lite: $${(byType["website_builder_lite"] || 0).toLocaleString()} · Pro: $${(byType["website_builder_pro"] || 0).toLocaleString()}` },
-    { label: "Subscription Revenue", value: subscriptionRevenue, icon: Crown, color: "bg-secondary/10 text-secondary" },
-    { label: "Credit Purchases", value: creditPurchaseRevenue, icon: Wallet, color: "bg-accent/10 text-accent" },
-    { label: "Feature Access Fees", value: featureAccessRevenue, icon: Sparkles, color: "bg-primary/10 text-primary" },
+    { label: "AI Service Fees", value: aiServiceFees, icon: Sparkles, color: "bg-accent/10 text-accent" },
   ];
+
+  // Only show non-org-filtered revenue streams when no filter is active
+  if (!filteredOrgIds) {
+    revenueStreams.push(
+      { label: "Subscription Revenue", value: subscriptionRevenue, icon: Crown, color: "bg-secondary/10 text-secondary" },
+      { label: "Credit Purchases", value: creditPurchaseRevenue, icon: Wallet, color: "bg-accent/10 text-accent" },
+      { label: "Feature Access Fees", value: featureAccessRevenue, icon: Sparkles, color: "bg-primary/10 text-primary" },
+    );
+  }
+
+  const activeFilterLabel = roleFilter !== "all" || searchQuery.trim()
+    ? `Showing results for ${roleFilter !== "all" ? roleFilter + "s" : "all roles"}${searchQuery.trim() ? ` matching "${searchQuery}"` : ""}`
+    : null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -188,6 +254,53 @@ const PlatformRevenuePanel = () => {
           All revenue streams for Fashion Stitches Africa across organizations.
         </p>
       </div>
+
+      {/* Search & Role Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or organization..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex gap-1.5">
+          {roleFilterConfig.map((rf) => {
+            const Icon = rf.icon;
+            const isActive = roleFilter === rf.value;
+            return (
+              <button
+                key={rf.value}
+                onClick={() => setRoleFilter(rf.value)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+                  isActive
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border hover:bg-muted"
+                }`}
+              >
+                <Icon size={12} />
+                {rf.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {activeFilterLabel && (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-xs">
+            {activeFilterLabel}
+          </Badge>
+          <button
+            onClick={() => { setRoleFilter("all"); setSearchQuery(""); }}
+            className="text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Clear filters
+          </button>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -211,6 +324,7 @@ const PlatformRevenuePanel = () => {
       <Tabs defaultValue="by-org" className="w-full">
         <TabsList>
           <TabsTrigger value="by-org">By Organization</TabsTrigger>
+          <TabsTrigger value="by-role">By Role</TabsTrigger>
           <TabsTrigger value="by-type">By Revenue Type</TabsTrigger>
           <TabsTrigger value="recent">Recent Transactions</TabsTrigger>
         </TabsList>
@@ -263,7 +377,50 @@ const PlatformRevenuePanel = () => {
             </div>
           ) : (
             <div className="p-8 text-center text-muted-foreground text-sm rounded-xl border border-border">
-              No organization revenue data yet.
+              {filteredOrgIds ? "No revenue data for the selected filter." : "No organization revenue data yet."}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Revenue by Role */}
+        <TabsContent value="by-role">
+          {filteredMembers.length > 0 ? (
+            <div className="rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Name</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Role</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">Organization</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMembers.slice(0, 100).map((m, i) => {
+                      const roleIcon = m.role === "tailor" ? Scissors : m.role === "designer" ? Palette : Users;
+                      const RoleIcon = roleIcon;
+                      return (
+                        <tr key={`${m.user_id}-${m.org_id}-${i}`} className="border-t border-border hover:bg-muted/30">
+                          <td className="px-4 py-3 text-sm font-medium">{m.display_name}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <RoleIcon size={10} />
+                              {m.role}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
+                            {orgNames[m.org_id] || m.org_id.substring(0, 8)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground text-sm rounded-xl border border-border">
+              No members found for the selected filter.
             </div>
           )}
         </TabsContent>
@@ -276,7 +433,7 @@ const PlatformRevenuePanel = () => {
                 .sort(([, a], [, b]) => b - a)
                 .map(([feeType, amount]) => {
                   const Icon = feeTypeIcons[feeType] || DollarSign;
-                  const count = entries.filter((e) => e.fee_type === feeType).length;
+                  const count = filteredEntries.filter((e) => e.fee_type === feeType).length;
                   return (
                     <div key={feeType} className="px-5 py-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -292,8 +449,7 @@ const PlatformRevenuePanel = () => {
                     </div>
                   );
                 })}
-              {/* Non-ledger revenue sources */}
-              {subscriptionRevenue > 0 && (
+              {!filteredOrgIds && subscriptionRevenue > 0 && (
                 <div className="px-5 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
@@ -307,7 +463,7 @@ const PlatformRevenuePanel = () => {
                   <p className="font-heading font-bold text-sm">${subscriptionRevenue.toLocaleString()}</p>
                 </div>
               )}
-              {creditPurchaseRevenue > 0 && (
+              {!filteredOrgIds && creditPurchaseRevenue > 0 && (
                 <div className="px-5 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
@@ -321,7 +477,7 @@ const PlatformRevenuePanel = () => {
                   <p className="font-heading font-bold text-sm">${creditPurchaseRevenue.toLocaleString()}</p>
                 </div>
               )}
-              {featureAccessRevenue > 0 && (
+              {!filteredOrgIds && featureAccessRevenue > 0 && (
                 <div className="px-5 py-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
@@ -335,7 +491,7 @@ const PlatformRevenuePanel = () => {
                   <p className="font-heading font-bold text-sm">${featureAccessRevenue.toLocaleString()}</p>
                 </div>
               )}
-              {Object.keys(byType).length === 0 && subscriptionRevenue === 0 && creditPurchaseRevenue === 0 && featureAccessRevenue === 0 && (
+              {Object.keys(byType).length === 0 && (!filteredOrgIds || true) && subscriptionRevenue === 0 && creditPurchaseRevenue === 0 && featureAccessRevenue === 0 && (
                 <div className="p-8 text-center text-muted-foreground text-sm">
                   No revenue data yet.
                 </div>
@@ -347,13 +503,13 @@ const PlatformRevenuePanel = () => {
         {/* Recent Transactions */}
         <TabsContent value="recent">
           <div className="rounded-xl border border-border overflow-hidden">
-            {entries.length === 0 ? (
+            {filteredEntries.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground text-sm">
-                No fee entries yet. Revenue will appear here as orders and bookings are processed.
+                {filteredOrgIds ? "No transactions for the selected filter." : "No fee entries yet. Revenue will appear here as orders and bookings are processed."}
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {entries.slice(0, 50).map((entry) => {
+                {filteredEntries.slice(0, 50).map((entry) => {
                   const Icon = feeTypeIcons[entry.fee_type] || DollarSign;
                   return (
                     <div key={entry.id} className="px-4 py-3 flex items-center justify-between">
