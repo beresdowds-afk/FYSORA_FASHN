@@ -12,6 +12,7 @@ import AuditLogsPanel from "@/components/super-admin/AuditLogsPanel";
 import AccountManagementPanel from "@/components/super-admin/AccountManagementPanel";
 import AdminInvoicingPaymentsPanel from "@/components/super-admin/AdminInvoicingPaymentsPanel";
 import SubscriptionRatesPanel from "@/components/super-admin/SubscriptionRatesPanel";
+import FeaturedProductsAdminPanel from "@/components/super-admin/FeaturedProductsAdminPanel";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -19,7 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2 } from "lucide-react";
+import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star } from "lucide-react";
 import TourGuide from "@/components/shared/TourGuide";
 import { useTourGuide } from "@/hooks/useTourGuide";
 import { useToast } from "@/hooks/use-toast";
@@ -56,7 +57,7 @@ const SuperAdminDashboard = () => {
   const [stats, setStats] = useState({ orgs: 0, users: 0 });
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const hasAccess = isSuperAdmin || isSuperAssistant;
-  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit">("overview");
   const tour = useTourGuide("super-admin-dashboard", superAdminTourSteps);
 
   useEffect(() => {
@@ -100,6 +101,7 @@ const SuperAdminDashboard = () => {
     { id: "revenue" as const, icon: TrendingUp, label: "Platform Revenue" },
     { id: "invoicing" as const, icon: ScrollText, label: "Invoicing & Payments" },
     { id: "sub_rates" as const, icon: Crown, label: "Subscription Rates" },
+    { id: "featured" as const, icon: Star, label: "Featured Products" },
     { id: "websites" as const, icon: Crown, label: "Website Requests" },
     { id: "unified_pricing" as const, icon: DollarSign, label: "Pricing Center" },
     { id: "pricing" as const, icon: Globe, label: "Website Pricing" },
@@ -213,6 +215,7 @@ const SuperAdminDashboard = () => {
           {activeTab === "revenue" && <PlatformRevenuePanel />}
           {activeTab === "invoicing" && <AdminInvoicingPaymentsPanel />}
           {activeTab === "sub_rates" && isSuperAdmin && <SubscriptionRatesPanel />}
+          {activeTab === "featured" && <FeaturedProductsAdminPanel />}
           {activeTab === "websites" && <WebsiteRequestsDashboard />}
           {activeTab === "unified_pricing" && isSuperAdmin && <UnifiedPricingPanel />}
           {activeTab === "pricing" && isSuperAdmin && <WebsitePricingPanel />}

@@ -14,15 +14,16 @@ import TailorCatalogueManager from "@/components/catalogue/TailorCatalogueManage
 import {
   LogOut, Package, Clock, BarChart3, Scissors, FileText,
   Wallet, User, ShoppingBag, CheckCircle2, ArrowRight,
-  Shield, DollarSign, TrendingUp, Save, Globe, Download
+  Shield, DollarSign, TrendingUp, Save, Globe, Download, Star
 } from "lucide-react";
+import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel";
 import {
   SidebarProvider, SidebarTrigger, Sidebar, SidebarContent,
   SidebarGroup, SidebarGroupLabel, SidebarGroupContent,
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar
 } from "@/components/ui/sidebar";
 
-type TabId = "overview" | "work-queue" | "contracts" | "earnings" | "catalogue" | "profile";
+type TabId = "overview" | "work-queue" | "contracts" | "earnings" | "catalogue" | "featured" | "profile";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending", confirmed: "Confirmed", measuring: "Measuring",
@@ -44,6 +45,7 @@ const navItems: { id: TabId; icon: any; label: string }[] = [
   { id: "contracts", icon: FileText, label: "My Contracts" },
   { id: "earnings", icon: Wallet, label: "Earnings" },
   { id: "catalogue", icon: ShoppingBag, label: "Catalogue" },
+  { id: "featured", icon: Star, label: "Featured Products" },
   { id: "profile", icon: User, label: "Profile" },
 ];
 
@@ -203,6 +205,9 @@ const TailorDashboard = () => {
                 <h2 className="font-heading font-bold text-2xl mb-6">My Catalogue</h2>
                 <TailorCatalogueManager tailorId={user.id} />
               </div>
+            )}
+            {activeTab === "featured" && user && (
+              <FeaturedProductsPanel orgId={contracts[0]?.org_id || ""} userRole="designer" />
             )}
             {activeTab === "profile" && user && (
               <ProfileTab userId={user.id} profile={profile} setProfile={setProfile} />

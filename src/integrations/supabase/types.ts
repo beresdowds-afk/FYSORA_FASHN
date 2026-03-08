@@ -1505,6 +1505,108 @@ export type Database = {
           },
         ]
       }
+      featured_product_slots: {
+        Row: {
+          amount_paid: number | null
+          catalogue_item_id: string
+          created_at: string | null
+          currency: string | null
+          id: string
+          is_active: boolean | null
+          org_id: string | null
+          payment_status: string | null
+          slot_type: string
+          updated_at: string | null
+          user_id: string
+          user_role: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          amount_paid?: number | null
+          catalogue_item_id: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          org_id?: string | null
+          payment_status?: string | null
+          slot_type?: string
+          updated_at?: string | null
+          user_id: string
+          user_role?: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          amount_paid?: number | null
+          catalogue_item_id?: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          org_id?: string | null
+          payment_status?: string | null
+          slot_type?: string
+          updated_at?: string | null
+          user_id?: string
+          user_role?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_product_slots_catalogue_item_id_fkey"
+            columns: ["catalogue_item_id"]
+            isOneToOne: false
+            referencedRelation: "org_catalogue_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "featured_product_slots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      featured_slot_config: {
+        Row: {
+          created_at: string | null
+          free_slots_per_period: number
+          id: string
+          is_active: boolean | null
+          paid_slot_currency: string | null
+          paid_slot_price: number
+          period_weeks: number
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          free_slots_per_period?: number
+          id?: string
+          is_active?: boolean | null
+          paid_slot_currency?: string | null
+          paid_slot_price?: number
+          period_weeks?: number
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          free_slots_per_period?: number
+          id?: string
+          is_active?: boolean | null
+          paid_slot_currency?: string | null
+          paid_slot_price?: number
+          period_weeks?: number
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       garment_catalog: {
         Row: {
           category: string | null

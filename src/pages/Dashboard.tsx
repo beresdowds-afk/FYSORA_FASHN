@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, CreditCard, Crown, MessageCircle, ClipboardList, Video, Globe, Sparkles, Truck, Scale, FileText, Download, Receipt } from "lucide-react";
+import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, CreditCard, Crown, MessageCircle, ClipboardList, Video, Globe, Sparkles, Truck, Scale, FileText, Download, Receipt, Star } from "lucide-react";
+import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel";
 import CommunicationsTab from "@/components/communications/CommunicationsTab";
 import SubscriptionTab from "@/components/billing/SubscriptionTab";
 import OrgBillingInvoicingTab from "@/components/billing/OrgBillingInvoicingTab";
@@ -60,7 +61,7 @@ const Dashboard = () => {
   const hasPlatformAccess = isSuperAdmin || isSuperAssistant;
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "customers" | "registrations" | "bookings" | "premium" | "logistics" | "disputes" | "contracts" | "members" | "communications" | "billing" | "invoicing" | "website" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "customers" | "registrations" | "bookings" | "premium" | "featured" | "logistics" | "disputes" | "contracts" | "members" | "communications" | "billing" | "invoicing" | "website" | "settings">("overview");
 
   const tourSteps = role === "tailor" ? tailorTourSteps : orgAdminTourSteps;
   const tourId = role === "tailor" ? "tailor-dashboard" : "org-admin-dashboard";
@@ -201,6 +202,7 @@ const Dashboard = () => {
             { id: "registrations" as const, icon: ClipboardList, label: "Registrations" },
             { id: "bookings" as const, icon: Video, label: "AI Measurements" },
             { id: "premium" as const, icon: Sparkles, label: "Premium" },
+            { id: "featured" as const, icon: Star, label: "Featured Products" },
             { id: "logistics" as const, icon: Truck, label: "Logistics" },
             { id: "disputes" as const, icon: Scale, label: "Disputes" },
             { id: "contracts" as const, icon: FileText, label: "Contracts" },
@@ -231,7 +233,7 @@ const Dashboard = () => {
         <main className="flex-1 min-w-0">
           {/* Mobile tabs */}
           <div className="flex md:hidden gap-2 mb-6 overflow-x-auto">
-            {["overview", "orders", "customers", "registrations", "bookings", "premium", "logistics", "disputes", "contracts", "members", "communications", "billing", "invoicing", "website", "settings"].map((tab) => (
+            {["overview", "orders", "customers", "registrations", "bookings", "premium", "featured", "logistics", "disputes", "contracts", "members", "communications", "billing", "invoicing", "website", "settings"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as typeof activeTab)}
@@ -254,6 +256,7 @@ const Dashboard = () => {
           {activeTab === "registrations" && <CustomerRegistrationsTab orgId={currentOrg.id} />}
           {activeTab === "bookings" && <MeasurementBookingsTab orgId={currentOrg.id} isAdmin={role === "org_admin" || role === "manager" || role === "super_admin"} />}
           {activeTab === "premium" && <FeatureGate featureKey="basic_measurement" showLocked><PremiumFeaturesTab orgId={currentOrg.id} role={role} /></FeatureGate>}
+          {activeTab === "featured" && <FeaturedProductsPanel orgId={currentOrg.id} userRole={role === "designer" ? "designer" : "org_admin"} />}
           {activeTab === "logistics" && <FeatureGate featureKey="local_logistics" showLocked><LogisticsTab orgId={currentOrg.id} role={role} currency={currentOrg.currency || "NGN"} /></FeatureGate>}
           {activeTab === "disputes" && <FeatureGate featureKey="ai_disputes" showLocked><DisputesTab orgId={currentOrg.id} role={role} /></FeatureGate>}
           {activeTab === "contracts" && <ContractsTab orgId={currentOrg.id} role={role} />}
