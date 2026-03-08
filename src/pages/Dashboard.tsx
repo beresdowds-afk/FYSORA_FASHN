@@ -30,6 +30,7 @@ import DisputesTab from "@/components/disputes/DisputesTab";
 import FeatureGate from "@/components/shared/FeatureGate";
 import ContractsTab from "@/components/contracts/ContractsTab";
 import AvailabilityManager from "@/components/settings/AvailabilityManager";
+import PaymentGatewayPanel from "@/components/settings/PaymentGatewayPanel";
 import TourGuide from "@/components/shared/TourGuide";
 import { useTourGuide } from "@/hooks/useTourGuide";
 import { orgAdminTourSteps, tailorTourSteps } from "@/config/tourSteps";
