@@ -1,4 +1,5 @@
 import { Mail, MapPin, Phone } from "lucide-react";
+import fsaLogo from "@/assets/fsa-logo.png";
 
 const footerLinks = {
   Platform: ["Features", "Pricing", "API Docs", "Website Builder", "Integrations"],
@@ -15,9 +16,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 mb-16">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center">
-                <span className="font-heading font-bold text-primary-foreground text-sm">FS</span>
-              </div>
+              <img src={fsaLogo} alt="Fashion Stitches Africa" className="w-9 h-9 object-contain" />
               <span className="font-heading font-bold text-lg text-ivory">
                 Fashion Stitches
               </span>

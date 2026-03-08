@@ -38,6 +38,7 @@ const roleLabels: Record<AppRole, string> = {
   super_assistant: "Super Assistant",
   org_admin: "Org Admin",
   manager: "Manager",
+  designer: "Designer",
   tailor: "Tailor",
   customer: "Customer",
 };
@@ -47,6 +48,7 @@ const roleColors: Record<AppRole, string> = {
   super_assistant: "bg-accent/80 text-accent-foreground",
   org_admin: "bg-primary text-primary-foreground",
   manager: "bg-primary/80 text-primary-foreground",
+  designer: "bg-secondary/80 text-secondary-foreground",
   tailor: "bg-secondary text-secondary-foreground",
   customer: "bg-muted text-muted-foreground",
 };

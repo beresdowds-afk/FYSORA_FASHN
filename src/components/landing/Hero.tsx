@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Download, Users, Scissors, Building2 } from "lucide-react";
+import { ArrowRight, Download, Users, Scissors, Building2, Palette } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
@@ -66,6 +66,16 @@ const Hero = () => {
                 <Button variant="hero" size="lg" className="text-base w-full sm:w-auto">
                   <Users size={18} className="mr-2" />
                   Customer
+                  <ArrowRight className="ml-2" size={16} />
+                </Button>
+              </Link>
+              <Link to="/auth?role=designer">
+                <Button
+                  size="lg"
+                  className="text-base w-full sm:w-auto bg-ivory/10 border border-ivory/20 text-ivory hover:bg-ivory/20"
+                >
+                  <Palette size={18} className="mr-2" />
+                  Designer
                   <ArrowRight className="ml-2" size={16} />
                 </Button>
               </Link>
