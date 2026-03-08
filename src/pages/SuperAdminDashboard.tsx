@@ -58,6 +58,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { cn } from "@/lib/utils";
 
@@ -257,7 +263,7 @@ const SuperAdminDashboard = () => {
 
           {/* Main Content */}
           <main className="flex-1 p-4 lg:p-6 overflow-auto">
-            {activeTab === "overview" && <OverviewPanel stats={stats} orgs={orgs} />}
+            {activeTab === "overview" && <OverviewPanel stats={stats} orgs={orgs} groups={sidebarGroups} onTabChange={setActiveTab} />}
             {activeTab === "platform_settings" && isSuperAdmin && <PlatformSettingsPanel />}
             {activeTab === "organizations" && <OrganizationsPanel orgs={orgs} />}
             {activeTab === "users" && <UsersPanel />}
@@ -391,13 +397,67 @@ const MobileSidebarMenu = ({
 };
 
 /* ───────────── Overview Panel ───────────── */
-const OverviewPanel = ({ stats, orgs }: { stats: { orgs: number; users: number }; orgs: OrgRow[] }) => (
+const groupIcons: Record<string, React.ElementType> = {
+  "General": Settings,
+  "People & Orgs": Users,
+  "Finance": TrendingUp,
+  "Pricing & Products": DollarSign,
+  "Communications": MessageSquare,
+  "System": Shield,
+};
+
+const groupColors: Record<string, { text: string; bg: string }> = {
+  "General": { text: "text-primary", bg: "bg-primary/10" },
+  "People & Orgs": { text: "text-secondary", bg: "bg-secondary/10" },
+  "Finance": { text: "text-accent", bg: "bg-accent/10" },
+  "Pricing & Products": { text: "text-primary", bg: "bg-primary/10" },
+  "Communications": { text: "text-secondary", bg: "bg-secondary/10" },
+  "System": { text: "text-accent", bg: "bg-accent/10" },
+};
+
+const OverviewPanel = ({ stats, orgs, groups, onTabChange }: { stats: { orgs: number; users: number }; orgs: OrgRow[]; groups: SidebarGroupDef[]; onTabChange: (tab: TabId) => void }) => (
   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
     <div>
       <h1 className="font-heading font-bold text-2xl">Platform Overview</h1>
       <p className="text-muted-foreground text-sm mt-1">
         Monitor all organizations and users across Fashion Stitches Africa.
       </p>
+    </div>
+
+    {/* Quick Navigation Grid - 3x2 dropdown buttons */}
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      {groups.map((group) => {
+        const GroupIcon = groupIcons[group.label] || Settings;
+        const colors = groupColors[group.label] || { text: "text-primary", bg: "bg-primary/10" };
+        return (
+          <DropdownMenu key={group.label}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-auto py-4 px-4 flex flex-col items-center gap-2 w-full border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
+              >
+                <div className={`w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center`}>
+                  <GroupIcon size={20} className={colors.text} />
+                </div>
+                <span className="font-heading font-semibold text-xs text-foreground">{group.label}</span>
+                <span className="text-[10px] text-muted-foreground">{group.items.length} items</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="w-52">
+              {group.items.map((item) => (
+                <DropdownMenuItem
+                  key={item.id}
+                  onClick={() => onTabChange(item.id)}
+                  className="cursor-pointer gap-2"
+                >
+                  <item.icon size={14} />
+                  <span>{item.label}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      })}
     </div>
 
     {/* Stats Grid */}
