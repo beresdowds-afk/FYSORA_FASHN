@@ -25,7 +25,7 @@ import {
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar
 } from "@/components/ui/sidebar";
 
-type TabId = "overview" | "work-queue" | "contracts" | "earnings" | "catalogue" | "featured" | "payments" | "profile";
+type TabId = "overview" | "work-queue" | "contracts" | "earnings" | "catalogue" | "featured" | "billing" | "payments" | "profile";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending", confirmed: "Confirmed", measuring: "Measuring",
