@@ -136,6 +136,8 @@ const UnifiedPricingPanel = () => {
   const [activeSection, setActiveSection] = useState<"fees" | "plans" | "audit">("fees");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(Object.keys(CATEGORIES)));
 
+  const [subRates, setSubRates] = useState<SubRate[]>([]);
+
   // Edit states
   const [editFee, setEditFee] = useState<{ fee: PlatformFee; newValue: number } | null>(null);
   const [editPlan, setEditPlan] = useState<{ plan: SubPlan; field: string; label: string; value: number } | null>(null);
