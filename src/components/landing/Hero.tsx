@@ -63,10 +63,13 @@ const Hero = () => {
             <p className="text-ivory/50 text-sm font-medium uppercase tracking-wider">Get Started As</p>
             <div className="grid grid-cols-2 gap-3 max-w-md">
               <Link to="/auth?role=customer">
-                <Button variant="hero" size="lg" className="text-base w-full">
+                <Button variant="hero" size="lg" className="text-base w-full relative overflow-hidden">
                   <Users size={18} className="mr-2" />
                   Customer
                   <ArrowRight className="ml-2" size={16} />
+                  <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-bl-md rounded-tr-md">
+                    Free
+                  </span>
                 </Button>
               </Link>
               <Link to="/auth?role=designer">
@@ -86,11 +89,14 @@ const Hero = () => {
               <Link to="/auth?role=tailor">
                 <Button
                   size="lg"
-                  className="text-base w-full bg-ivory/10 border border-ivory/20 text-ivory hover:bg-ivory/20"
+                  className="text-base w-full bg-ivory/10 border border-ivory/20 text-ivory hover:bg-ivory/20 relative overflow-hidden"
                 >
                   <Scissors size={18} className="mr-2" />
                   Tailor
                   <ArrowRight className="ml-2" size={16} />
+                  <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-bl-md rounded-tr-md">
+                    $10/mo
+                  </span>
                 </Button>
               </Link>
               <Link to="/auth?role=organization">
