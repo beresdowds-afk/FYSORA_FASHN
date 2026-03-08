@@ -32,7 +32,7 @@ const TaxCompliancePanel = () => {
   const [searchState, setSearchState] = useState("");
 
   const entityConfig = getConfig("entity_structure") as any;
-  const taxDefaults = getConfig("tax_defaults") as any;
+  
 
   const isLoading = configLoading || jurLoading;
 
