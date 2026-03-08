@@ -229,6 +229,7 @@ const SuperAdminDashboard = () => {
         {/* Main Content */}
         <main className="flex-1 min-w-0 pb-20 md:pb-0">
           {activeTab === "overview" && <OverviewPanel stats={stats} orgs={orgs} />}
+          {activeTab === "platform_settings" && isSuperAdmin && <PlatformSettingsPanel />}
           {activeTab === "organizations" && <OrganizationsPanel orgs={orgs} />}
           {activeTab === "users" && <UsersPanel />}
           {activeTab === "accounts" && <AccountManagementPanel />}
