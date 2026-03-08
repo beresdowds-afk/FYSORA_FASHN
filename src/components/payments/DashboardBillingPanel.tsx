@@ -32,12 +32,10 @@ const DashboardBillingPanel = ({ roleLabel }: DashboardBillingPanelProps) => {
   const [transfers, setTransfers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Bank transfer form
-  const [amount, setAmount] = useState("");
-  const [purpose, setPurpose] = useState("subscription");
-  const [transferRef, setTransferRef] = useState("");
-  const [selectedBank, setSelectedBank] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  // DVA state
+  const [virtualAccount, setVirtualAccount] = useState<any>(null);
+  const [dvaTransactions, setDvaTransactions] = useState<any[]>([]);
+  const [creatingDVA, setCreatingDVA] = useState(false);
 
   const fetchAll = useCallback(async () => {
     if (!user) return;
