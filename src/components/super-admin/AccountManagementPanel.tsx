@@ -22,6 +22,7 @@ import {
   Building2,
   Users,
   Scissors,
+  Palette,
   Search,
   Ban,
   Trash2,
