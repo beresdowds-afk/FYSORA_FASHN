@@ -66,7 +66,7 @@ const AccountManagementPanel = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogAction, setDialogAction] = useState<"deactivate" | "delete" | "reactivate">("deactivate");
   const [dialogTarget, setDialogTarget] = useState<AccountEntry | null>(null);
-  const [dialogTargetType, setDialogTargetType] = useState<"organization" | "customer" | "tailor">("organization");
+  const [dialogTargetType, setDialogTargetType] = useState<"organization" | "customer" | "tailor" | "designer">("organization");
   const [reason, setReason] = useState("");
   const [processing, setProcessing] = useState(false);
 
