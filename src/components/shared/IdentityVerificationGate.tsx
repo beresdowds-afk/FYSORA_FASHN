@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Shield, CheckCircle2, AlertCircle, Loader2, Lock } from "lucide-react";
+import { Shield, CheckCircle2, AlertCircle, Loader2, Lock, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ID_TYPES = [
   { value: "nin", label: "National ID (NIN)", pattern: "11-digit number" },
@@ -29,7 +29,9 @@ interface IdentityVerificationGateProps {
 export default function IdentityVerificationGate({ children, featureLabel = "this feature" }: IdentityVerificationGateProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [verified, setVerified] = useState<boolean | null>(null);
+  const [hasSubscription, setHasSubscription] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [identityType, setIdentityType] = useState("");
   const [identityNumber, setIdentityNumber] = useState("");
@@ -38,15 +40,14 @@ export default function IdentityVerificationGate({ children, featureLabel = "thi
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("profiles")
-      .select("identity_verified")
-      .eq("id", user.id)
-      .single()
-      .then(({ data }) => {
-        setVerified(!!(data as any)?.identity_verified);
-        setLoading(false);
-      });
+    Promise.all([
+      supabase.from("profiles").select("identity_verified").eq("id", user.id).single(),
+      supabase.from("customer_subscriptions" as any).select("id").eq("user_id", user.id).eq("status", "active").maybeSingle(),
+    ]).then(([profileRes, subRes]) => {
+      setVerified(!!(profileRes.data as any)?.identity_verified);
+      setHasSubscription(!!subRes.data);
+      setLoading(false);
+    });
   }, [user]);
 
   const handleVerify = async () => {
@@ -81,6 +82,28 @@ export default function IdentityVerificationGate({ children, featureLabel = "thi
   };
 
   if (loading) return null;
+
+  // If no active subscription, prompt to subscribe first
+  if (!hasSubscription) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/30 p-8 text-center max-w-md mx-auto mt-8">
+        <Crown size={32} className="mx-auto text-primary mb-3" />
+        <h3 className="font-heading font-bold text-lg mb-2">Premium Subscription Required</h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          Subscribe to the <span className="font-semibold text-foreground">$10/year Premium plan</span> to verify your identity and access {featureLabel}.
+        </p>
+        <Button variant="hero" onClick={() => {
+          // Navigate to subscription tab in customer portal
+          const tabsTrigger = document.querySelector('[value="subscription"]') as HTMLElement;
+          if (tabsTrigger) tabsTrigger.click();
+          else navigate("/portal");
+        }}>
+          <Crown size={14} className="mr-2" /> Go to Subscription
+        </Button>
+      </div>
+    );
+  }
+
   if (verified) return <>{children}</>;
 
   return (
