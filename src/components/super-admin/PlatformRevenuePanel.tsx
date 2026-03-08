@@ -363,7 +363,8 @@ const PlatformRevenuePanel = () => {
                       const measTotal = (fees["ai_measurement_platform_share"] || 0) + (fees["ai_measurement_org_share"] || 0);
                       const webFees = (fees["website_builder_lite"] || 0) + (fees["website_builder_pro"] || 0);
                       const aiSvc = (fees["virtual_tryon"] || 0) + (fees["photo_enhancement"] || 0);
-                      const total = regFees + orgOrderFees + measTotal + webFees + aiSvc;
+                      const msgFees = (fees["messaging_sms"] || 0) + (fees["messaging_whatsapp"] || 0) + (fees["messaging_email"] || 0);
+                      const total = regFees + orgOrderFees + measTotal + webFees + aiSvc + msgFees;
                       return (
                         <tr key={orgId} className="border-t border-border hover:bg-muted/30">
                           <td className="px-4 py-3">
