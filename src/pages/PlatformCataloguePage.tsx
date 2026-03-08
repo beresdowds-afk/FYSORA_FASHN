@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import IdentityVerificationGate from "@/components/shared/IdentityVerificationGate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { ArrowLeft, Search, ShoppingBag, Tag, Building2 } from "lucide-react";
+import { ArrowLeft, Search, ShoppingBag, Tag, Building2, LogIn } from "lucide-react";
 
 interface CatalogueItem {
   id: string;
@@ -23,6 +25,9 @@ interface CatalogueItem {
 
 const PlatformCataloguePage = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
   const [items, setItems] = useState<CatalogueItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
