@@ -194,6 +194,15 @@ const PlatformCataloguePage = () => {
       </div>
     </div>
   );
+
+  // Privileged roles get unrestricted access; customers must pass subscription + identity verification
+  if (isPrivilegedRole) return catalogueContent;
+
+  return (
+    <IdentityVerificationGate featureLabel="the Platform Catalogue">
+      {catalogueContent}
+    </IdentityVerificationGate>
+  );
 };
 
 export default PlatformCataloguePage;
