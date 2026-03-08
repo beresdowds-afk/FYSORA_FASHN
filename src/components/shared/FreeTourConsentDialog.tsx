@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Mail, Bell, Lock, Crown } from "lucide-react";
+import { Eye, Mail, Bell, Lock, Crown, Volume2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface FreeTourConsentDialogProps {
@@ -22,6 +23,7 @@ export default function FreeTourConsentDialog({
 }: FreeTourConsentDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,11 +45,13 @@ export default function FreeTourConsentDialog({
       .eq("id", user.id);
 
     toast({
-      title: "Tour started",
-      description: `You have ${toursRemaining - 1} free tour${toursRemaining - 1 === 1 ? "" : "s"} remaining. This is a read-only preview.`,
+      title: "Tour starting",
+      description: `You have ${toursRemaining - 1} free tour${toursRemaining - 1 === 1 ? "" : "s"} remaining.`,
     });
     setSubmitting(false);
     onConsentGiven();
+    // Navigate to the voiced platform tour
+    navigate("/platform-tour");
   };
 
   if (!hasToursLeft) {
