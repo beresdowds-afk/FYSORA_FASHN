@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function isValidCallbackUrl(url: string, origin: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const originParsed = new URL(origin);
+    return parsed.origin === originParsed.origin;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -31,6 +41,18 @@ Deno.serve(async (req) => {
     const { order_id, gateway, callback_url } = await req.json();
     if (!order_id || !gateway) {
       return new Response(JSON.stringify({ error: "Missing order_id or gateway" }), { status: 400, headers: corsHeaders });
+    }
+
+    // Validate callback_url
+    const origin = req.headers.get("origin") || Deno.env.get("SUPABASE_URL")!;
+    const defaultCallback = `${origin}/dashboard`;
+    let safeCallbackUrl = defaultCallback;
+    if (callback_url) {
+      if (isValidCallbackUrl(callback_url, origin)) {
+        safeCallbackUrl = callback_url;
+      } else {
+        return new Response(JSON.stringify({ error: "Invalid callback_url" }), { status: 400, headers: corsHeaders });
+      }
     }
 
     // Get order details
@@ -85,10 +107,10 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          amount: Math.round(amountDue * 100), // Paystack uses kobo
+          amount: Math.round(amountDue * 100),
           currency: order.currency || "NGN",
           reference,
-          callback_url: callback_url || `${req.headers.get("origin")}/dashboard`,
+          callback_url: safeCallbackUrl,
           metadata: {
             order_id: order.id,
             org_id: order.org_id,
@@ -122,7 +144,7 @@ Deno.serve(async (req) => {
           tx_ref: reference,
           amount: amountDue,
           currency: order.currency || "NGN",
-          redirect_url: callback_url || `${req.headers.get("origin")}/dashboard`,
+          redirect_url: safeCallbackUrl,
           meta: {
             order_id: order.id,
             org_id: order.org_id,
@@ -147,8 +169,8 @@ Deno.serve(async (req) => {
 
       const params = new URLSearchParams();
       params.append("mode", "payment");
-      params.append("success_url", callback_url || `${req.headers.get("origin")}/dashboard?payment=success`);
-      params.append("cancel_url", `${req.headers.get("origin")}/dashboard?payment=cancelled`);
+      params.append("success_url", safeCallbackUrl + "?payment=success");
+      params.append("cancel_url", `${origin}/dashboard?payment=cancelled`);
       params.append("line_items[0][price_data][currency]", (order.currency || "NGN").toLowerCase());
       params.append("line_items[0][price_data][product_data][name]", `Order ${order.order_number}`);
       params.append("line_items[0][price_data][unit_amount]", String(Math.round(amountDue * 100)));
@@ -195,7 +217,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
       status: 500,
       headers: corsHeaders,
     });

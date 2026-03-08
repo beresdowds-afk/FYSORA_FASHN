@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function isValidCallbackUrl(url: string, origin: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const originParsed = new URL(origin);
+    return parsed.origin === originParsed.origin;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -33,6 +43,18 @@ Deno.serve(async (req) => {
 
     if (!org_id || !hours_booked || hours_booked < 1) {
       return new Response(JSON.stringify({ error: "Missing org_id or invalid hours_booked" }), { status: 400, headers: corsHeaders });
+    }
+
+    // Validate callback_url
+    const origin = req.headers.get("origin") || Deno.env.get("SUPABASE_URL")!;
+    const defaultCallback = `${origin}/portal?meas_status=success`;
+    let safeCallbackUrl = defaultCallback;
+    if (callback_url) {
+      if (isValidCallbackUrl(callback_url, origin)) {
+        safeCallbackUrl = callback_url;
+      } else {
+        return new Response(JSON.stringify({ error: "Invalid callback_url" }), { status: 400, headers: corsHeaders });
+      }
     }
 
     const serviceClient = createClient(
@@ -99,7 +121,7 @@ Deno.serve(async (req) => {
         currency: orgCurrency,
         email,
         reference,
-        callback_url: callback_url || `${req.headers.get("origin")}/portal?meas_status=success`,
+        callback_url: safeCallbackUrl,
         metadata: {
           type: "ai_measurement_booking",
           user_id: userId,
@@ -144,7 +166,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
       status: 500,
       headers: corsHeaders,
     });

@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function isValidCallbackUrl(url: string, origin: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const originParsed = new URL(origin);
+    return parsed.origin === originParsed.origin;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,6 +40,18 @@ Deno.serve(async (req) => {
     const { org_id, plan, callback_url } = await req.json();
     if (!org_id || !plan) {
       return new Response(JSON.stringify({ error: "Missing org_id or plan" }), { status: 400, headers: corsHeaders });
+    }
+
+    // Validate callback_url
+    const origin = req.headers.get("origin") || Deno.env.get("SUPABASE_URL")!;
+    const defaultCallback = `${origin}/dashboard?website_payment=success`;
+    let safeCallbackUrl = defaultCallback;
+    if (callback_url) {
+      if (isValidCallbackUrl(callback_url, origin)) {
+        safeCallbackUrl = callback_url;
+      } else {
+        return new Response(JSON.stringify({ error: "Invalid callback_url" }), { status: 400, headers: corsHeaders });
+      }
     }
 
     const serviceClient = createClient(
@@ -61,11 +83,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Only org admins can subscribe to website builder plans" }), { status: 403, headers: corsHeaders });
     }
 
-    // Determine amount based on plan (USD converted to NGN at ~1500)
-    // Lite: $17/month = NGN 25,500 (first payment includes platform fee $10 = $27 total)
-    // Pro: $199 one-time + platform fee $140 = $339 total
     const currency = org.currency || "NGN";
-    let amountUSD = plan === "lite" ? 27 : 339; // includes platform fee
+    let amountUSD = plan === "lite" ? 27 : 339;
     let amountNGN = amountUSD * 1500;
     let amount = currency === "NGN" ? amountNGN : amountUSD;
 
@@ -93,10 +112,10 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        amount: Math.round(amount * 100), // kobo
+        amount: Math.round(amount * 100),
         currency: currency === "NGN" ? "NGN" : "USD",
         reference,
-        callback_url: callback_url || `${req.headers.get("origin")}/dashboard?website_payment=success`,
+        callback_url: safeCallbackUrl,
         metadata: {
           org_id,
           plan,
@@ -151,7 +170,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
       status: 500,
       headers: corsHeaders,
     });
