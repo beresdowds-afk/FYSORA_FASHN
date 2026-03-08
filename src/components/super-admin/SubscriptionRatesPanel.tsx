@@ -187,7 +187,7 @@ export default function SubscriptionRatesPanel() {
             <Crown size={22} className="text-primary" /> Subscription Rates
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage subscription pricing for customers, tailors, and organizations.
+            Manage subscription pricing for all roles and organization website tiers.
           </p>
         </div>
         <Button variant="hero" size="sm" onClick={openCreate}>
