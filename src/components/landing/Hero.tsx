@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Download, Users, Scissors, Building2, Palette, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
+import { useHeroPricing } from "@/hooks/useHeroPricing";
 
 const Hero = () => {
   return (
