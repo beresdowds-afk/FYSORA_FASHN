@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Users, Scissors, Building2, Sparkles } from "lucide-react";
+import { ArrowRight, Users, Scissors, Building2, Sparkles, Palette } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const CtaBanner = () => {
@@ -35,7 +35,7 @@ const CtaBanner = () => {
           </p>
 
           {/* Role-specific CTAs */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
             <Link to="/auth?role=customer" className="group">
               <div className="rounded-xl border border-primary-foreground/20 bg-primary-foreground/5 p-6 hover:bg-primary-foreground/10 transition-colors">
                 <Users size={28} className="mx-auto text-primary-foreground mb-3" />
@@ -46,6 +46,21 @@ const CtaBanner = () => {
                   className="w-full bg-ebony text-ivory hover:bg-ebony/90 font-heading font-semibold"
                 >
                   Sign Up Free
+                  <ArrowRight size={14} className="ml-1" />
+                </Button>
+              </div>
+            </Link>
+
+            <Link to="/auth?role=designer" className="group">
+              <div className="rounded-xl border border-primary-foreground/20 bg-primary-foreground/5 p-6 hover:bg-primary-foreground/10 transition-colors">
+                <Palette size={28} className="mx-auto text-primary-foreground mb-3" />
+                <h3 className="font-heading font-bold text-primary-foreground text-lg mb-1">Designer</h3>
+                <p className="text-primary-foreground/60 text-xs mb-4">Portfolio website · Catalogue · AI tools</p>
+                <Button
+                  size="sm"
+                  className="w-full bg-ebony text-ivory hover:bg-ebony/90 font-heading font-semibold"
+                >
+                  Register as Designer
                   <ArrowRight size={14} className="ml-1" />
                 </Button>
               </div>
