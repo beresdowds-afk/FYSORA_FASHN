@@ -198,8 +198,8 @@ const DashboardBillingPanel = ({ roleLabel }: DashboardBillingPanelProps) => {
 
           {/* Recent activity */}
           <div>
-            <h3 className="font-heading font-semibold text-sm mb-2">Recent Payments</h3>
-            {payments.length === 0 && transfers.length === 0 ? (
+            <h3 className="font-heading font-semibold text-sm mb-2">Recent Activity</h3>
+            {payments.length === 0 && dvaTransactions.length === 0 ? (
               <Card className="p-6 text-center">
                 <Receipt size={24} className="mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm text-muted-foreground">No payment activity yet.</p>
@@ -207,19 +207,19 @@ const DashboardBillingPanel = ({ roleLabel }: DashboardBillingPanelProps) => {
             ) : (
               <div className="space-y-2">
                 {[...payments.slice(0, 3).map(p => ({
-                  id: p.id, type: "payment" as const,
+                  id: p.id,
                   amount: `${p.currency} ${Number(p.amount).toLocaleString()}`,
                   label: p.payment_type?.replace(/_/g, " ") || "Payment",
                   status: p.status, date: p.paid_at || p.created_at,
-                })), ...transfers.slice(0, 2).map(t => ({
-                  id: t.id, type: "transfer" as const,
+                })), ...dvaTransactions.slice(0, 2).map(t => ({
+                  id: t.id,
                   amount: `NGN ${Number(t.amount).toLocaleString()}`,
-                  label: `Bank transfer · ${t.purpose.replace(/_/g, " ")}`,
+                  label: `DVA transfer`,
                   status: t.status, date: t.created_at,
                 }))].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5).map(item => (
                   <Card key={item.id} className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {item.status === "completed" || item.status === "verified" ? (
+                      {item.status === "completed" || item.status === "success" ? (
                         <CheckCircle2 size={14} className="text-primary shrink-0" />
                       ) : (
                         <Clock size={14} className="text-muted-foreground shrink-0" />
@@ -231,7 +231,7 @@ const DashboardBillingPanel = ({ roleLabel }: DashboardBillingPanelProps) => {
                         </p>
                       </div>
                     </div>
-                    <Badge variant={item.status === "completed" || item.status === "verified" ? "default" : "secondary"} className="capitalize text-xs">
+                    <Badge variant={item.status === "completed" || item.status === "success" ? "default" : "secondary"} className="capitalize text-xs">
                       {item.status}
                     </Badge>
                   </Card>
