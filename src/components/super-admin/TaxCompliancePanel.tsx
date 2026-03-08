@@ -33,7 +33,7 @@ const flag = (code: string) => COUNTRY_FLAGS[code] || "🌍";
 
 const TaxCompliancePanel = () => {
   const { toast } = useToast();
-  const { isLoading: configLoading, getConfig, regions } = useTaxConfig();
+  const { isLoading: configLoading, regions } = useTaxConfig();
   const { jurisdictions, byCountry, countryCodes, saasApplicable, isLoading: jurLoading, updateJurisdiction } = useTaxJurisdictions();
   const { tracking } = useNexusTracking();
   const [selectedPeriod, setSelectedPeriod] = useState(() => {
