@@ -61,6 +61,23 @@ export interface TaxConfig {
   updated_at: string;
 }
 
+/** Country-level tax region metadata used in config */
+export interface TaxRegion {
+  country_code: string;
+  country_name: string;
+  flag: string;
+  entity_type: string;
+  entity_name: string;
+  domestic_vat_rate: number;
+  domestic_vat_name: string;
+  has_subnational_tax: boolean;
+  export_exempt: boolean;
+  export_exempt_label: string;
+  income_tax_rates?: { label: string; rate: string }[];
+  notes?: string;
+}
+
+// ─── Config Hook ─────────────────────────────────────────────────
 export function useTaxConfig() {
   const queryClient = useQueryClient();
 
@@ -90,9 +107,17 @@ export function useTaxConfig() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tax-config"] }),
   });
 
-  return { configs, isLoading, getConfig, updateConfig };
+  /** Parse the `supported_regions` config into typed TaxRegion array */
+  const regions: TaxRegion[] = (() => {
+    const raw = configs.find(c => c.config_key === "supported_regions")?.config_value;
+    if (!raw || !Array.isArray((raw as any).regions)) return [];
+    return (raw as any).regions as TaxRegion[];
+  })();
+
+  return { configs, isLoading, getConfig, updateConfig, regions };
 }
 
+// ─── Jurisdictions Hook ──────────────────────────────────────────
 export function useTaxJurisdictions() {
   const queryClient = useQueryClient();
 
@@ -120,13 +145,22 @@ export function useTaxJurisdictions() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tax-jurisdictions"] }),
   });
 
-  const usJurisdictions = jurisdictions.filter(j => j.country_code === "US");
-  const ngJurisdictions = jurisdictions.filter(j => j.country_code === "NG");
-  const saasApplicable = usJurisdictions.filter(j => j.applies_to_saas && j.is_active);
+  /** Group jurisdictions by country_code */
+  const byCountry = jurisdictions.reduce<Record<string, TaxJurisdiction[]>>((acc, j) => {
+    (acc[j.country_code] ||= []).push(j);
+    return acc;
+  }, {});
 
-  return { jurisdictions, usJurisdictions, ngJurisdictions, saasApplicable, isLoading, updateJurisdiction };
+  /** All unique country codes present */
+  const countryCodes = Object.keys(byCountry).sort();
+
+  /** Jurisdictions that apply SaaS tax and are active (any country) */
+  const saasApplicable = jurisdictions.filter(j => j.applies_to_saas && j.is_active);
+
+  return { jurisdictions, byCountry, countryCodes, saasApplicable, isLoading, updateJurisdiction };
 }
 
+// ─── Nexus Tracking Hook ─────────────────────────────────────────
 export function useNexusTracking() {
   const { data: tracking = [], isLoading } = useQuery({
     queryKey: ["nexus-tracking"],
@@ -143,6 +177,7 @@ export function useNexusTracking() {
   return { tracking, isLoading };
 }
 
+// ─── Tax Ledger Hook ─────────────────────────────────────────────
 export function useTaxLedger(period?: string) {
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["tax-ledger", period],
@@ -175,57 +210,86 @@ export function useTaxLedger(period?: string) {
   return { entries, isLoading, totalTaxCollected, exemptTotal, byType };
 }
 
-/**
- * Calculate tax for a transaction based on customer location.
- */
+// ─── Tax Calculator (region-agnostic) ────────────────────────────
 export function useCalculateTax() {
-  const { saasApplicable } = useTaxJurisdictions();
-  const { getConfig } = useTaxConfig();
+  const { saasApplicable, byCountry } = useTaxJurisdictions();
+  const { regions, getConfig } = useTaxConfig();
 
   const calculateTax = (opts: {
     amount: number;
     customerCountry: string;
     customerState?: string;
     isSubscription?: boolean;
-  }): { taxRate: number; taxAmount: number; taxName: string; isExempt: boolean; exemptionReason?: string; jurisdictionId?: string } => {
+  }): {
+    taxRate: number;
+    taxAmount: number;
+    taxName: string;
+    isExempt: boolean;
+    exemptionReason?: string;
+    jurisdictionId?: string;
+  } => {
+    const region = regions.find(r => r.country_code === opts.customerCountry);
     const defaults = getConfig("tax_defaults");
 
-    // Nigerian customers: apply 7.5% VAT
-    if (opts.customerCountry === "NG") {
+    // ── 1. Domestic sale in a registered region ──
+    if (region && region.domestic_vat_rate > 0) {
+      // Check if the company is also in this region (domestic sale)
+      const entityConfig = getConfig("entity_structure") as any;
+      const homeCountries: string[] = entityConfig?.home_countries || ["NG"];
+
+      if (homeCountries.includes(opts.customerCountry)) {
+        // Domestic sale → apply domestic VAT
+        const rate = region.domestic_vat_rate;
+        return {
+          taxRate: rate,
+          taxAmount: Math.round(opts.amount * rate * 100) / 100,
+          taxName: region.domestic_vat_name || "VAT",
+          isExempt: false,
+        };
+      }
+    }
+
+    // ── 2. Sub-national tax lookup (e.g. US states, CA provinces, EU member states) ──
+    if (opts.customerState) {
+      const stateCode = `${opts.customerCountry}-${opts.customerState}`;
+      const jurisdiction = saasApplicable.find(j => j.jurisdiction_code === stateCode);
+
+      if (jurisdiction) {
+        const taxAmount = Math.round(opts.amount * Number(jurisdiction.tax_rate) * 100) / 100;
+        return {
+          taxRate: Number(jurisdiction.tax_rate),
+          taxAmount,
+          taxName: jurisdiction.tax_name,
+          isExempt: false,
+          jurisdictionId: jurisdiction.id,
+        };
+      }
+    }
+
+    // ── 3. Country-level tax (no sub-national match) ──
+    const countryJurisdictions = byCountry[opts.customerCountry] || [];
+    const countryLevel = countryJurisdictions.find(
+      j => j.jurisdiction_type === "country" && j.is_active && j.applies_to_saas
+    );
+    if (countryLevel) {
+      const taxAmount = Math.round(opts.amount * Number(countryLevel.tax_rate) * 100) / 100;
       return {
-        taxRate: 0.075,
-        taxAmount: Math.round(opts.amount * 0.075 * 100) / 100,
-        taxName: "VAT",
+        taxRate: Number(countryLevel.tax_rate),
+        taxAmount,
+        taxName: countryLevel.tax_name,
         isExempt: false,
+        jurisdictionId: countryLevel.id,
       };
     }
 
-    // Export of services from Nigeria = VAT-exempt
+    // ── 4. Export of services – exempt ──
     if (defaults?.export_vat_exempt !== false) {
-      // Check if US state has SaaS nexus triggered
-      if (opts.customerCountry === "US" && opts.customerState) {
-        const stateCode = `US-${opts.customerState}`;
-        const jurisdiction = saasApplicable.find(j => j.jurisdiction_code === stateCode);
-
-        if (jurisdiction) {
-          const taxAmount = Math.round(opts.amount * Number(jurisdiction.tax_rate) * 100) / 100;
-          return {
-            taxRate: Number(jurisdiction.tax_rate),
-            taxAmount,
-            taxName: jurisdiction.tax_name,
-            isExempt: false,
-            jurisdictionId: jurisdiction.id,
-          };
-        }
-      }
-
-      // No applicable tax
       return {
         taxRate: 0,
         taxAmount: 0,
         taxName: "None",
         isExempt: true,
-        exemptionReason: "Export of services – VAT exempt",
+        exemptionReason: "Export of services – VAT/GST exempt",
       };
     }
 
