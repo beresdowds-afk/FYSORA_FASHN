@@ -159,7 +159,7 @@ const PaymentGatewayPanel = ({ orgId, canEdit = true }: { orgId: string; canEdit
   }, {});
 
   const statusIcon = (s: string) => {
-    if (s === "resolved") return <CheckCircle2 size={14} className="text-green-500" />;
+    if (s === "resolved") return <CheckCircle2 size={14} className="text-primary" />;
     if (s === "in_progress") return <Clock size={14} className="text-chart-4" />;
     return <AlertCircle size={14} className="text-muted-foreground" />;
   };
