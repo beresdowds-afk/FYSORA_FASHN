@@ -3310,6 +3310,39 @@ export type Database = {
           },
         ]
       }
+      platform_api_keys: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key_name: string
+          key_value: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key_name: string
+          key_value: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key_name?: string
+          key_value?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_call_archives: {
         Row: {
           archived_at: string
