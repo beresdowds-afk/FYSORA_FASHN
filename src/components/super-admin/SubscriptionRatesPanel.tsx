@@ -263,7 +263,7 @@ export default function SubscriptionRatesPanel() {
       </div>
 
       {/* Rates by role */}
-      {(["customer", "tailor", "organization"] as const).map((role) => {
+      {(["customer", "designer", "tailor", "organization"] as const).map((role) => {
         const Icon = ROLE_ICONS[role];
         const roleRates = groupedRates[role] || [];
         return (
