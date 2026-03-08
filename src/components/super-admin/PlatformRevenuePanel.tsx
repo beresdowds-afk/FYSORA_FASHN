@@ -378,6 +378,7 @@ const PlatformRevenuePanel = () => {
                           <td className="px-4 py-3 text-sm text-right">${measTotal.toLocaleString()}</td>
                           <td className="px-4 py-3 text-sm text-right">${webFees.toLocaleString()}</td>
                           <td className="px-4 py-3 text-sm text-right">${aiSvc.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm text-right">${msgFees.toLocaleString()}</td>
                           <td className="px-4 py-3 text-sm text-right font-bold">${total.toLocaleString()}</td>
                         </tr>
                       );
