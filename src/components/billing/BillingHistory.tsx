@@ -96,10 +96,16 @@ const BillingHistory = ({ orgId }: { orgId: string }) => {
               <div key={fee.id} className="px-4 py-3 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">
-                    {fee.fee_type === "customer_surcharge" ? "Customer Platform Fee" : "Organization Admin Fee"}
+                    {fee.fee_type === "customer_surcharge" ? "Customer Platform Fee" :
+                     fee.fee_type === "org_admin_fee" ? "Organization Admin Fee" :
+                     fee.fee_type === "messaging_sms" ? "SMS Messaging Fee" :
+                     fee.fee_type === "messaging_whatsapp" ? "WhatsApp Messaging Fee" :
+                     fee.fee_type === "messaging_email" ? "Email Messaging Fee" :
+                     fee.fee_type}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(fee.created_at).toLocaleDateString()} · {fee.status}
+                    {fee.fee_type.startsWith("messaging_") && " · Provider cost"}
                   </p>
                 </div>
                 <div className="text-right">
