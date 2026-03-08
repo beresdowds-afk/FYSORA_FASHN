@@ -249,8 +249,7 @@ const RegionCard = ({
         <div className="flex items-center gap-2">
           <Switch
             checked={region.is_active}
-            onCheckedChange={(e) => {
-              e; // prevent expand toggle
+            onCheckedChange={() => {
               onToggleActive();
             }}
             onClick={(e) => e.stopPropagation()}
