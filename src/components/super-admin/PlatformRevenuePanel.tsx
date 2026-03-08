@@ -238,6 +238,8 @@ const PlatformRevenuePanel = () => {
     { label: "Website Builder Revenue", value: websiteFees, icon: Globe, color: "bg-primary/10 text-primary",
       detail: `Lite: $${(byType["website_builder_lite"] || 0).toLocaleString()} · Pro: $${(byType["website_builder_pro"] || 0).toLocaleString()}` },
     { label: "AI Service Fees", value: aiServiceFees, icon: Sparkles, color: "bg-accent/10 text-accent" },
+    { label: "Messaging Fees", value: messagingFees, icon: MessageSquare, color: "bg-emerald-500/10 text-emerald-600",
+      detail: `SMS: $${(byType["messaging_sms"] || 0).toLocaleString()} · WhatsApp: $${(byType["messaging_whatsapp"] || 0).toLocaleString()} · Email: $${(byType["messaging_email"] || 0).toLocaleString()}` },
   ];
 
   // Only show non-org-filtered revenue streams when no filter is active
