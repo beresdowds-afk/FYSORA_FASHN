@@ -7,10 +7,12 @@ interface RolePricing {
 }
 
 const FALLBACKS: Record<string, RolePricing> = {
-  customer: { label: "Free", cycle: "" },
-  designer: { label: "$15/mo", cycle: "" },
-  tailor: { label: "$10/mo", cycle: "" },
-  organization: { label: "", cycle: "" },
+  customer: { label: "$10/yr", cycle: "yearly" },
+  designer: { label: "$15/mo", cycle: "monthly" },
+  tailor: { label: "$29/mo", cycle: "monthly" },
+  org_native_basic: { label: "$79/mo", cycle: "monthly" },
+  org_native_custom: { label: "$149/mo", cycle: "monthly" },
+  org_external: { label: "$249/mo", cycle: "monthly" },
 };
 
 const formatPrice = (amount: number, currency: string, cycle: string): string => {
