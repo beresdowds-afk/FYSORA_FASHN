@@ -35,6 +35,8 @@ import TourGuide from "@/components/shared/TourGuide";
 import { useTourGuide } from "@/hooks/useTourGuide";
 import { orgAdminTourSteps, tailorTourSteps } from "@/config/tourSteps";
 import { HelpCircle } from "lucide-react";
+import LocationPicker from "@/components/shared/LocationPicker";
+import LocationMapFooter from "@/components/shared/LocationMapFooter";
 const roleLabels: Record<AppRole, string> = {
   super_admin: "Super Admin",
   super_assistant: "Super Assistant",
