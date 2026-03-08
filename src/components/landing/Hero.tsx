@@ -73,7 +73,7 @@ const Hero = () => {
                   Customer
                   <ArrowRight className="ml-2" size={16} />
                   <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-bl-md rounded-tr-md">
-                    {pricing.customer?.label || "Free"}
+                    {pricing.customer?.label || "$10/yr"}
                   </span>
                 </Button>
               </Link>
