@@ -2003,6 +2003,86 @@ export type Database = {
           },
         ]
       }
+      message_archives: {
+        Row: {
+          archived_at: string
+          body: string | null
+          channel: string
+          created_at: string
+          direction: string
+          error_message: string | null
+          event_type: string | null
+          external_id: string | null
+          id: string
+          metadata: Json | null
+          org_id: string | null
+          original_message_id: string | null
+          provider: string | null
+          recipient_contact: string | null
+          recipient_id: string | null
+          recipient_type: string
+          sender_id: string | null
+          sender_type: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          archived_at?: string
+          body?: string | null
+          channel?: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          event_type?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          org_id?: string | null
+          original_message_id?: string | null
+          provider?: string | null
+          recipient_contact?: string | null
+          recipient_id?: string | null
+          recipient_type?: string
+          sender_id?: string | null
+          sender_type?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Update: {
+          archived_at?: string
+          body?: string | null
+          channel?: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          event_type?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          org_id?: string | null
+          original_message_id?: string | null
+          provider?: string | null
+          recipient_contact?: string | null
+          recipient_id?: string | null
+          recipient_type?: string
+          sender_id?: string | null
+          sender_type?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_archives_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_logs: {
         Row: {
           body: string | null
