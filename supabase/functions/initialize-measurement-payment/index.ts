@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveGatewayKeys, initializeGatewayPayment } from "../_shared/resolve-gateway-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,8 @@ function isValidCallbackUrl(url: string, origin: string): boolean {
     return false;
   }
 }
+
+const GATEWAY_PRIORITY = ["paystack", "stripe", "flutterwave"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -39,13 +42,12 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { org_id, hours_booked, scheduled_at, callback_url } = await req.json();
+    const { org_id, hours_booked, scheduled_at, callback_url, gateway: preferredGateway } = await req.json();
 
     if (!org_id || !hours_booked || hours_booked < 1) {
       return new Response(JSON.stringify({ error: "Missing org_id or invalid hours_booked" }), { status: 400, headers: corsHeaders });
     }
 
-    // Validate callback_url
     const origin = req.headers.get("origin") || Deno.env.get("SUPABASE_URL")!;
     const defaultCallback = `${origin}/portal?meas_status=success`;
     let safeCallbackUrl = defaultCallback;
@@ -62,12 +64,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Calculate pricing: $10 first hour, $5 per additional hour
+    // Calculate pricing
     const firstHourRate = 10;
     const additionalHourRate = 5;
     const totalUSD = firstHourRate + Math.max(0, hours_booked - 1) * additionalHourRate;
-
-    // 60:40 split (org : platform/FASHION STITCHES AFRICA)
     const orgShareAmount = Math.round(totalUSD * 60) / 100;
     const platformShareAmount = Math.round(totalUSD * 40) / 100;
 
@@ -88,19 +88,20 @@ Deno.serve(async (req) => {
     const usdRate = rateData?.rate || 0;
     const localAmount = usdRate > 0 ? Math.round(totalUSD / usdRate) : totalUSD;
 
-    // Get Paystack key
-    const { data: apiKeys } = await serviceClient
-      .from("org_api_keys")
-      .select("key_name, key_value")
-      .eq("org_id", org_id)
-      .eq("provider", "paystack")
-      .eq("is_active", true);
+    // Resolve gateway with priority and platform fallback
+    const gatewayOrder = preferredGateway
+      ? [preferredGateway, ...GATEWAY_PRIORITY.filter(g => g !== preferredGateway)]
+      : GATEWAY_PRIORITY;
 
-    const keys = Object.fromEntries((apiKeys || []).map((k: any) => [k.key_name, k.key_value]));
-    const secretKey = keys["secret_key"] || keys["PAYSTACK_SECRET_KEY"];
+    let resolvedGateway = "";
+    let keys = null;
+    for (const gw of gatewayOrder) {
+      keys = await resolveGatewayKeys(serviceClient, org_id, gw);
+      if (keys) { resolvedGateway = gw; break; }
+    }
 
-    if (!secretKey) {
-      return new Response(JSON.stringify({ error: "Paystack not configured for this organization" }), { status: 400, headers: corsHeaders });
+    if (!keys || !resolvedGateway) {
+      return new Response(JSON.stringify({ error: "No payment gateway configured for this organization" }), { status: 400, headers: corsHeaders });
     }
 
     const reference = `MEAS-${org_id.substring(0, 8)}-${Date.now().toString(36)}`;
@@ -109,36 +110,23 @@ Deno.serve(async (req) => {
     const { data: userData } = await serviceClient.auth.admin.getUserById(userId);
     const email = userData?.user?.email || "customer@example.com";
 
-    // Initialize Paystack transaction
-    const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${secretKey}`,
-        "Content-Type": "application/json",
+    const result = await initializeGatewayPayment({
+      gateway: resolvedGateway,
+      keys,
+      amount: localAmount,
+      currency: orgCurrency,
+      reference,
+      callbackUrl: safeCallbackUrl,
+      email,
+      metadata: {
+        type: "ai_measurement_booking",
+        user_id: userId,
+        org_id,
+        hours_booked,
+        total_usd: totalUSD,
       },
-      body: JSON.stringify({
-        amount: Math.round(localAmount * 100),
-        currency: orgCurrency,
-        email,
-        reference,
-        callback_url: safeCallbackUrl,
-        metadata: {
-          type: "ai_measurement_booking",
-          user_id: userId,
-          org_id,
-          hours_booked,
-          total_usd: totalUSD,
-        },
-      }),
+      productName: `AI Measurement Session – ${hours_booked} hour${hours_booked > 1 ? "s" : ""}`,
     });
-
-    const paystackData = await paystackRes.json();
-    if (!paystackData.status) {
-      return new Response(JSON.stringify({ error: paystackData.message || "Paystack initialization failed" }), { status: 400, headers: corsHeaders });
-    }
-
-    const checkoutUrl = paystackData.data.authorization_url;
-    const finalReference = paystackData.data.reference;
 
     // Create booking record
     await serviceClient.from("ai_measurement_bookings").insert({
@@ -154,19 +142,20 @@ Deno.serve(async (req) => {
       org_share_amount: orgShareAmount,
       platform_share_amount: platformShareAmount,
       scheduled_at: scheduled_at || null,
-      gateway_reference: finalReference,
-      gateway_checkout_url: checkoutUrl,
-      payment_gateway: "paystack",
+      gateway_reference: result.reference,
+      gateway_checkout_url: result.checkoutUrl,
+      payment_gateway: resolvedGateway,
       booking_status: "pending_payment",
       payment_status: "unpaid",
     });
 
-    return new Response(JSON.stringify({ checkout_url: checkoutUrl, reference: finalReference }), {
+    return new Response(JSON.stringify({ checkout_url: result.checkoutUrl, reference: result.reference, gateway: resolvedGateway }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: "An unexpected error occurred" }), {
+    const message = err instanceof Error ? err.message : "An unexpected error occurred";
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: corsHeaders,
     });
