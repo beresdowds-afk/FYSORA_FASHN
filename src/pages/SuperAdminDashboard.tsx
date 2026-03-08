@@ -258,6 +258,7 @@ const SuperAdminDashboard = () => {
           {activeTab === "audit" && <AuditLogsPanel />}
           {activeTab === "support_requests" && <AdminSupportRequestsPanel />}
           {activeTab === "bank_accounts" && <BankAccountsPanel />}
+          {activeTab === "message_center" && <MessageCenterDashboard />}
         </main>
       </div>
     </div>
