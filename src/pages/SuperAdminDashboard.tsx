@@ -13,6 +13,7 @@ import AccountManagementPanel from "@/components/super-admin/AccountManagementPa
 import AdminInvoicingPaymentsPanel from "@/components/super-admin/AdminInvoicingPaymentsPanel";
 import SubscriptionRatesPanel from "@/components/super-admin/SubscriptionRatesPanel";
 import FeaturedProductsAdminPanel from "@/components/super-admin/FeaturedProductsAdminPanel";
+import PlatformSettingsPanel from "@/components/super-admin/PlatformSettingsPanel";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
