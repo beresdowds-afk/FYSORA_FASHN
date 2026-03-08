@@ -126,7 +126,7 @@ const AccountManagementPanel = () => {
   const openDialog = (
     action: "deactivate" | "delete" | "reactivate",
     target: AccountEntry,
-    type: "organization" | "customer" | "tailor"
+    type: "organization" | "customer" | "tailor" | "designer"
   ) => {
     setDialogAction(action);
     setDialogTarget(target);
