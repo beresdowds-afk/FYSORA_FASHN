@@ -4425,6 +4425,90 @@ export type Database = {
           },
         ]
       }
+      regional_operations: {
+        Row: {
+          ai_features_enabled: boolean
+          available_carriers: string[]
+          available_gateways: string[]
+          available_messaging_providers: string[]
+          communications_enabled: boolean
+          country_codes: string[]
+          created_at: string
+          currency: string
+          flag_emoji: string | null
+          id: string
+          is_active: boolean
+          launched_at: string | null
+          logistics_enabled: boolean
+          marketplace_enabled: boolean
+          mobile_app_enabled: boolean
+          notes: string | null
+          payments_enabled: boolean
+          region_code: string
+          region_name: string
+          subscriptions_enabled: boolean
+          timezone: string | null
+          updated_at: string
+          video_calls_enabled: boolean
+          virtual_tryon_enabled: boolean
+          website_builder_enabled: boolean
+        }
+        Insert: {
+          ai_features_enabled?: boolean
+          available_carriers?: string[]
+          available_gateways?: string[]
+          available_messaging_providers?: string[]
+          communications_enabled?: boolean
+          country_codes?: string[]
+          created_at?: string
+          currency?: string
+          flag_emoji?: string | null
+          id?: string
+          is_active?: boolean
+          launched_at?: string | null
+          logistics_enabled?: boolean
+          marketplace_enabled?: boolean
+          mobile_app_enabled?: boolean
+          notes?: string | null
+          payments_enabled?: boolean
+          region_code: string
+          region_name: string
+          subscriptions_enabled?: boolean
+          timezone?: string | null
+          updated_at?: string
+          video_calls_enabled?: boolean
+          virtual_tryon_enabled?: boolean
+          website_builder_enabled?: boolean
+        }
+        Update: {
+          ai_features_enabled?: boolean
+          available_carriers?: string[]
+          available_gateways?: string[]
+          available_messaging_providers?: string[]
+          communications_enabled?: boolean
+          country_codes?: string[]
+          created_at?: string
+          currency?: string
+          flag_emoji?: string | null
+          id?: string
+          is_active?: boolean
+          launched_at?: string | null
+          logistics_enabled?: boolean
+          marketplace_enabled?: boolean
+          mobile_app_enabled?: boolean
+          notes?: string | null
+          payments_enabled?: boolean
+          region_code?: string
+          region_name?: string
+          subscriptions_enabled?: boolean
+          timezone?: string | null
+          updated_at?: string
+          video_calls_enabled?: boolean
+          virtual_tryon_enabled?: boolean
+          website_builder_enabled?: boolean
+        }
+        Relationships: []
+      }
       shipment_tracking_events: {
         Row: {
           carrier_status_code: string | null
