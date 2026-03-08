@@ -696,51 +696,65 @@ const SubscriptionsTab = ({
 const BankTransferTab = ({ userId, onRefresh }: { userId: string; onRefresh: () => void }) => {
   const { toast } = useToast();
   const [transfers, setTransfers] = useState<any[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState("");
   const [purpose, setPurpose] = useState("token_purchase");
   const [transferRef, setTransferRef] = useState("");
+  const [selectedBank, setSelectedBank] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("bank_transfer_payments" as any)
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setTransfers((data as any[]) || []);
-        setLoading(false);
-      });
+    Promise.all([
+      supabase
+        .from("bank_transfer_payments")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("platform_bank_accounts")
+        .select("*")
+        .eq("is_active", true)
+        .order("is_primary", { ascending: false })
+        .order("bank_name"),
+    ]).then(([transfersRes, banksRes]) => {
+      setTransfers((transfersRes.data as any[]) || []);
+      const banks = (banksRes.data as any[]) || [];
+      setBankAccounts(banks);
+      if (banks.length > 0) setSelectedBank(banks[0].id);
+      setLoading(false);
+    });
   }, [userId]);
 
+  const selectedBankDetails = bankAccounts.find(b => b.id === selectedBank);
+
   const handleSubmit = async () => {
-    if (!amount || !transferRef.trim()) {
+    if (!amount || !transferRef.trim() || !selectedBank) {
       toast({ title: "Fill all required fields", variant: "destructive" });
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("bank_transfer_payments" as any).insert({
+    const { error } = await supabase.from("bank_transfer_payments").insert({
       user_id: userId,
       amount: parseFloat(amount),
       currency: "NGN",
       purpose,
       transfer_reference: transferRef.trim(),
-      bank_name: BANK_DETAILS.bank_name,
-      account_name: BANK_DETAILS.account_name,
+      bank_name: selectedBankDetails?.bank_name || "",
+      account_name: selectedBankDetails?.account_name || "",
+      bank_account_id: selectedBank,
       status: "pending",
     } as any);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Bank transfer submitted", description: "Your payment will be verified by an admin." });
+      toast({ title: "Bank transfer submitted", description: "Your payment will be verified automatically or by an admin." });
       setAmount("");
       setTransferRef("");
       onRefresh();
-      // Reload transfers
       const { data } = await supabase
-        .from("bank_transfer_payments" as any)
+        .from("bank_transfer_payments")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -754,14 +768,48 @@ const BankTransferTab = ({ userId, onRefresh }: { userId: string; onRefresh: () 
     toast({ title: "Copied!" });
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div>
         <h2 className="font-heading font-bold text-xl mb-1">Bank Transfer (Nigeria)</h2>
         <p className="text-sm text-muted-foreground">
-          Make a direct bank transfer and submit the details for verification.
+          Make a direct bank transfer and submit the details for auto-verification.
         </p>
       </div>
+
+      {/* Bank account selector */}
+      {bankAccounts.length > 1 && (
+        <div>
+          <label className="text-sm font-medium mb-2 block">Select Receiving Bank</label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {bankAccounts.map(bank => (
+              <button
+                key={bank.id}
+                onClick={() => setSelectedBank(bank.id)}
+                className={`p-3 rounded-lg border text-left transition-colors ${
+                  selectedBank === bank.id
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/40"
+                }`}
+              >
+                <p className="text-sm font-medium">{bank.bank_name}</p>
+                <p className="text-xs text-muted-foreground capitalize">{bank.bank_type}</p>
+                {bank.is_primary && (
+                  <Badge className="bg-primary/10 text-primary text-[10px] mt-1">Primary</Badge>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bank Details */}
@@ -769,26 +817,31 @@ const BankTransferTab = ({ userId, onRefresh }: { userId: string; onRefresh: () 
           <h3 className="font-heading font-semibold mb-4 flex items-center gap-2">
             <Banknote size={18} className="text-primary" /> Bank Account Details
           </h3>
-          <div className="space-y-3">
-            {[
-              { label: "Bank", value: BANK_DETAILS.bank_name },
-              { label: "Account Number", value: BANK_DETAILS.account_number },
-              { label: "Account Name", value: BANK_DETAILS.account_name },
-            ].map(item => (
-              <div key={item.label} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <div>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                  <p className="font-mono text-sm font-medium">{item.value}</p>
+          {selectedBankDetails ? (
+            <div className="space-y-3">
+              {[
+                { label: "Bank", value: selectedBankDetails.bank_name },
+                { label: "Account Number", value: selectedBankDetails.account_number || "Contact admin" },
+                { label: "Account Name", value: selectedBankDetails.account_name },
+                ...(selectedBankDetails.bank_code ? [{ label: "Bank Code", value: selectedBankDetails.bank_code }] : []),
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                    <p className="font-mono text-sm font-medium">{item.value}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => copyToClipboard(item.value)}>
+                    <Copy size={14} />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(item.value)}>
-                  <Copy size={14} />
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No bank accounts available. Contact support.</p>
+          )}
           <div className="mt-4 p-3 rounded-lg bg-chart-4/5 border border-chart-4/20 text-xs text-muted-foreground">
             <AlertCircle size={14} className="inline mr-1 text-chart-4" />
-            After transferring, fill in the confirmation form and your payment will be verified within 24 hours.
+            After transferring, fill in the confirmation form. Payments are auto-verified within minutes.
           </div>
         </Card>
 
@@ -846,7 +899,11 @@ const BankTransferTab = ({ userId, onRefresh }: { userId: string; onRefresh: () 
                   <p className="text-sm font-medium">₦{Number(t.amount).toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">
                     {t.purpose.replace(/_/g, " ")} · Ref: {t.transfer_reference} · {new Date(t.created_at).toLocaleDateString()}
+                    {t.auto_verified && <span className="ml-1 text-primary">(Auto-verified)</span>}
                   </p>
+                  {t.rejection_reason && (
+                    <p className="text-xs text-destructive mt-0.5">{t.rejection_reason}</p>
+                  )}
                 </div>
                 <Badge
                   variant={t.status === "verified" ? "default" : t.status === "rejected" ? "destructive" : "secondary"}
