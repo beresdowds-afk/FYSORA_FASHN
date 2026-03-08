@@ -7,7 +7,6 @@ import {
   useTaxLedger,
   type TaxJurisdiction,
 } from "@/hooks/useTaxSystem";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,8 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Receipt, Building2, Globe, AlertTriangle, CheckCircle, TrendingUp,
-  BarChart3, DollarSign, Shield, MapPin, FileText, RefreshCw, Search,
+  Receipt, Building2, Globe, AlertTriangle, CheckCircle,
+  BarChart3, Shield, MapPin, FileText, Search,
 } from "lucide-react";
 
 const TaxCompliancePanel = () => {
