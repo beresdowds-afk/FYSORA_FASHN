@@ -61,15 +61,15 @@ const Hero = () => {
             className="space-y-4"
           >
             <p className="text-ivory/50 text-sm font-medium uppercase tracking-wider">Get Started As</p>
-            <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3">
-              <Link to="/auth?role=customer" className="order-1">
+            <div className="grid grid-cols-2 gap-3 max-w-md">
+              <Link to="/auth?role=customer">
                 <Button variant="hero" size="lg" className="text-base w-full">
                   <Users size={18} className="mr-2" />
                   Customer
                   <ArrowRight className="ml-2" size={16} />
                 </Button>
               </Link>
-              <Link to="/auth?role=designer" className="order-2">
+              <Link to="/auth?role=designer">
                 <Button
                   variant="heroOutline"
                   size="lg"
@@ -83,7 +83,7 @@ const Hero = () => {
                   </span>
                 </Button>
               </Link>
-              <Link to="/auth?role=tailor" className="order-3">
+              <Link to="/auth?role=tailor">
                 <Button
                   size="lg"
                   className="text-base w-full bg-ivory/10 border border-ivory/20 text-ivory hover:bg-ivory/20"
@@ -93,7 +93,7 @@ const Hero = () => {
                   <ArrowRight className="ml-2" size={16} />
                 </Button>
               </Link>
-              <Link to="/auth?role=organization" className="order-4">
+              <Link to="/auth?role=organization">
                 <Button
                   size="lg"
                   className="text-base w-full bg-ivory/10 border border-ivory/20 text-ivory hover:bg-ivory/20"
