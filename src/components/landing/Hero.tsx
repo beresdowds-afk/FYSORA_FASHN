@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Download, Users, Scissors, Building2, Palette } from "lucide-react";
+import { ArrowRight, Download, Users, Scissors, Building2, Palette, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
@@ -73,11 +73,14 @@ const Hero = () => {
                 <Button
                   variant="heroOutline"
                   size="lg"
-                  className="text-base w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="text-base w-full border-primary text-primary hover:bg-primary hover:text-primary-foreground relative overflow-hidden group"
                 >
                   <Palette size={18} className="mr-2" />
                   Designer
-                  <ArrowRight className="ml-2" size={16} />
+                  <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={16} />
+                  <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-bl-md rounded-tr-md">
+                    $15/mo
+                  </span>
                 </Button>
               </Link>
               <Link to="/auth?role=tailor" className="order-3">
@@ -101,7 +104,17 @@ const Hero = () => {
                 </Button>
               </Link>
             </div>
-            <div className="pt-2">
+            <div className="pt-2 flex flex-wrap gap-3">
+              <Link to="/platform-tour">
+                <Button
+                  variant="hero"
+                  size="sm"
+                  className="animate-pulse hover:animate-none"
+                >
+                  <Play size={14} className="mr-2" />
+                  Take Free Platform Tour
+                </Button>
+              </Link>
               <Link to="/install">
                 <Button
                   variant="heroOutline"
