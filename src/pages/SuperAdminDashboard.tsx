@@ -15,6 +15,7 @@ import AdminSupportRequestsPanel from "@/components/super-admin/AdminSupportRequ
 import BankAccountsPanel from "@/components/super-admin/BankAccountsPanel";
 import MessageCenterDashboard from "@/components/super-admin/MessageCenterDashboard";
 import SubscriptionRatesPanel from "@/components/super-admin/SubscriptionRatesPanel";
+import TaxCompliancePanel from "@/components/super-admin/TaxCompliancePanel";
 import FeaturedProductsAdminPanel from "@/components/super-admin/FeaturedProductsAdminPanel";
 import PlatformSettingsPanel from "@/components/super-admin/PlatformSettingsPanel";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
@@ -67,7 +68,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center";
+type TabId = "overview" | "platform_settings" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "tax_compliance" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center";
 
 interface SidebarItem {
   id: TabId;
@@ -157,6 +158,7 @@ const SuperAdminDashboard = () => {
         { id: "revenue", icon: TrendingUp, label: "Platform Revenue" },
         { id: "invoicing", icon: ScrollText, label: "Invoicing & Payments" },
         { id: "sub_rates", icon: Crown, label: "Subscription Rates" },
+        { id: "tax_compliance", icon: Globe, label: "Tax & Compliance" },
         { id: "bank_accounts", icon: Banknote, label: "Bank Accounts" },
       ],
     },
@@ -271,6 +273,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "revenue" && <PlatformRevenuePanel />}
             {activeTab === "invoicing" && <AdminInvoicingPaymentsPanel />}
             {activeTab === "sub_rates" && isSuperAdmin && <SubscriptionRatesPanel />}
+            {activeTab === "tax_compliance" && isSuperAdmin && <TaxCompliancePanel />}
             {activeTab === "featured" && <FeaturedProductsAdminPanel />}
             {activeTab === "websites" && <WebsiteRequestsDashboard />}
             {activeTab === "unified_pricing" && isSuperAdmin && <UnifiedPricingPanel />}

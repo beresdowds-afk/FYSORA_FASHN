@@ -2312,6 +2312,56 @@ export type Database = {
         }
         Relationships: []
       }
+      nexus_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          jurisdiction_id: string
+          nexus_triggered: boolean
+          nexus_triggered_at: string | null
+          threshold_revenue_pct: number | null
+          threshold_transaction_pct: number | null
+          total_revenue: number
+          total_transactions: number
+          tracking_period: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          jurisdiction_id: string
+          nexus_triggered?: boolean
+          nexus_triggered_at?: string | null
+          threshold_revenue_pct?: number | null
+          threshold_transaction_pct?: number | null
+          total_revenue?: number
+          total_transactions?: number
+          tracking_period: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          jurisdiction_id?: string
+          nexus_triggered?: boolean
+          nexus_triggered_at?: string | null
+          threshold_revenue_pct?: number | null
+          threshold_transaction_pct?: number | null
+          total_revenue?: number
+          total_transactions?: number
+          tracking_period?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nexus_tracking_jurisdiction_id_fkey"
+            columns: ["jurisdiction_id"]
+            isOneToOne: false
+            referencedRelation: "tax_jurisdictions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -3233,6 +3283,62 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_tax_settings: {
+        Row: {
+          collect_customer_tax_id: boolean | null
+          country_code: string
+          created_at: string
+          default_tax_rate: number | null
+          id: string
+          metadata: Json | null
+          org_id: string
+          state_province: string | null
+          tax_enabled: boolean
+          tax_id_number: string | null
+          tax_id_type: string | null
+          tax_inclusive_pricing: boolean
+          updated_at: string
+        }
+        Insert: {
+          collect_customer_tax_id?: boolean | null
+          country_code?: string
+          created_at?: string
+          default_tax_rate?: number | null
+          id?: string
+          metadata?: Json | null
+          org_id: string
+          state_province?: string | null
+          tax_enabled?: boolean
+          tax_id_number?: string | null
+          tax_id_type?: string | null
+          tax_inclusive_pricing?: boolean
+          updated_at?: string
+        }
+        Update: {
+          collect_customer_tax_id?: boolean | null
+          country_code?: string
+          created_at?: string
+          default_tax_rate?: number | null
+          id?: string
+          metadata?: Json | null
+          org_id?: string
+          state_province?: string | null
+          tax_enabled?: boolean
+          tax_id_number?: string | null
+          tax_id_type?: string | null
+          tax_inclusive_pricing?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_tax_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -4933,6 +5039,168 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tailor_contracts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_config: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      tax_jurisdictions: {
+        Row: {
+          applies_to_saas: boolean
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          jurisdiction_code: string
+          jurisdiction_name: string
+          jurisdiction_type: string
+          metadata: Json | null
+          nexus_revenue_threshold: number | null
+          nexus_transaction_threshold: number | null
+          tax_name: string
+          tax_rate: number
+          updated_at: string
+        }
+        Insert: {
+          applies_to_saas?: boolean
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction_code: string
+          jurisdiction_name: string
+          jurisdiction_type?: string
+          metadata?: Json | null
+          nexus_revenue_threshold?: number | null
+          nexus_transaction_threshold?: number | null
+          tax_name?: string
+          tax_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          applies_to_saas?: boolean
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction_code?: string
+          jurisdiction_name?: string
+          jurisdiction_type?: string
+          metadata?: Json | null
+          nexus_revenue_threshold?: number | null
+          nexus_transaction_threshold?: number | null
+          tax_name?: string
+          tax_rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tax_ledger: {
+        Row: {
+          created_at: string
+          currency: string
+          customer_country: string | null
+          customer_state: string | null
+          entity_id: string | null
+          entity_type: string
+          exemption_reason: string | null
+          id: string
+          is_exempt: boolean
+          jurisdiction_id: string | null
+          org_id: string | null
+          period: string
+          reference_id: string | null
+          reference_type: string | null
+          status: string
+          tax_amount: number
+          tax_rate: number
+          tax_type: string
+          taxable_amount: number
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          customer_country?: string | null
+          customer_state?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          exemption_reason?: string | null
+          id?: string
+          is_exempt?: boolean
+          jurisdiction_id?: string | null
+          org_id?: string | null
+          period: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          tax_amount?: number
+          tax_rate?: number
+          tax_type: string
+          taxable_amount: number
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          customer_country?: string | null
+          customer_state?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          exemption_reason?: string | null
+          id?: string
+          is_exempt?: boolean
+          jurisdiction_id?: string | null
+          org_id?: string | null
+          period?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          status?: string
+          tax_amount?: number
+          tax_rate?: number
+          tax_type?: string
+          taxable_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_ledger_jurisdiction_id_fkey"
+            columns: ["jurisdiction_id"]
+            isOneToOne: false
+            referencedRelation: "tax_jurisdictions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_ledger_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
