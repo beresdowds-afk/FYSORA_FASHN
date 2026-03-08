@@ -214,6 +214,10 @@ const TailorDashboard = () => {
             {activeTab === "featured" && user && (
               <FeaturedProductsPanel orgId={contracts[0]?.org_id || ""} userRole="designer" />
             )}
+            {activeTab === "payments" && user && contracts.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <PaymentGatewayPanel orgId={contracts[0]?.org_id} />
+              </motion.div>
             {activeTab === "profile" && user && (
               <ProfileTab userId={user.id} profile={profile} setProfile={setProfile} />
             )}
