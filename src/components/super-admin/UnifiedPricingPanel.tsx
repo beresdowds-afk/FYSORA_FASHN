@@ -86,6 +86,28 @@ interface AuditEntry {
   changed_at: string;
 }
 
+interface SubRate {
+  id: string;
+  role_type: string;
+  plan_name: string;
+  price_amount: number;
+  price_currency: string;
+  billing_cycle: string;
+  description: string | null;
+  features: string[];
+  is_active: boolean;
+  sort_order: number;
+}
+
+const ROLE_META: Record<string, { icon: React.ElementType; label: string; color: string }> = {
+  customer: { icon: Users, label: "Customers", color: "text-secondary" },
+  tailor: { icon: Scissors, label: "Tailors", color: "text-primary" },
+  designer: { icon: Palette, label: "Designers", color: "text-chart-4" },
+  org_native_basic: { icon: Building2, label: "Orgs (Native Basic)", color: "text-accent-foreground" },
+  org_native_custom: { icon: Globe, label: "Orgs (Native Custom)", color: "text-chart-2" },
+  org_external: { icon: ExternalLink, label: "Orgs (External Site)", color: "text-chart-5" },
+};
+
 /* ─── Category config ─── */
 const CATEGORIES: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   order_fees: { label: "Order & Platform Fees", icon: Package, color: "text-primary" },
