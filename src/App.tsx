@@ -22,6 +22,7 @@ import OrgTailorPage from "./pages/OrgTailorPage";
 import ApiDocs from "./pages/ApiDocs";
 import LegalDocs from "./pages/LegalDocs";
 import DemoOrgWebsite from "./pages/DemoOrgWebsite";
+import PlatformCataloguePage from "./pages/PlatformCataloguePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
