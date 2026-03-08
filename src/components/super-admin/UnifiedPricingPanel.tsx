@@ -402,124 +402,200 @@ const UnifiedPricingPanel = () => {
 
       {/* ═══ SUBSCRIPTION PLANS SECTION ═══ */}
       {activeSection === "plans" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`rounded-xl border-2 bg-card p-5 space-y-4 ${
-                plan.is_active ? "border-primary" : "border-border opacity-60"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-heading font-bold text-lg">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground">{plan.slug} • {plan.currency}</p>
-                </div>
-                <Switch checked={plan.is_active} onCheckedChange={() => togglePlanActive(plan)} />
-              </div>
-
-              {/* Pricing rows */}
-              <div className="space-y-2">
-                {[
-                  { field: "price_monthly", label: "Monthly Price", val: plan.price_monthly, unit: plan.currency },
-                  { field: "price_yearly", label: "Yearly Price", val: plan.price_yearly, unit: plan.currency },
-                  { field: "trial_days", label: "Trial Days", val: plan.trial_days, unit: "days" },
-                ].map((row) => (
-                  <div key={row.field} className="flex items-center justify-between py-1.5 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">{row.label}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">{row.val} {row.unit}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => setEditPlan({ plan, field: row.field, label: row.label, value: row.val })}
-                      >
-                        <Edit3 size={12} />
-                      </Button>
+        <div className="space-y-8">
+          {/* ── Role-Based Subscription Rates ── */}
+          <div>
+            <h2 className="font-heading font-semibold text-lg mb-4 flex items-center gap-2">
+              <Users size={18} className="text-primary" />
+              Role-Based Subscription Rates
+            </h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Pricing tiers for Customers, Tailors, Designers, and the three Organization website types. Managed via the Subscription Rates panel.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(ROLE_META).map(([roleKey, meta]) => {
+                const RoleIcon = meta.icon;
+                const roleRates = subRates.filter(r => r.role_type === roleKey);
+                return (
+                  <div key={roleKey} className="rounded-xl border border-border bg-card overflow-hidden">
+                    <div className="px-4 py-3 bg-muted/30 border-b border-border flex items-center gap-2">
+                      <RoleIcon size={16} className={meta.color} />
+                      <span className="font-heading font-semibold text-sm">{meta.label}</span>
+                      <Badge variant="outline" className="ml-auto text-[10px]">
+                        {roleRates.filter(r => r.is_active).length} active
+                      </Badge>
                     </div>
+                    {roleRates.length === 0 ? (
+                      <div className="p-6 text-center text-muted-foreground text-xs">No plans configured</div>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {roleRates.map(rate => (
+                          <div key={rate.id} className="px-4 py-3 flex items-center justify-between">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm truncate">{rate.plan_name}</p>
+                                {!rate.is_active && <Badge variant="secondary" className="text-[9px]">Off</Badge>}
+                              </div>
+                              {rate.description && (
+                                <p className="text-[10px] text-muted-foreground truncate mt-0.5">{rate.description}</p>
+                              )}
+                              {rate.features.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {rate.features.slice(0, 3).map((f, i) => (
+                                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{f}</span>
+                                  ))}
+                                  {rate.features.length > 3 && (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">+{rate.features.length - 3}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0 ml-3">
+                              <p className="font-heading font-bold text-base">
+                                {rate.price_currency === "USD" ? "$" : rate.price_currency}
+                                {rate.price_amount.toLocaleString()}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">/{rate.billing_cycle}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-
-              {/* Limits */}
-              <div className="rounded-lg bg-muted/50 p-3 space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Limits</p>
-                {[
-                  { field: "max_members", label: "Max Members", val: plan.max_members },
-                  { field: "max_orders", label: "Max Orders", val: plan.max_orders },
-                  { field: "max_customers", label: "Max Customers", val: plan.max_customers },
-                ].map((lim) => (
-                  <div key={lim.field} className="flex items-center justify-between">
-                    <span className="text-xs">{lim.label}</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-medium">{lim.val ?? "∞"}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => setEditPlan({ plan, field: lim.field, label: lim.label, value: lim.val ?? 0 })}
-                      >
-                        <Edit3 size={10} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* AI Pricing */}
-              <div className="rounded-lg bg-primary/5 p-3 space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles size={12} /> AI Service Pricing
-                </p>
-                {[
-                  { field: "ai_measurement_price", label: "AI Measurement", val: plan.ai_measurement_price },
-                  { field: "virtual_tryon_price", label: "Virtual Try-On", val: plan.virtual_tryon_price },
-                  { field: "video_minute_price", label: "Video Min Price", val: plan.video_minute_price },
-                ].map((ai) => (
-                  <div key={ai.field} className="flex items-center justify-between">
-                    <span className="text-xs">{ai.label}</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-medium">{ai.val ?? "—"} {plan.currency}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => setEditPlan({ plan, field: ai.field, label: ai.label, value: ai.val ?? 0 })}
-                      >
-                        <Edit3 size={10} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Included quotas */}
-              <div className="rounded-lg bg-secondary/5 p-3 space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Included Quotas</p>
-                {[
-                  { field: "included_ai_measurements", label: "AI Measurements", val: plan.included_ai_measurements },
-                  { field: "included_virtual_tryons", label: "Virtual Try-Ons", val: plan.included_virtual_tryons },
-                  { field: "included_video_minutes", label: "Video Minutes", val: plan.included_video_minutes },
-                ].map((q) => (
-                  <div key={q.field} className="flex items-center justify-between">
-                    <span className="text-xs">{q.label}</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-medium">{q.val ?? "0"}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => setEditPlan({ plan, field: q.field, label: q.label, value: q.val ?? 0 })}
-                      >
-                        <Edit3 size={10} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
+
+          {/* ── Organization Internal Plans (subscription_plans) ── */}
+          <div>
+            <h2 className="font-heading font-semibold text-lg mb-4 flex items-center gap-2">
+              <Building2 size={18} className="text-primary" />
+              Organization Internal Plans
+            </h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Internal org tiers with limits, AI service pricing, and included quotas.
+            </p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`rounded-xl border-2 bg-card p-5 space-y-4 ${
+                    plan.is_active ? "border-primary" : "border-border opacity-60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-heading font-bold text-lg">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground">{plan.slug} • {plan.currency}</p>
+                    </div>
+                    <Switch checked={plan.is_active} onCheckedChange={() => togglePlanActive(plan)} />
+                  </div>
+
+                  {/* Pricing rows */}
+                  <div className="space-y-2">
+                    {[
+                      { field: "price_monthly", label: "Monthly Price", val: plan.price_monthly, unit: plan.currency },
+                      { field: "price_yearly", label: "Yearly Price", val: plan.price_yearly, unit: plan.currency },
+                      { field: "trial_days", label: "Trial Days", val: plan.trial_days, unit: "days" },
+                    ].map((row) => (
+                      <div key={row.field} className="flex items-center justify-between py-1.5 border-b border-border/50">
+                        <span className="text-sm text-muted-foreground">{row.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{row.val} {row.unit}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setEditPlan({ plan, field: row.field, label: row.label, value: row.val })}
+                          >
+                            <Edit3 size={12} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Limits */}
+                  <div className="rounded-lg bg-muted/50 p-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Limits</p>
+                    {[
+                      { field: "max_members", label: "Max Members", val: plan.max_members },
+                      { field: "max_orders", label: "Max Orders", val: plan.max_orders },
+                      { field: "max_customers", label: "Max Customers", val: plan.max_customers },
+                    ].map((lim) => (
+                      <div key={lim.field} className="flex items-center justify-between">
+                        <span className="text-xs">{lim.label}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium">{lim.val ?? "∞"}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => setEditPlan({ plan, field: lim.field, label: lim.label, value: lim.val ?? 0 })}
+                          >
+                            <Edit3 size={10} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* AI Pricing */}
+                  <div className="rounded-lg bg-primary/5 p-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <Sparkles size={12} /> AI Service Pricing
+                    </p>
+                    {[
+                      { field: "ai_measurement_price", label: "AI Measurement", val: plan.ai_measurement_price },
+                      { field: "virtual_tryon_price", label: "Virtual Try-On", val: plan.virtual_tryon_price },
+                      { field: "video_minute_price", label: "Video Min Price", val: plan.video_minute_price },
+                    ].map((ai) => (
+                      <div key={ai.field} className="flex items-center justify-between">
+                        <span className="text-xs">{ai.label}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium">{ai.val ?? "—"} {plan.currency}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => setEditPlan({ plan, field: ai.field, label: ai.label, value: ai.val ?? 0 })}
+                          >
+                            <Edit3 size={10} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Included quotas */}
+                  <div className="rounded-lg bg-secondary/5 p-3 space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Included Quotas</p>
+                    {[
+                      { field: "included_ai_measurements", label: "AI Measurements", val: plan.included_ai_measurements },
+                      { field: "included_virtual_tryons", label: "Virtual Try-Ons", val: plan.included_virtual_tryons },
+                      { field: "included_video_minutes", label: "Video Minutes", val: plan.included_video_minutes },
+                    ].map((q) => (
+                      <div key={q.field} className="flex items-center justify-between">
+                        <span className="text-xs">{q.label}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-medium">{q.val ?? "0"}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => setEditPlan({ plan, field: q.field, label: q.label, value: q.val ?? 0 })}
+                          >
+                            <Edit3 size={10} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
