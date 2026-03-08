@@ -65,6 +65,9 @@ const feeTypeIcons: Record<string, typeof DollarSign> = {
   feature_access: Sparkles,
   virtual_tryon: Sparkles,
   photo_enhancement: Sparkles,
+  messaging_sms: Phone,
+  messaging_whatsapp: MessageSquare,
+  messaging_email: Mail,
 };
 
 type RoleFilter = "all" | "tailor" | "designer" | "customer";
