@@ -196,10 +196,11 @@ const Auth = () => {
         role: m.role,
       }));
 
-      // If user is a tailor or designer with only those roles, go to tailor dashboard
+      // If user is only a tailor, go to tailor dashboard; if only designer, go to designer portal
       const onlyTailorOrDesigner = activeMemberships.length > 0 && activeMemberships.every((m: any) => m.role === "tailor" || m.role === "designer");
       if (onlyTailorOrDesigner) {
-        navigate("/tailor-dashboard");
+        const hasDesigner = activeMemberships.some((m: any) => m.role === "designer");
+        navigate(hasDesigner ? "/designer-portal" : "/tailor-dashboard");
         return;
       }
 

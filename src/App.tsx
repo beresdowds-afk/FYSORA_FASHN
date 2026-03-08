@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import CreateOrganization from "./pages/CreateOrganization";
 import TailorDashboard from "./pages/TailorDashboard";
+import DesignerPortal from "./pages/DesignerPortal";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import CustomerPortal from "./pages/CustomerPortal";
 import VideoCall from "./pages/VideoCall";
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/create-organization" element={<CreateOrganization />} />
             <Route path="/tailor-dashboard" element={<TailorDashboard />} />
+            <Route path="/designer-portal" element={<DesignerPortal />} />
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
             <Route path="/portal" element={<CustomerPortal />} />
             <Route path="/video-call" element={<VideoCall />} />
