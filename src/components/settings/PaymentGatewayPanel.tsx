@@ -67,7 +67,7 @@ const PaymentGatewayPanel = ({ orgId, canEdit = true }: { orgId: string; canEdit
       supabase.from("admin_support_requests" as any).select("*").eq("org_id", orgId).eq("request_type", "payment_gateway_setup").order("created_at", { ascending: false }),
     ]);
     setKeys((keysData as ApiKey[]) || []);
-    setRequests((reqData as SupportRequest[]) || []);
+    setRequests((reqData as unknown as SupportRequest[]) || []);
     setLoading(false);
   }, [orgId]);
 
