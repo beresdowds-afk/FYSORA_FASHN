@@ -3568,6 +3568,69 @@ export type Database = {
           },
         ]
       }
+      platform_settings: {
+        Row: {
+          contact_address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          copyright_text: string | null
+          created_at: string
+          description: string | null
+          favicon_url: string | null
+          id: string
+          logo_url: string | null
+          meta_keywords: string | null
+          mission: string | null
+          platform_name: string
+          platform_short_name: string
+          social_links: Json | null
+          tagline: string | null
+          updated_at: string
+          vision: string | null
+          website_url: string | null
+        }
+        Insert: {
+          contact_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          copyright_text?: string | null
+          created_at?: string
+          description?: string | null
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          meta_keywords?: string | null
+          mission?: string | null
+          platform_name?: string
+          platform_short_name?: string
+          social_links?: Json | null
+          tagline?: string | null
+          updated_at?: string
+          vision?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          contact_address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          copyright_text?: string | null
+          created_at?: string
+          description?: string | null
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          meta_keywords?: string | null
+          mission?: string | null
+          platform_name?: string
+          platform_short_name?: string
+          social_links?: Json | null
+          tagline?: string | null
+          updated_at?: string
+          vision?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       premium_feature_usage: {
         Row: {
           billed_to: string
