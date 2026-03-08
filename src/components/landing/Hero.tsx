@@ -8,6 +8,7 @@ import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 
 const Hero = () => {
   const { pricing } = useHeroPricing();
+  const { settings } = usePlatformSettings();
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
