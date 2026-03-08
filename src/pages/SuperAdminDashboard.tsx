@@ -409,6 +409,17 @@ const OrganizationsPanel = ({ orgs }: { orgs: OrgRow[] }) => {
                     <td className="px-4 py-3 text-sm text-muted-foreground">{org.slug}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{org.currency || "—"}</td>
                     <td className="px-4 py-3">
+                      {org.latitude && org.longitude ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-secondary/10 text-secondary flex items-center gap-1 w-fit">
+                          <MapPin size={10} /> Verified
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-destructive/10 text-destructive">
+                          Missing
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${org.is_active ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"}`}>
                         {org.is_active ? "Active" : "Inactive"}
                       </span>
