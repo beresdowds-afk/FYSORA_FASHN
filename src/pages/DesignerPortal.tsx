@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/sidebar";
 import fsaLogo from "@/assets/fsa-logo.png";
 
-type TabId = "overview" | "work-queue" | "contracts" | "earnings" | "catalogue" | "featured" | "website" | "payments" | "profile";
+type TabId = "overview" | "work-queue" | "contracts" | "earnings" | "catalogue" | "featured" | "website" | "billing" | "payments" | "profile";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending", confirmed: "Confirmed", measuring: "Measuring",
