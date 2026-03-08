@@ -6,16 +6,33 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// African country codes that route through Termii
+// Complete African country dial codes → Termii routing
 const AFRICAN_PREFIXES: Record<string, string> = {
-  "+234": "NG", "+233": "GH", "+254": "KE", "+27": "ZA",
-  "+256": "UG", "+255": "TZ", "+250": "RW", "+221": "SN",
-  "+225": "CI", "+228": "TG", "+229": "BJ", "+237": "CM",
+  // West Africa
+  "+234": "NG", "+233": "GH", "+221": "SN", "+225": "CI", "+228": "TG",
+  "+229": "BJ", "+237": "CM", "+220": "GM", "+224": "GN", "+226": "BF",
+  "+227": "NE", "+231": "LR", "+232": "SL", "+238": "CV", "+245": "GW",
+  "+223": "ML",
+  // East Africa
+  "+254": "KE", "+256": "UG", "+255": "TZ", "+250": "RW", "+251": "ET",
+  "+252": "SO", "+253": "DJ", "+257": "BI", "+291": "ER", "+211": "SS",
+  // Southern Africa
+  "+27": "ZA", "+258": "MZ", "+260": "ZM", "+263": "ZW", "+265": "MW",
+  "+266": "LS", "+267": "BW", "+268": "SZ", "+261": "MG", "+264": "NA",
+  // Central Africa
+  "+242": "CG", "+243": "CD", "+241": "GA", "+240": "GQ", "+235": "TD",
+  "+236": "CF", "+239": "ST",
+  // North Africa
+  "+212": "MA", "+213": "DZ", "+216": "TN", "+218": "LY", "+20": "EG",
+  "+249": "SD",
+  // Island nations
+  "+230": "MU", "+248": "SC", "+269": "KM", "+262": "RE",
 };
 
-function detectCountry(phone: string): string | null {
+function isAfricanNumber(phone: string): string | null {
+  const clean = phone.replace("whatsapp:", "").replace(/\s/g, "");
   for (const [prefix, code] of Object.entries(AFRICAN_PREFIXES)) {
-    if (phone.startsWith(prefix)) return code;
+    if (clean.startsWith(prefix)) return code;
   }
   return null;
 }
@@ -83,14 +100,15 @@ Deno.serve(async (req) => {
     }
 
     let result: { provider: string; id: string };
-    const country = detectCountry(to);
+    const countryCode = isAfricanNumber(to);
 
     if (force_provider === "twilio") {
       result = await sendViaTwilio(to, message);
-    } else if (force_provider === "termii" || country) {
-      result = await sendViaTermii(to, message, country || "NG", sender_id);
+    } else if (force_provider === "termii" || countryCode) {
+      // All African numbers route through Termii
+      result = await sendViaTermii(to, message, countryCode || "NG", sender_id);
     } else {
-      // International — use Twilio
+      // Non-African (international) → Twilio
       result = await sendViaTwilio(to, message);
     }
 
@@ -110,7 +128,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, provider: result.provider, id: result.id }),
+      JSON.stringify({ success: true, provider: result.provider, id: result.id, region: countryCode ? "africa" : "international" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

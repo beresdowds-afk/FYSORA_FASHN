@@ -1,5 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// Complete African country dial codes for routing decisions
+const AFRICAN_PREFIXES: string[] = [
+  "+234", "+233", "+221", "+225", "+228", "+229", "+237", "+220", "+224", "+226",
+  "+227", "+231", "+232", "+238", "+245", "+223", "+254", "+256", "+255", "+250",
+  "+251", "+252", "+253", "+257", "+291", "+211", "+27", "+258", "+260", "+263",
+  "+265", "+266", "+267", "+268", "+261", "+264", "+242", "+243", "+241", "+240",
+  "+235", "+236", "+239", "+212", "+213", "+216", "+218", "+20", "+249", "+230",
+  "+248", "+269", "+262",
+];
+
+function isAfricanPhone(phone: string): boolean {
+  const clean = phone.replace("whatsapp:", "").replace(/\s/g, "");
+  return AFRICAN_PREFIXES.some((p) => clean.startsWith(p));
+}
+
 interface NotifyParams {
   orgId: string;
   orderId?: string;
@@ -19,11 +34,14 @@ interface NotifyParams {
   hoursBooked?: number;
   scheduledAt?: string;
   customerId?: string;
+  customerPhone?: string;
+  customerEmail?: string;
 }
 
 /**
  * Dispatches notifications via enabled channels (email, SMS, WhatsApp).
- * SMS/WhatsApp auto-routes: African numbers → Termii, international → Twilio.
+ * Routing: African phone numbers → Termii, international → Twilio.
+ * Covers all 54 African countries.
  */
 export const dispatchNotifications = async (params: NotifyParams) => {
   try {
@@ -117,6 +135,7 @@ export const dispatchNotifications = async (params: NotifyParams) => {
     }
 
     const orgEmail = org?.email;
+    const orgPhone = org?.phone;
     const basePayload = {
       org_id: params.orgId,
       order_id: params.orderId || null,
@@ -132,7 +151,7 @@ export const dispatchNotifications = async (params: NotifyParams) => {
       email_footer_text: settings.email_footer_text,
     };
 
-    // Email via Resend
+    // Email via Resend (global — no regional routing needed)
     if (settings.email_enabled && orgEmail && emailSubject) {
       supabase.functions.invoke("send-email", {
         body: {
@@ -146,12 +165,25 @@ export const dispatchNotifications = async (params: NotifyParams) => {
       }).catch((e) => console.error("Email dispatch failed:", e));
     }
 
-    // SMS — auto-routes to Termii (Africa) or Twilio (international)
-    if (settings.sms_enabled && org?.phone && smsMessage) {
+    // Also send email to customer if available
+    if (settings.email_enabled && params.customerEmail && emailSubject) {
+      supabase.functions.invoke("send-email", {
+        body: {
+          ...basePayload,
+          to: params.customerEmail,
+          subject: emailSubject,
+          recipient_id: params.customerId || null,
+          recipient_type: "customer",
+        },
+      }).catch((e) => console.error("Customer email dispatch failed:", e));
+    }
+
+    // SMS — auto-routes: African → Termii, International → Twilio
+    if (settings.sms_enabled && orgPhone && smsMessage) {
       supabase.functions.invoke("send-sms", {
         body: {
           ...basePayload,
-          to: org.phone,
+          to: orgPhone,
           message: smsMessage,
           recipient_id: recipients[0]?.id || null,
           recipient_type: "org_admin",
@@ -159,17 +191,43 @@ export const dispatchNotifications = async (params: NotifyParams) => {
       }).catch((e) => console.error("SMS dispatch failed:", e));
     }
 
-    // WhatsApp — auto-routes to Termii (Africa) or Twilio (international)
-    if (settings.whatsapp_enabled && org?.phone && smsMessage) {
+    // SMS to customer if phone available
+    if (settings.sms_enabled && params.customerPhone && smsMessage) {
+      supabase.functions.invoke("send-sms", {
+        body: {
+          ...basePayload,
+          to: params.customerPhone,
+          message: smsMessage,
+          recipient_id: params.customerId || null,
+          recipient_type: "customer",
+        },
+      }).catch((e) => console.error("Customer SMS dispatch failed:", e));
+    }
+
+    // WhatsApp — auto-routes: African → Termii, International → Twilio
+    if (settings.whatsapp_enabled && orgPhone && smsMessage) {
       supabase.functions.invoke("send-whatsapp", {
         body: {
           ...basePayload,
-          to: org.phone,
+          to: orgPhone,
           message: smsMessage,
           recipient_id: recipients[0]?.id || null,
           recipient_type: "org_admin",
         },
       }).catch((e) => console.error("WhatsApp dispatch failed:", e));
+    }
+
+    // WhatsApp to customer if phone available
+    if (settings.whatsapp_enabled && params.customerPhone && smsMessage) {
+      supabase.functions.invoke("send-whatsapp", {
+        body: {
+          ...basePayload,
+          to: params.customerPhone,
+          message: smsMessage,
+          recipient_id: params.customerId || null,
+          recipient_type: "customer",
+        },
+      }).catch((e) => console.error("Customer WhatsApp dispatch failed:", e));
     }
   } catch (err) {
     console.error("dispatchNotifications error:", err);
