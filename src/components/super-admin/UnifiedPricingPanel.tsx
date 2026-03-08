@@ -32,6 +32,29 @@ import {
   Layers,
   ChevronDown,
   ChevronRight,
+  Users,
+  Scissors,
+  Palette,
+  Building2,
+  ExternalLink,
+} from "lucide-react";
+import {
+  DollarSign,
+  Edit3,
+  RefreshCw,
+  Save,
+  History,
+  Package,
+  Phone,
+  Sparkles,
+  CreditCard,
+  UserPlus,
+  TrendingUp,
+  Globe,
+  ShieldCheck,
+  Layers,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
