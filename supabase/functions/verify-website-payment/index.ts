@@ -11,6 +11,26 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    const userId = claimsData.claims.sub;
+
     const { reference, org_id, plan } = await req.json();
     if (!reference || !org_id || !plan) {
       return new Response(JSON.stringify({ error: "Missing reference, org_id, or plan" }), { status: 400, headers: corsHeaders });
@@ -20,6 +40,19 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Verify caller is an admin of the org
+    const { data: membership } = await serviceClient
+      .from("org_members")
+      .select("role")
+      .eq("org_id", org_id)
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .single();
+
+    if (!membership || !["org_admin", "manager"].includes(membership.role)) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+    }
 
     // Get org's Paystack secret key
     const { data: apiKeys } = await serviceClient
@@ -45,7 +78,6 @@ Deno.serve(async (req) => {
 
     if (verified) {
       if (plan === "lite") {
-        // Activate the lite subscription
         const trialEnd = new Date();
         trialEnd.setMonth(trialEnd.getMonth() + 6);
 
@@ -62,17 +94,15 @@ Deno.serve(async (req) => {
           activated_at: new Date().toISOString(),
         }, { onConflict: "org_id" });
 
-        // Create platform fee ledger entry
         await serviceClient.from("platform_fee_ledger").insert({
           org_id,
-          amount: 10 * 1500, // $10 USD in NGN
+          amount: 10 * 1500,
           currency: "NGN",
           fee_type: "website_builder_lite",
           status: "collected",
         });
 
       } else if (plan === "pro") {
-        // Mark the pro request as paid
         await serviceClient
           .from("website_builder_requests")
           .update({
@@ -82,10 +112,9 @@ Deno.serve(async (req) => {
           .eq("org_id", org_id)
           .eq("gateway_reference", reference);
 
-        // Create platform fee ledger entry
         await serviceClient.from("platform_fee_ledger").insert({
           org_id,
-          amount: 140 * 1500, // $140 USD in NGN
+          amount: 140 * 1500,
           currency: "NGN",
           fee_type: "website_builder_pro",
           status: "collected",
@@ -99,14 +128,12 @@ Deno.serve(async (req) => {
         .eq("id", org_id)
         .single();
 
-      // Fetch notification settings for branding
       const { data: notifSettings } = await serviceClient
         .from("org_notification_settings")
         .select("brand_color, email_footer_text, email_enabled")
         .eq("org_id", org_id)
         .maybeSingle();
 
-      // Create in-app notification
       const { data: orgMembers } = await serviceClient
         .from("org_members")
         .select("user_id")
@@ -125,14 +152,12 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Send confirmation email to org
       if (orgData?.email && (!notifSettings || notifSettings.email_enabled !== false)) {
         const eventType = plan === "lite" ? "website_lite_activated" : "website_pro_confirmed";
         const emailSubject = plan === "lite"
           ? "Your Website Builder Lite Plan is Active!"
           : "Your Website Builder Pro Purchase Confirmation";
 
-        // Fire-and-forget email to org
         fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
           method: "POST",
           headers: {
@@ -153,7 +178,6 @@ Deno.serve(async (req) => {
         }).catch((e) => console.error("Email dispatch failed:", e));
       }
 
-      // For Pro plan, also notify super admins
       if (plan === "pro") {
         const { data: superAdmins } = await serviceClient
           .from("user_roles")
@@ -161,25 +185,12 @@ Deno.serve(async (req) => {
           .eq("role", "super_admin");
 
         for (const sa of superAdmins || []) {
-          // In-app notification for super admin
           await serviceClient.from("notifications").insert({
             org_id,
             user_id: sa.user_id,
             title: `New Pro Website Request — ${orgData?.name || "Unknown Org"}`,
             message: `${orgData?.name} has purchased Website Builder Pro. Payment confirmed. Please assign and set up their custom website.`,
           });
-        }
-
-        // Email to super admins (use org email as fallback contact)
-        if (orgData?.name) {
-          const { data: saProfiles } = await serviceClient
-            .from("profiles")
-            .select("id")
-            .in("id", (superAdmins || []).map(s => s.user_id));
-
-          // We don't have super admin emails directly, so we log the notification
-          // The in-app notification above ensures they see it
-          console.log(`Pro website request notification sent to ${(superAdmins || []).length} super admins for org ${orgData.name}`);
         }
       }
 
@@ -193,7 +204,7 @@ Deno.serve(async (req) => {
     }
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing the payment verification" }), {
       status: 500,
       headers: corsHeaders,
     });

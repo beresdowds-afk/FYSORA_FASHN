@@ -11,6 +11,26 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    const userId = claimsData.claims.sub;
+
     const { reference } = await req.json();
     if (!reference) {
       return new Response(JSON.stringify({ error: "Missing reference" }), { status: 400, headers: corsHeaders });
@@ -29,6 +49,22 @@ Deno.serve(async (req) => {
 
     if (!booking) {
       return new Response(JSON.stringify({ error: "Booking not found" }), { status: 404, headers: corsHeaders });
+    }
+
+    // Verify the caller owns this booking
+    if (booking.customer_id !== userId) {
+      // Also allow org members
+      const { data: membership } = await serviceClient
+        .from("org_members")
+        .select("role")
+        .eq("org_id", booking.org_id)
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .single();
+
+      if (!membership) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+      }
     }
 
     if (booking.payment_status === "paid") {
@@ -66,7 +102,6 @@ Deno.serve(async (req) => {
       }).eq("id", booking.id);
 
       // Log revenue split to platform_fee_ledger
-      // Platform share (40%) - goes to FASHION STITCHES AFRICA
       await serviceClient.from("platform_fee_ledger").insert({
         org_id: booking.org_id,
         fee_type: "ai_measurement_platform_share",
@@ -75,7 +110,6 @@ Deno.serve(async (req) => {
         status: "collected",
       });
 
-      // Org share (60%) - tracked for transparency
       await serviceClient.from("platform_fee_ledger").insert({
         org_id: booking.org_id,
         fee_type: "ai_measurement_org_share",
@@ -94,7 +128,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing the payment verification" }), {
       status: 500,
       headers: corsHeaders,
     });

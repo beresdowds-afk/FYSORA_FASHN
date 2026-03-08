@@ -11,6 +11,26 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    const userId = claimsData.claims.sub;
+
     const { reference } = await req.json();
     if (!reference) {
       return new Response(JSON.stringify({ error: "Missing reference" }), { status: 400, headers: corsHeaders });
@@ -29,6 +49,11 @@ Deno.serve(async (req) => {
 
     if (!reg) {
       return new Response(JSON.stringify({ error: "Registration not found" }), { status: 404, headers: corsHeaders });
+    }
+
+    // Verify the caller owns this registration
+    if (reg.user_id !== userId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
     if (reg.status === "paid") {
@@ -83,7 +108,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing the payment verification" }), {
       status: 500,
       headers: corsHeaders,
     });

@@ -11,6 +11,24 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
     const { reference, gateway, order_id } = await req.json();
     if (!reference || !gateway) {
       return new Response(JSON.stringify({ error: "Missing reference or gateway" }), { status: 400, headers: corsHeaders });
@@ -36,6 +54,20 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ status: "already_completed" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Verify caller is a member of the org
+    const userId = claimsData.claims.sub;
+    const { data: membership } = await serviceClient
+      .from("org_members")
+      .select("role")
+      .eq("org_id", payment.org_id)
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .single();
+
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+    }
+
     // Get org API keys
     const { data: apiKeys } = await serviceClient
       .from("org_api_keys")
@@ -57,7 +89,6 @@ Deno.serve(async (req) => {
 
     } else if (gateway === "flutterwave") {
       const secretKey = keys["secret_key"] || keys["FLUTTERWAVE_SECRET_KEY"];
-      // Find transaction by tx_ref
       const verifyRes = await fetch(`https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`, {
         headers: { Authorization: `Bearer ${secretKey}` },
       });
@@ -118,7 +149,7 @@ Deno.serve(async (req) => {
     }
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: (err as Error).message }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing the payment verification" }), {
       status: 500, headers: corsHeaders,
     });
   }
