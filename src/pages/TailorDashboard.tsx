@@ -17,6 +17,7 @@ import {
   Shield, DollarSign, TrendingUp, Save, Globe, Download, Star
 } from "lucide-react";
 import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel";
+import PaymentGatewayPanel from "@/components/settings/PaymentGatewayPanel";
 import {
   SidebarProvider, SidebarTrigger, Sidebar, SidebarContent,
   SidebarGroup, SidebarGroupLabel, SidebarGroupContent,
