@@ -263,7 +263,7 @@ const SuperAdminDashboard = () => {
 
           {/* Main Content */}
           <main className="flex-1 p-4 lg:p-6 overflow-auto">
-            {activeTab === "overview" && <OverviewPanel stats={stats} orgs={orgs} />}
+            {activeTab === "overview" && <OverviewPanel stats={stats} orgs={orgs} groups={sidebarGroups} onTabChange={setActiveTab} />}
             {activeTab === "platform_settings" && isSuperAdmin && <PlatformSettingsPanel />}
             {activeTab === "organizations" && <OrganizationsPanel orgs={orgs} />}
             {activeTab === "users" && <UsersPanel />}
