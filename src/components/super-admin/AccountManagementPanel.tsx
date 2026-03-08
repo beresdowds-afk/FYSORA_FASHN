@@ -22,6 +22,7 @@ import {
   Building2,
   Users,
   Scissors,
+  Palette,
   Search,
   Ban,
   Trash2,
@@ -65,7 +66,7 @@ const AccountManagementPanel = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogAction, setDialogAction] = useState<"deactivate" | "delete" | "reactivate">("deactivate");
   const [dialogTarget, setDialogTarget] = useState<AccountEntry | null>(null);
-  const [dialogTargetType, setDialogTargetType] = useState<"organization" | "customer" | "tailor">("organization");
+  const [dialogTargetType, setDialogTargetType] = useState<"organization" | "customer" | "tailor" | "designer">("organization");
   const [reason, setReason] = useState("");
   const [processing, setProcessing] = useState(false);
 
@@ -125,7 +126,7 @@ const AccountManagementPanel = () => {
   const openDialog = (
     action: "deactivate" | "delete" | "reactivate",
     target: AccountEntry,
-    type: "organization" | "customer" | "tailor"
+    type: "organization" | "customer" | "tailor" | "designer"
   ) => {
     setDialogAction(action);
     setDialogTarget(target);
@@ -210,8 +211,10 @@ const AccountManagementPanel = () => {
 
   const filteredOrgs = orgs.filter((o) => o.name.toLowerCase().includes(search.toLowerCase()));
   const tailors = users.filter((u) => u.role === "tailor");
+  const designers = users.filter((u) => u.role === "designer");
   const customers = users.filter((u) => u.role === "customer" || u.role === "org_admin");
   const filteredTailors = tailors.filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredDesigners = designers.filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
   const filteredCustomers = customers.filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
 
   if (loading) {
@@ -249,6 +252,9 @@ const AccountManagementPanel = () => {
           <TabsTrigger value="tailors" className="gap-1.5">
             <Scissors size={14} /> Tailors
           </TabsTrigger>
+          <TabsTrigger value="designers" className="gap-1.5">
+            <Palette size={14} /> Designers
+          </TabsTrigger>
           <TabsTrigger value="customers" className="gap-1.5">
             <Users size={14} /> Customers
           </TabsTrigger>
@@ -271,6 +277,16 @@ const AccountManagementPanel = () => {
           <AccountTable
             entries={filteredTailors}
             type="tailor"
+            onAction={openDialog}
+            showOrg
+          />
+        </TabsContent>
+
+        {/* Designers */}
+        <TabsContent value="designers">
+          <AccountTable
+            entries={filteredDesigners}
+            type="designer"
             onAction={openDialog}
             showOrg
           />
@@ -395,8 +411,8 @@ const AccountTable = ({
   showOrg,
 }: {
   entries: AccountEntry[];
-  type: "organization" | "customer" | "tailor";
-  onAction: (action: "deactivate" | "delete" | "reactivate", target: AccountEntry, type: "organization" | "customer" | "tailor") => void;
+  type: "organization" | "customer" | "tailor" | "designer";
+  onAction: (action: "deactivate" | "delete" | "reactivate", target: AccountEntry, type: "organization" | "customer" | "tailor" | "designer") => void;
   showOrg?: boolean;
 }) => {
   if (entries.length === 0) {
