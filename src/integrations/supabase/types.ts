@@ -806,6 +806,45 @@ export type Database = {
           },
         ]
       }
+      comms_provider_status: {
+        Row: {
+          balance_amount: number | null
+          balance_currency: string | null
+          created_at: string | null
+          id: string
+          last_checked_at: string | null
+          latency_ms: number | null
+          metadata: Json | null
+          provider: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          balance_amount?: number | null
+          balance_currency?: string | null
+          created_at?: string | null
+          id?: string
+          last_checked_at?: string | null
+          latency_ms?: number | null
+          metadata?: Json | null
+          provider: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          balance_amount?: number | null
+          balance_currency?: string | null
+          created_at?: string | null
+          id?: string
+          last_checked_at?: string | null
+          latency_ms?: number | null
+          metadata?: Json | null
+          provider?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contract_payments: {
         Row: {
           agency_fee_amount: number
@@ -4169,6 +4208,51 @@ export type Database = {
           },
         ]
       }
+      platform_phone_numbers: {
+        Row: {
+          country_code: string | null
+          created_at: string | null
+          forwarding_config: Json | null
+          id: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          notes: string | null
+          number_label: string
+          number_type: string
+          phone_number: string
+          provider: string
+          updated_at: string | null
+        }
+        Insert: {
+          country_code?: string | null
+          created_at?: string | null
+          forwarding_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          notes?: string | null
+          number_label: string
+          number_type?: string
+          phone_number?: string
+          provider?: string
+          updated_at?: string | null
+        }
+        Update: {
+          country_code?: string | null
+          created_at?: string | null
+          forwarding_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          notes?: string | null
+          number_label?: string
+          number_type?: string
+          phone_number?: string
+          provider?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           contact_address: string | null
@@ -5292,6 +5376,121 @@ export type Database = {
           },
         ]
       }
+      termii_campaigns: {
+        Row: {
+          campaign_name: string
+          campaign_type: string
+          cost_amount: number | null
+          cost_currency: string | null
+          created_at: string | null
+          created_by: string
+          delivered_count: number | null
+          failed_count: number | null
+          id: string
+          message_template: string
+          org_id: string
+          phonebook_id: string | null
+          scheduled_at: string | null
+          sender_id: string | null
+          sent_at: string | null
+          status: string | null
+          termii_campaign_id: string | null
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_name: string
+          campaign_type?: string
+          cost_amount?: number | null
+          cost_currency?: string | null
+          created_at?: string | null
+          created_by: string
+          delivered_count?: number | null
+          failed_count?: number | null
+          id?: string
+          message_template: string
+          org_id: string
+          phonebook_id?: string | null
+          scheduled_at?: string | null
+          sender_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          termii_campaign_id?: string | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_name?: string
+          campaign_type?: string
+          cost_amount?: number | null
+          cost_currency?: string | null
+          created_at?: string | null
+          created_by?: string
+          delivered_count?: number | null
+          failed_count?: number | null
+          id?: string
+          message_template?: string
+          org_id?: string
+          phonebook_id?: string | null
+          scheduled_at?: string | null
+          sender_id?: string | null
+          sent_at?: string | null
+          status?: string | null
+          termii_campaign_id?: string | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "termii_campaigns_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      termii_phonebooks: {
+        Row: {
+          contact_count: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          org_id: string
+          phonebook_name: string
+          termii_phonebook_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          org_id: string
+          phonebook_name: string
+          termii_phonebook_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          org_id?: string
+          phonebook_name?: string
+          termii_phonebook_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "termii_phonebooks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       token_packages: {
         Row: {
           bonus_credits: number
@@ -5817,6 +6016,53 @@ export type Database = {
             columns: ["request_id"]
             isOneToOne: false
             referencedRelation: "website_builder_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatchimp_api_keys: {
+        Row: {
+          api_key: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          label: string | null
+          org_id: string | null
+          owner_id: string
+          owner_type: string
+          updated_at: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          api_key: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          org_id?: string | null
+          owner_id: string
+          owner_type?: string
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          api_key?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string | null
+          org_id?: string | null
+          owner_id?: string
+          owner_type?: string
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatchimp_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

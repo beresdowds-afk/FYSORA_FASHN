@@ -48,6 +48,9 @@ const PROVIDERS = [
   { value: "stripe", label: "Stripe" },
   { value: "paystack", label: "Paystack" },
   { value: "flutterwave", label: "Flutterwave" },
+  { value: "whatchimp", label: "WhatChimp" },
+  { value: "termii", label: "Termii" },
+  { value: "twilio", label: "Twilio" },
   { value: "other", label: "Other" },
 ];
 
@@ -55,6 +58,9 @@ const KEY_NAMES: Record<string, string[]> = {
   stripe: ["secret_key", "publishable_key", "webhook_secret"],
   paystack: ["secret_key", "public_key"],
   flutterwave: ["secret_key", "public_key"],
+  whatchimp: ["api_key", "whatsapp_number", "webhook_secret"],
+  termii: ["api_key", "sender_id", "whatsapp_number"],
+  twilio: ["account_sid", "auth_token", "phone_number"],
   other: ["api_key"],
 };
 

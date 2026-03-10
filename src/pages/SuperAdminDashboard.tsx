@@ -19,6 +19,7 @@ import TaxCompliancePanel from "@/components/super-admin/TaxCompliancePanel";
 import RegionalManagementPanel from "@/components/super-admin/RegionalManagementPanel";
 import FeaturedProductsAdminPanel from "@/components/super-admin/FeaturedProductsAdminPanel";
 import PlatformSettingsPanel from "@/components/super-admin/PlatformSettingsPanel";
+import PlatformPhoneNumbersPanel from "@/components/super-admin/PlatformPhoneNumbersPanel";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -69,7 +70,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center";
+type TabId = "overview" | "platform_settings" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers";
 
 interface SidebarItem {
   id: TabId;
@@ -185,6 +186,7 @@ const SuperAdminDashboard = () => {
       items: [
         { id: "websites", icon: Crown, label: "Website Requests" },
         { id: "keys", icon: Shield, label: "Keys & Secrets" },
+        { id: "phone_numbers", icon: Globe, label: "Phone Numbers" },
         { id: "backups", icon: Activity, label: "Backups" },
         { id: "features", icon: Shield, label: "Feature Flags" },
         { id: "mobile", icon: Smartphone, label: "Mobile App" },
@@ -290,6 +292,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "support_requests" && <AdminSupportRequestsPanel />}
             {activeTab === "bank_accounts" && <BankAccountsPanel />}
             {activeTab === "message_center" && <MessageCenterDashboard />}
+            {activeTab === "phone_numbers" && <PlatformPhoneNumbersPanel />}
           </main>
         </div>
       </div>
