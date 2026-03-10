@@ -19,6 +19,7 @@ import TaxCompliancePanel from "@/components/super-admin/TaxCompliancePanel";
 import RegionalManagementPanel from "@/components/super-admin/RegionalManagementPanel";
 import FeaturedProductsAdminPanel from "@/components/super-admin/FeaturedProductsAdminPanel";
 import PlatformSettingsPanel from "@/components/super-admin/PlatformSettingsPanel";
+import PlatformPhoneNumbersPanel from "@/components/super-admin/PlatformPhoneNumbersPanel";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
