@@ -189,6 +189,8 @@ const SuperAdminDashboard = () => {
       label: "System",
       items: [
         { id: "websites", icon: Crown, label: "Website Requests" },
+        { id: "domain_management", icon: Globe, label: "Domain Mgmt" },
+        { id: "video_billing", icon: Video, label: "Video Billing" },
         { id: "keys", icon: Shield, label: "Keys & Secrets" },
         { id: "phone_numbers", icon: Globe, label: "Phone Numbers" },
         { id: "backups", icon: Activity, label: "Backups" },
