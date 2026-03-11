@@ -181,6 +181,7 @@ const SuperAdminDashboard = () => {
       label: "Communications",
       items: [
         { id: "message_center", icon: MessageSquare, label: "Message Center" },
+        { id: "comms_oversight", icon: Shield, label: "Comms Oversight" },
         { id: "support_requests", icon: LifeBuoy, label: "Support Requests" },
       ],
     },
