@@ -20,6 +20,9 @@ import RegionalManagementPanel from "@/components/super-admin/RegionalManagement
 import FeaturedProductsAdminPanel from "@/components/super-admin/FeaturedProductsAdminPanel";
 import PlatformSettingsPanel from "@/components/super-admin/PlatformSettingsPanel";
 import PlatformPhoneNumbersPanel from "@/components/super-admin/PlatformPhoneNumbersPanel";
+import CommsOversightPanel from "@/components/super-admin/CommsOversightPanel";
+import VideoBillingPanel from "@/components/super-admin/VideoBillingPanel";
+import DomainManagementPanel from "@/components/super-admin/DomainManagementPanel";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -27,7 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star, ShoppingBag, Download, Settings, LifeBuoy, Banknote, MapPin, MessageSquare, Menu } from "lucide-react";
+import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star, ShoppingBag, Download, Settings, LifeBuoy, Banknote, MapPin, MessageSquare, Menu, Video } from "lucide-react";
 import LocationMapFooter from "@/components/shared/LocationMapFooter";
 import TourGuide from "@/components/shared/TourGuide";
 import { useTourGuide } from "@/hooks/useTourGuide";
@@ -70,7 +73,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers";
+type TabId = "overview" | "platform_settings" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management";
 
 interface SidebarItem {
   id: TabId;
@@ -178,6 +181,7 @@ const SuperAdminDashboard = () => {
       label: "Communications",
       items: [
         { id: "message_center", icon: MessageSquare, label: "Message Center" },
+        { id: "comms_oversight", icon: Shield, label: "Comms Oversight" },
         { id: "support_requests", icon: LifeBuoy, label: "Support Requests" },
       ],
     },
@@ -185,6 +189,8 @@ const SuperAdminDashboard = () => {
       label: "System",
       items: [
         { id: "websites", icon: Crown, label: "Website Requests" },
+        { id: "domain_management", icon: Globe, label: "Domain Mgmt" },
+        { id: "video_billing", icon: Video, label: "Video Billing" },
         { id: "keys", icon: Shield, label: "Keys & Secrets" },
         { id: "phone_numbers", icon: Globe, label: "Phone Numbers" },
         { id: "backups", icon: Activity, label: "Backups" },
@@ -292,7 +298,10 @@ const SuperAdminDashboard = () => {
             {activeTab === "support_requests" && <AdminSupportRequestsPanel />}
             {activeTab === "bank_accounts" && <BankAccountsPanel />}
             {activeTab === "message_center" && <MessageCenterDashboard />}
+            {activeTab === "comms_oversight" && <CommsOversightPanel />}
             {activeTab === "phone_numbers" && <PlatformPhoneNumbersPanel />}
+            {activeTab === "video_billing" && <VideoBillingPanel />}
+            {activeTab === "domain_management" && <DomainManagementPanel />}
           </main>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Wallet, TrendingUp, TrendingDown, Clock, AlertTriangle, CreditCard, RefreshCw } from "lucide-react";
 import { useCreditWallet } from "@/hooks/useCreditWallet";
 import { useToast } from "@/hooks/use-toast";
+import AutoTopupPanel from "./AutoTopupPanel";
 
 interface CreditWalletPanelProps {
   orgId: string;
@@ -103,6 +104,9 @@ const CreditWalletPanel = ({ orgId }: CreditWalletPanelProps) => {
         </div>
         <p className="text-[10px] text-muted-foreground mt-2">Credits expire 365 days after purchase per FASHN policy.</p>
       </Card>
+
+      {/* Auto Top-Up */}
+      <AutoTopupPanel walletId={wallet?.id} />
 
       {/* Transaction History */}
       <Card className="p-6">

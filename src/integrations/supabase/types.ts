@@ -845,6 +845,102 @@ export type Database = {
         }
         Relationships: []
       }
+      comms_token_rates: {
+        Row: {
+          channel: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          provider: string | null
+          tokens_per_unit: number
+          unit_label: string
+          updated_at: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string | null
+          tokens_per_unit?: number
+          unit_label?: string
+          updated_at?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          provider?: string | null
+          tokens_per_unit?: number
+          unit_label?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      comms_token_usage: {
+        Row: {
+          channel: string
+          created_at: string | null
+          description: string | null
+          id: string
+          org_id: string | null
+          provider: string | null
+          rate_applied: number
+          reference_id: string | null
+          tokens_consumed: number
+          units_used: number
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          org_id?: string | null
+          provider?: string | null
+          rate_applied: number
+          reference_id?: string | null
+          tokens_consumed?: number
+          units_used?: number
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          org_id?: string | null
+          provider?: string | null
+          rate_applied?: number
+          reference_id?: string | null
+          tokens_consumed?: number
+          units_used?: number
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comms_token_usage_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comms_token_usage_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "credit_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_payments: {
         Row: {
           agency_fee_amount: number
@@ -1498,6 +1594,122 @@ export type Database = {
           },
         ]
       }
+      domain_requests: {
+        Row: {
+          annual_renewal_fee: number | null
+          consent_given: boolean | null
+          consent_given_at: string | null
+          created_at: string | null
+          dns_records: Json | null
+          domain_name: string
+          domain_type: string
+          expires_at: string | null
+          gateway_reference: string | null
+          id: string
+          notes: string | null
+          org_id: string | null
+          payment_status: string | null
+          platform_price: number | null
+          provisioned_at: string | null
+          ssl_status: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          vendor: string | null
+          vendor_price: number | null
+        }
+        Insert: {
+          annual_renewal_fee?: number | null
+          consent_given?: boolean | null
+          consent_given_at?: string | null
+          created_at?: string | null
+          dns_records?: Json | null
+          domain_name: string
+          domain_type?: string
+          expires_at?: string | null
+          gateway_reference?: string | null
+          id?: string
+          notes?: string | null
+          org_id?: string | null
+          payment_status?: string | null
+          platform_price?: number | null
+          provisioned_at?: string | null
+          ssl_status?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          vendor?: string | null
+          vendor_price?: number | null
+        }
+        Update: {
+          annual_renewal_fee?: number | null
+          consent_given?: boolean | null
+          consent_given_at?: string | null
+          created_at?: string | null
+          dns_records?: Json | null
+          domain_name?: string
+          domain_type?: string
+          expires_at?: string | null
+          gateway_reference?: string | null
+          id?: string
+          notes?: string | null
+          org_id?: string | null
+          payment_status?: string | null
+          platform_price?: number | null
+          provisioned_at?: string | null
+          ssl_status?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          vendor?: string | null
+          vendor_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "domain_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      domain_vendor_configs: {
+        Row: {
+          api_base_url: string | null
+          config: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          markup_percent: number | null
+          min_price: number | null
+          updated_at: string | null
+          vendor_name: string
+        }
+        Insert: {
+          api_base_url?: string | null
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          markup_percent?: number | null
+          min_price?: number | null
+          updated_at?: string | null
+          vendor_name: string
+        }
+        Update: {
+          api_base_url?: string | null
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          markup_percent?: number | null
+          min_price?: number | null
+          updated_at?: string | null
+          vendor_name?: string
+        }
+        Relationships: []
+      }
       download_tracking: {
         Row: {
           created_at: string
@@ -1963,6 +2175,98 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "measurement_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_group_items: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          group_id: string
+          id: string
+          media_type: string
+          media_url: string
+          sort_order: number | null
+          video_upload_id: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          group_id: string
+          id?: string
+          media_type: string
+          media_url: string
+          sort_order?: number | null
+          video_upload_id?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          group_id?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          sort_order?: number | null
+          video_upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_group_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "media_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_group_items_video_upload_id_fkey"
+            columns: ["video_upload_id"]
+            isOneToOne: false
+            referencedRelation: "video_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      media_groups: {
+        Row: {
+          catalogue_item_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_published: boolean | null
+          name: string
+          org_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          catalogue_item_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          name: string
+          org_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          catalogue_item_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          name?: string
+          org_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_groups_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -4509,6 +4813,47 @@ export type Database = {
           },
         ]
       }
+      provider_routing_config: {
+        Row: {
+          channel: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          phone_number_id: string | null
+          provider: string
+          updated_at: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          phone_number_id?: string | null
+          provider: string
+          updated_at?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          phone_number_id?: string | null
+          provider?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_routing_config_phone_number_id_fkey"
+            columns: ["phone_number_id"]
+            isOneToOne: false
+            referencedRelation: "platform_phone_numbers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regional_operations: {
         Row: {
           ai_features_enabled: boolean
@@ -5679,6 +6024,69 @@ export type Database = {
         }
         Relationships: []
       }
+      video_uploads: {
+        Row: {
+          catalogue_item_id: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          file_name: string | null
+          file_size_bytes: number | null
+          file_url: string
+          id: string
+          media_group_id: string | null
+          org_id: string | null
+          status: string | null
+          tokens_charged: number
+          user_id: string
+          wallet_id: string | null
+        }
+        Insert: {
+          catalogue_item_id?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_name?: string | null
+          file_size_bytes?: number | null
+          file_url: string
+          id?: string
+          media_group_id?: string | null
+          org_id?: string | null
+          status?: string | null
+          tokens_charged?: number
+          user_id: string
+          wallet_id?: string | null
+        }
+        Update: {
+          catalogue_item_id?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_name?: string | null
+          file_size_bytes?: number | null
+          file_url?: string
+          id?: string
+          media_group_id?: string | null
+          org_id?: string | null
+          status?: string | null
+          tokens_charged?: number
+          user_id?: string
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_uploads_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_uploads_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "credit_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       virtual_tryon_sessions: {
         Row: {
           created_at: string
@@ -5735,6 +6143,56 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_auto_topup: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          max_monthly_topups: number | null
+          month_reset_at: string | null
+          payment_method: string | null
+          threshold_balance: number | null
+          topup_amount: number | null
+          topups_this_month: number | null
+          updated_at: string | null
+          wallet_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          max_monthly_topups?: number | null
+          month_reset_at?: string | null
+          payment_method?: string | null
+          threshold_balance?: number | null
+          topup_amount?: number | null
+          topups_this_month?: number | null
+          updated_at?: string | null
+          wallet_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          max_monthly_topups?: number | null
+          month_reset_at?: string | null
+          payment_method?: string | null
+          threshold_balance?: number | null
+          topup_amount?: number | null
+          topups_this_month?: number | null
+          updated_at?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_auto_topup_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: true
+            referencedRelation: "credit_wallets"
             referencedColumns: ["id"]
           },
         ]
