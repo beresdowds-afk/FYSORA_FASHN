@@ -105,6 +105,9 @@ const CreditWalletPanel = ({ orgId }: CreditWalletPanelProps) => {
         <p className="text-[10px] text-muted-foreground mt-2">Credits expire 365 days after purchase per FASHN policy.</p>
       </Card>
 
+      {/* Auto Top-Up */}
+      <AutoTopupPanel walletId={wallet?.id} />
+
       {/* Transaction History */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
