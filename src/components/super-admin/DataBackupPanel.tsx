@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import {
   Database, Download, Shield, RefreshCw, CheckCircle2,
-  AlertCircle, Clock, HardDrive, Loader2,
+  AlertCircle, Clock, HardDrive, Loader2, FileDown,
 } from "lucide-react";
 
 interface BackupItem {
