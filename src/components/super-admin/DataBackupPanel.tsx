@@ -33,6 +33,42 @@ const DataBackupPanel = () => {
   const [verifying, setVerifying] = useState<string | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const downloadExport = async () => {
+    setExporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("data-backup", {
+        body: { action: "create" },
+      });
+      if (error || !data?.success) {
+        toast({ title: "Export Failed", description: error?.message || "Unknown error", variant: "destructive" });
+        setExporting(false);
+        return;
+      }
+      const fileName = data.file_name;
+      const { data: fileData, error: dlError } = await supabase.storage
+        .from("backups")
+        .download(fileName);
+      if (dlError || !fileData) {
+        toast({ title: "Download Failed", description: dlError?.message || "Could not download file", variant: "destructive" });
+        setExporting(false);
+        return;
+      }
+      const url = URL.createObjectURL(fileData);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `FSA-Project-Data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Export Downloaded", description: `${data.tables_count} tables, ${data.total_rows} rows exported.` });
+    } catch (e: unknown) {
+      toast({ title: "Export Error", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    }
+    setExporting(false);
+  };
 
   const fetchBackups = async () => {
     setLoading(true);
@@ -104,10 +140,14 @@ const DataBackupPanel = () => {
             Create, verify, and restore full platform backups.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={fetchBackups} disabled={loading}>
             <RefreshCw size={14} className={`mr-1 ${loading ? "animate-spin" : ""}`} />
             {loaded ? "Refresh" : "Load Backups"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={downloadExport} disabled={exporting}>
+            {exporting ? <Loader2 size={14} className="mr-1 animate-spin" /> : <FileDown size={14} className="mr-1" />}
+            {exporting ? "Exporting..." : "Download Export"}
           </Button>
           <Button variant="hero" size="sm" onClick={createBackup} disabled={creating}>
             {creating ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Database size={14} className="mr-1" />}
@@ -191,9 +231,6 @@ const DataBackupPanel = () => {
                   </Button>
                 </div>
               </div>
-
-              {/* Verify result inline */}
-              {verifyResult && verifying === null && verifyResult.created_at && b.id.includes(verifyResult.created_at?.split("T")[0] || "xxx") ? null : null}
             </div>
           ))}
         </div>
@@ -201,10 +238,10 @@ const DataBackupPanel = () => {
 
       {/* Verification result */}
       {verifyResult && (
-        <div className={`rounded-xl border p-4 ${verifyResult.valid ? "bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800" : "bg-destructive/10 border-destructive/30"}`}>
+        <div className={`rounded-xl border p-4 ${verifyResult.valid ? "bg-primary/5 border-primary/20" : "bg-destructive/10 border-destructive/30"}`}>
           <div className="flex items-center gap-2 mb-2">
             {verifyResult.valid ? (
-              <CheckCircle2 size={16} className="text-green-600 dark:text-green-400" />
+              <CheckCircle2 size={16} className="text-primary" />
             ) : (
               <AlertCircle size={16} className="text-destructive" />
             )}
