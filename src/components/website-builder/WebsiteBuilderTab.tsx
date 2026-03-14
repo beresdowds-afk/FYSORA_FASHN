@@ -350,13 +350,27 @@ const PricingSection = ({
       if (!session) { toast({ title: "Please log in", variant: "destructive" }); return; }
 
       // Check if org has a website exemption — activate for free
+      const exemptionType = plan === "pro" || plan === "pro-lite" ? "website_builder_pro" : "website_builder";
       const { data: exemptionData } = await supabase
         .from("org_fee_exemptions")
         .select("id")
         .eq("org_id", org.id)
-        .eq("exemption_type", "website_builder")
+        .eq("exemption_type", exemptionType)
         .eq("is_active", true)
         .maybeSingle();
+
+      // Also check generic website_builder exemption as fallback
+      let hasExemption = !!exemptionData;
+      if (!hasExemption && (plan === "pro" || plan === "pro-lite")) {
+        const { data: fallback } = await supabase
+          .from("org_fee_exemptions")
+          .select("id")
+          .eq("org_id", org.id)
+          .eq("exemption_type", "website_builder")
+          .eq("is_active", true)
+          .maybeSingle();
+        hasExemption = !!fallback;
+      }
 
       if (exemptionData) {
         // Free activation — create subscription/request directly without payment
