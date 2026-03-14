@@ -362,7 +362,7 @@ const PricingSection = ({
         // Free activation — create subscription/request directly without payment
         if (plan === "lite") {
           const trialEnd = new Date();
-          trialEnd.setFullYear(trialEnd.getFullYear() + 10); // effectively permanent
+          trialEnd.setFullYear(trialEnd.getFullYear() + 10);
           await supabase.from("website_builder_subscriptions").upsert({
             org_id: org.id,
             plan: "lite",
@@ -377,7 +377,7 @@ const PricingSection = ({
         } else {
           await supabase.from("website_builder_requests").insert({
             org_id: org.id,
-            plan: "pro",
+            plan: plan,
             status: "pending",
             one_time_fee: 0,
             platform_fee: 0,
