@@ -1,12 +1,28 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-};
+const ALLOWED_EMBED_ORIGINS = [
+  "https://eastforte.org.ng",
+  "https://www.eastforte.org.ng",
+  "http://eastforte.org.ng",
+  "http://www.eastforte.org.ng",
+  "https://fs-africa.org.ng",
+  "https://www.fs-africa.org.ng",
+  "https://fashionstitchesafrica.lovable.app",
+];
+
+function getCorsHeaders(origin: string | null) {
+  const allowed = origin && ALLOWED_EMBED_ORIGINS.some(o => origin.startsWith(o));
+  return {
+    "Access-Control-Allow-Origin": allowed ? origin! : "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+  };
+}
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -41,9 +57,9 @@ Deno.serve(async (req) => {
   }
 
   // Check domain allowlist
-  const origin = req.headers.get("origin") || req.headers.get("referer") || "";
+  const referer = req.headers.get("origin") || req.headers.get("referer") || "";
   if (config.allowed_domains.length > 0) {
-    const allowed = config.allowed_domains.some((d: string) => origin.includes(d));
+    const allowed = config.allowed_domains.some((d: string) => referer.includes(d));
     if (!allowed) {
       return new Response(JSON.stringify({ error: "Domain not authorized" }), {
         status: 403,
@@ -52,6 +68,14 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Use fs-africa.org.ng as primary, fallback to lovable.app
+  const appUrl = "https://fs-africa.org.ng";
+  const fallbackAppUrl = "https://fashionstitchesafrica.lovable.app";
+  const orgSlug = config.organizations?.slug || "";
+  const features = config.enabled_features || [];
+  const theme = config.theme_config || {};
+
+  // Return config JSON
   if (format === "config") {
     return new Response(JSON.stringify({
       orgId: config.org_id,
@@ -60,17 +84,106 @@ Deno.serve(async (req) => {
       features: config.enabled_features,
       theme: config.theme_config,
       branding: config.branding_text,
+      appUrl,
+      fallbackAppUrl,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  // Return embeddable JavaScript widget
-  const appUrl = "https://fashionstitchesafrica.lovable.app";
-  const orgSlug = config.organizations?.slug || "";
-  const features = config.enabled_features || [];
-  const theme = config.theme_config || {};
+  // Return iframe embed HTML page
+  if (format === "iframe") {
+    const iframePage = url.searchParams.get("page") || "";
+    const targetUrl = `${appUrl}/site/${orgSlug}${iframePage ? "?tab=" + iframePage : ""}`;
+    const iframeHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${config.organizations?.name || "Fashion Stitches Africa"}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0F0F1A; }
+    .fsa-embed-container { width: 100%; height: 100vh; position: relative; }
+    .fsa-embed-container iframe {
+      width: 100%; height: 100%; border: none;
+      background: #0F0F1A;
+    }
+    .fsa-embed-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px; background: #1A1A2E; border-bottom: 1px solid rgba(201,168,76,0.2);
+    }
+    .fsa-embed-header .brand {
+      display: flex; align-items: center; gap: 8px;
+      color: #C9A84C; font-weight: 600; font-size: 14px; text-decoration: none;
+    }
+    .fsa-embed-header .powered {
+      font-size: 11px; color: #A0A0B0;
+    }
+    .fsa-embed-header .powered a { color: #C9A84C; text-decoration: none; }
+    .fsa-embed-nav {
+      display: flex; gap: 4px; padding: 8px 20px;
+      background: #1A1A2E; border-bottom: 1px solid rgba(201,168,76,0.15);
+      overflow-x: auto;
+    }
+    .fsa-embed-nav button {
+      padding: 6px 16px; border-radius: 6px; border: 1px solid rgba(201,168,76,0.2);
+      background: transparent; color: #A0A0B0; cursor: pointer;
+      font-size: 12px; font-weight: 500; white-space: nowrap; transition: all 0.2s;
+    }
+    .fsa-embed-nav button:hover, .fsa-embed-nav button.active {
+      background: rgba(201,168,76,0.15); color: #C9A84C; border-color: #C9A84C;
+    }
+  </style>
+</head>
+<body>
+  <div class="fsa-embed-header">
+    <a href="${appUrl}/site/${orgSlug}" target="_blank" class="brand">
+      ✦ ${config.organizations?.name || "Fashion Services"}
+    </a>
+    <span class="powered">Powered by <a href="${appUrl}" target="_blank">Fashion Stitches Africa</a></span>
+  </div>
+  <div class="fsa-embed-nav" id="featureNav"></div>
+  <div class="fsa-embed-container">
+    <iframe id="fsaFrame" src="${targetUrl}" allow="camera; microphone; geolocation" loading="lazy"></iframe>
+  </div>
+  <script>
+    var features = ${JSON.stringify(features)};
+    var LABELS = {
+      measurements: "📐 AI Measurements",
+      tryon: "👗 Virtual Try-On",
+      appointments: "📅 Book Appointment",
+      catalogue: "🛍️ Catalogue"
+    };
+    var nav = document.getElementById("featureNav");
+    var frame = document.getElementById("fsaFrame");
+    var baseUrl = "${appUrl}/site/${orgSlug}";
+    features.forEach(function(f, i) {
+      var btn = document.createElement("button");
+      btn.textContent = LABELS[f] || f;
+      if (i === 0) btn.className = "active";
+      btn.addEventListener("click", function() {
+        nav.querySelectorAll("button").forEach(function(b) { b.className = ""; });
+        btn.className = "active";
+        var tab = f === "measurements" ? "book" : f === "appointments" ? "book" : f;
+        frame.src = baseUrl + "?tab=" + tab;
+      });
+      nav.appendChild(btn);
+    });
+  </script>
+</body>
+</html>`;
+    return new Response(iframeHTML, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/html",
+        "X-Frame-Options": "ALLOWALL",
+        "Content-Security-Policy": "frame-ancestors 'self' https://eastforte.org.ng https://*.eastforte.org.ng https://fs-africa.org.ng https://*.fs-africa.org.ng",
+      },
+    });
+  }
 
+  // Return embeddable JavaScript widget
   const widgetJS = `
 (function() {
   'use strict';
@@ -79,6 +192,7 @@ Deno.serve(async (req) => {
 
   var CONFIG = {
     appUrl: "${appUrl}",
+    fallbackAppUrl: "${fallbackAppUrl}",
     orgSlug: "${orgSlug}",
     orgId: "${config.org_id}",
     orgName: "${config.organizations?.name || ""}",
@@ -96,7 +210,7 @@ Deno.serve(async (req) => {
       bottom: 20px;
       width: 60px; height: 60px;
       border-radius: 50%;
-      background: \${CONFIG.theme.primaryColor || '#000'};
+      background: \${CONFIG.theme.primaryColor || '#C9A84C'};
       color: #fff;
       border: none;
       cursor: pointer;
@@ -124,7 +238,7 @@ Deno.serve(async (req) => {
     }
     #fsa-widget-panel.open { display: flex; }
     .fsa-header {
-      background: \${CONFIG.theme.primaryColor || '#000'};
+      background: \${CONFIG.theme.primaryColor || '#C9A84C'};
       color: #fff;
       padding: 16px; font-size: 16px; font-weight: 600;
     }
@@ -138,18 +252,47 @@ Deno.serve(async (req) => {
       text-align: left; margin-bottom: 10px;
       transition: all 0.15s;
     }
-    .fsa-feature-btn:hover { background: #f9fafb; border-color: \${CONFIG.theme.primaryColor || '#000'}; }
+    .fsa-feature-btn:hover { background: #f9fafb; border-color: \${CONFIG.theme.primaryColor || '#C9A84C'}; }
     .fsa-feature-btn .icon { width: 40px; height: 40px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      background: \${CONFIG.theme.primaryColor || '#000'}15; }
-    .fsa-feature-btn .icon svg { width: 20px; height: 20px; color: \${CONFIG.theme.primaryColor || '#000'}; }
+      background: \${CONFIG.theme.primaryColor || '#C9A84C'}15; }
+    .fsa-feature-btn .icon svg { width: 20px; height: 20px; color: \${CONFIG.theme.primaryColor || '#C9A84C'}; }
     .fsa-feature-btn .text h4 { margin: 0; font-size: 14px; font-weight: 600; color: #111; }
     .fsa-feature-btn .text p { margin: 2px 0 0; font-size: 12px; color: #6b7280; }
     .fsa-footer { padding: 10px 16px; text-align: center; font-size: 11px; color: #9ca3af;
       border-top: 1px solid #f3f4f6; }
-    .fsa-footer a { color: \${CONFIG.theme.primaryColor || '#000'}; text-decoration: none; }
+    .fsa-footer a { color: \${CONFIG.theme.primaryColor || '#C9A84C'}; text-decoration: none; }
+    /* Full-page embed mode */
+    #fsa-fullpage-embed {
+      position: relative; width: 100%; min-height: 600px;
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+    #fsa-fullpage-embed iframe { width: 100%; height: 100%; min-height: 600px; border: none; }
   \`;
   document.head.appendChild(style);
+
+  // Check for inline embed container
+  var inlineContainer = document.getElementById('fsa-embed');
+  if (inlineContainer) {
+    var embedDiv = document.createElement('div');
+    embedDiv.id = 'fsa-fullpage-embed';
+    var embedPage = inlineContainer.getAttribute('data-page') || '';
+    var tabParam = embedPage ? '?tab=' + embedPage : '';
+    var iframe = document.createElement('iframe');
+    iframe.src = CONFIG.appUrl + '/site/' + CONFIG.orgSlug + tabParam;
+    iframe.allow = 'camera; microphone; geolocation';
+    iframe.loading = 'lazy';
+    iframe.style.minHeight = (inlineContainer.getAttribute('data-height') || '700') + 'px';
+    embedDiv.appendChild(iframe);
+    inlineContainer.appendChild(embedDiv);
+    // Also adjust container height
+    var resizeObserver = new ResizeObserver(function() {
+      iframe.style.height = inlineContainer.offsetHeight + 'px';
+    });
+    resizeObserver.observe(inlineContainer);
+    return; // Skip floating widget if inline embed exists
+  }
 
   // Feature definitions
   var FEATURES = {
