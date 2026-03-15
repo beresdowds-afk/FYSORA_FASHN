@@ -573,6 +573,61 @@ function RequestDetail({
         </div>
       )}
 
+      {/* GitHub Repo */}
+      {activeSection === "github" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                <Github size={20} />
+              </div>
+              <div>
+                <h3 className="font-heading font-semibold">GitHub Repository</h3>
+                <p className="text-xs text-muted-foreground">
+                  Push natively generated website to GitHub under East Forte org
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                size="sm"
+                variant="hero"
+                onClick={handleCreateRepo}
+                disabled={githubLoading}
+              >
+                {githubLoading ? <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" /> : <Github size={14} className="mr-2" />}
+                Create Repo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handlePushFiles}
+                disabled={githubLoading}
+              >
+                Push Website Files
+              </Button>
+            </div>
+
+            {githubResult && (
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-sm font-medium text-foreground">{githubResult.message || "Done"}</p>
+                {githubResult.repo_url && (
+                  <a
+                    href={githubResult.repo_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline flex items-center gap-1 mt-1"
+                  >
+                    <ExternalLink size={12} /> {githubResult.repo_url}
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Contact History */}
       {activeSection === "contacts" && (
         <div className="space-y-4">
