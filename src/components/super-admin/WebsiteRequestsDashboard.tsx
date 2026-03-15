@@ -327,7 +327,7 @@ function RequestDetail({
   const [reviewNotes, setReviewNotes] = useState(req.review_notes || "");
   const [contactMsg, setContactMsg] = useState("");
   const [contactType, setContactType] = useState("email");
-  const [activeSection, setActiveSection] = useState<"details" | "contacts" | "audit">("details");
+  const [activeSection, setActiveSection] = useState<"details" | "contacts" | "audit" | "github">("details");
 
   const isOverdue = req.deadline && new Date(req.deadline) < new Date() && !["completed", "launched", "cancelled"].includes(req.status);
 
