@@ -2,14 +2,16 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Check, Star } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useHeroPricing } from "@/hooks/useHeroPricing";
 
-const plans = [
+const PLAN_DEFS = [
   {
+    roleKey: "customer",
     name: "Customer Premium",
-    price: "$10",
-    period: "/year",
+    fallbackPrice: "$10",
+    fallbackPeriod: "/year",
     description: "Unlock smart fashion tools as a customer.",
-    features: [
+    fallbackFeatures: [
       "AI Body Measurements",
       "Virtual Try-On",
       "Video Consultations",
@@ -21,11 +23,12 @@ const plans = [
     role: "customer",
   },
   {
+    roleKey: "tailor",
     name: "Tailor",
-    price: "$29",
-    period: "/month",
+    fallbackPrice: "$29",
+    fallbackPeriod: "/month",
     description: "For individual tailors working through organizations.",
-    features: [
+    fallbackFeatures: [
       "Order Management",
       "Customer Profiles",
       "Measurement Tracking",
@@ -37,11 +40,12 @@ const plans = [
     role: "tailor",
   },
   {
+    roleKey: "designer",
     name: "Designer",
-    price: "$15",
-    period: "/month",
+    fallbackPrice: "$15",
+    fallbackPeriod: "/month",
     description: "For independent fashion designers building their brand.",
-    features: [
+    fallbackFeatures: [
       "Personal Portfolio Website",
       "Catalogue Showcase",
       "AI Measurements",
@@ -53,11 +57,12 @@ const plans = [
     role: "designer",
   },
   {
+    roleKey: "org_native_basic",
     name: "Organization Lite",
-    price: "$79",
-    period: "/month",
+    fallbackPrice: "$79",
+    fallbackPeriod: "/month",
     description: "Native platform website with standard branding.",
-    features: [
+    fallbackFeatures: [
       "10 Team Members",
       "Unlimited Orders",
       "Free Subdomain",
@@ -71,11 +76,12 @@ const plans = [
     tier: "org_native_basic",
   },
   {
+    roleKey: "org_native_custom",
     name: "Organization Pro",
-    price: "$149",
-    period: "/month",
+    fallbackPrice: "$149",
+    fallbackPeriod: "/month",
     description: "Native platform website with full customization & custom domain.",
-    features: [
+    fallbackFeatures: [
       "Unlimited Team",
       "Custom Domain",
       "Full Brand Customization",
@@ -90,11 +96,12 @@ const plans = [
     tier: "org_native_custom",
   },
   {
+    roleKey: "org_external",
     name: "Enterprise",
-    price: "$249",
-    period: "/month",
+    fallbackPrice: "$249",
+    fallbackPeriod: "/month",
     description: "For businesses with their own external website needing backend integration.",
-    features: [
+    fallbackFeatures: [
       "External Website Integration",
       "Embed Widget & API",
       "White-label Solution",
@@ -111,6 +118,8 @@ const plans = [
 ];
 
 const Pricing = () => {
+  const { pricing, plans } = useHeroPricing();
+
   return (
     <section id="pricing" className="py-24 bg-background relative">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-brand opacity-30" />
@@ -134,88 +143,105 @@ const Pricing = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {plans.map((plan, index) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`relative rounded-2xl p-8 border transition-all duration-300 ${
-                plan.popular
-                  ? "bg-ebony border-primary shadow-brand scale-105"
-                  : "bg-card border-border hover:border-primary/30 hover:shadow-gold"
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-brand px-4 py-1 rounded-full flex items-center gap-1">
-                  <Star size={14} className="text-primary-foreground" />
-                  <span className="text-xs font-heading font-semibold text-primary-foreground">
-                    Most Popular
+          {PLAN_DEFS.map((plan, index) => {
+            // Get dynamic data from subscription_rates if available
+            const dynamicPlan = plans[plan.roleKey];
+            const displayPrice = dynamicPlan?.price
+              ? `$${dynamicPlan.price}`
+              : plan.fallbackPrice;
+            const displayPeriod = dynamicPlan?.cycle
+              ? `/${dynamicPlan.cycle === "monthly" ? "month" : dynamicPlan.cycle === "yearly" ? "year" : dynamicPlan.cycle}`
+              : plan.fallbackPeriod;
+            const displayName = dynamicPlan?.planName || plan.name;
+            const displayDescription = dynamicPlan?.description || plan.description;
+            const displayFeatures =
+              dynamicPlan?.features && dynamicPlan.features.length > 0
+                ? dynamicPlan.features
+                : plan.fallbackFeatures;
+
+            return (
+              <motion.div
+                key={plan.roleKey}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={`relative rounded-2xl p-8 border transition-all duration-300 ${
+                  plan.popular
+                    ? "bg-ebony border-primary shadow-brand scale-105"
+                    : "bg-card border-border hover:border-primary/30 hover:shadow-gold"
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-brand px-4 py-1 rounded-full flex items-center gap-1">
+                    <Star size={14} className="text-primary-foreground" />
+                    <span className="text-xs font-heading font-semibold text-primary-foreground">
+                      Most Popular
+                    </span>
+                  </div>
+                )}
+
+                <h3
+                  className={`font-heading font-bold text-xl mb-2 ${
+                    plan.popular ? "text-ivory" : ""
+                  }`}
+                >
+                  {displayName}
+                </h3>
+                <p
+                  className={`text-sm mb-6 ${
+                    plan.popular ? "text-ivory/60" : "text-muted-foreground"
+                  }`}
+                >
+                  {displayDescription}
+                </p>
+
+                <div className="mb-6">
+                  <span
+                    className={`text-4xl font-heading font-bold ${
+                      plan.popular ? "text-primary" : ""
+                    }`}
+                  >
+                    {displayPrice}
+                  </span>
+                  <span
+                    className={`text-sm ${
+                      plan.popular ? "text-ivory/50" : "text-muted-foreground"
+                    }`}
+                  >
+                    {displayPeriod}
                   </span>
                 </div>
-              )}
 
-              <h3
-                className={`font-heading font-bold text-xl mb-2 ${
-                  plan.popular ? "text-ivory" : ""
-                }`}
-              >
-                {plan.name}
-              </h3>
-              <p
-                className={`text-sm mb-6 ${
-                  plan.popular ? "text-ivory/60" : "text-muted-foreground"
-                }`}
-              >
-                {plan.description}
-              </p>
+                <Link to={`/auth?role=${plan.role}`}>
+                  <Button
+                    variant={plan.popular ? "hero" : "heroOutline"}
+                    className="w-full mb-8"
+                  >
+                    Start Free Trial
+                  </Button>
+                </Link>
 
-              <div className="mb-6">
-                <span
-                  className={`text-4xl font-heading font-bold ${
-                    plan.popular ? "text-primary" : ""
-                  }`}
-                >
-                  {plan.price}
-                </span>
-                <span
-                  className={`text-sm ${
-                    plan.popular ? "text-ivory/50" : "text-muted-foreground"
-                  }`}
-                >
-                  {plan.period}
-                </span>
-              </div>
-
-              <Link to={`/auth?role=${(plan as any).role || "organization"}`}>
-                <Button
-                  variant={plan.popular ? "hero" : "heroOutline"}
-                  className="w-full mb-8"
-                >
-                  Start Free Trial
-                </Button>
-              </Link>
-
-              <ul className="space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3">
-                    <Check
-                      size={16}
-                      className={plan.popular ? "text-primary" : "text-secondary"}
-                    />
-                    <span
-                      className={`text-sm ${
-                        plan.popular ? "text-ivory/70" : "text-muted-foreground"
-                      }`}
-                    >
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          ))}
+                <ul className="space-y-3">
+                  {displayFeatures.map((feature) => (
+                    <li key={feature} className="flex items-center gap-3">
+                      <Check
+                        size={16}
+                        className={plan.popular ? "text-primary" : "text-secondary"}
+                      />
+                      <span
+                        className={`text-sm ${
+                          plan.popular ? "text-ivory/70" : "text-muted-foreground"
+                        }`}
+                      >
+                        {feature}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

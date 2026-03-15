@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useWebsiteRequests, type WebsiteRequest, type AuditEntry, type RequestFilters } from "@/hooks/useWebsiteRequests";
 
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +12,7 @@ import { motion } from "framer-motion";
 import {
   Crown, Clock, Users, CheckCircle2, TrendingUp, Search, Download, ExternalLink,
   AlertTriangle, Eye, MessageCircle, FileText, ChevronLeft, ChevronRight, Rocket,
-  Star, ArrowUpDown,
+  ArrowUpDown, Github,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -326,7 +327,7 @@ function RequestDetail({
   const [reviewNotes, setReviewNotes] = useState(req.review_notes || "");
   const [contactMsg, setContactMsg] = useState("");
   const [contactType, setContactType] = useState("email");
-  const [activeSection, setActiveSection] = useState<"details" | "contacts" | "audit">("details");
+  const [activeSection, setActiveSection] = useState<"details" | "contacts" | "audit" | "github">("details");
 
   const isOverdue = req.deadline && new Date(req.deadline) < new Date() && !["completed", "launched", "cancelled"].includes(req.status);
 
@@ -364,9 +365,46 @@ function RequestDetail({
 
   const sectionTabs = [
     { id: "details" as const, label: "Details & Actions", icon: FileText },
+    { id: "github" as const, label: "GitHub Repo", icon: Github },
     { id: "contacts" as const, label: "Contact History", icon: MessageCircle },
     { id: "audit" as const, label: "Audit Log", icon: ArrowUpDown },
   ];
+
+  const [githubLoading, setGithubLoading] = useState(false);
+  const [githubResult, setGithubResult] = useState<{ repo_url?: string; message?: string } | null>(null);
+
+  const handleCreateRepo = async () => {
+    setGithubLoading(true);
+    setGithubResult(null);
+    try {
+      const orgName = req.organizations?.name || "website";
+      const { data, error } = await supabase.functions.invoke("github-repo-push", {
+        body: { action: "create-repo", org_name: orgName, repo_name: req.organizations?.slug || orgName },
+      });
+      if (error) throw error;
+      setGithubResult(data);
+      toast({ title: "Repository ready", description: data?.message || "Repo created on GitHub" });
+    } catch (e: any) {
+      toast({ title: "GitHub error", description: e.message, variant: "destructive" });
+    }
+    setGithubLoading(false);
+  };
+
+  const handlePushFiles = async () => {
+    setGithubLoading(true);
+    try {
+      const orgName = req.organizations?.name || "website";
+      const { data, error } = await supabase.functions.invoke("github-repo-push", {
+        body: { action: "push-files", org_name: orgName, repo_name: req.organizations?.slug || orgName },
+      });
+      if (error) throw error;
+      setGithubResult(data);
+      toast({ title: "Files pushed", description: "Website files deployed to GitHub" });
+    } catch (e: any) {
+      toast({ title: "Push error", description: e.message, variant: "destructive" });
+    }
+    setGithubLoading(false);
+  };
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
@@ -531,6 +569,61 @@ function RequestDetail({
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* GitHub Repo */}
+      {activeSection === "github" && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                <Github size={20} />
+              </div>
+              <div>
+                <h3 className="font-heading font-semibold">GitHub Repository</h3>
+                <p className="text-xs text-muted-foreground">
+                  Push natively generated website to GitHub under East Forte org
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                size="sm"
+                variant="hero"
+                onClick={handleCreateRepo}
+                disabled={githubLoading}
+              >
+                {githubLoading ? <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" /> : <Github size={14} className="mr-2" />}
+                Create Repo
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handlePushFiles}
+                disabled={githubLoading}
+              >
+                Push Website Files
+              </Button>
+            </div>
+
+            {githubResult && (
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <p className="text-sm font-medium text-foreground">{githubResult.message || "Done"}</p>
+                {githubResult.repo_url && (
+                  <a
+                    href={githubResult.repo_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline flex items-center gap-1 mt-1"
+                  >
+                    <ExternalLink size={12} /> {githubResult.repo_url}
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

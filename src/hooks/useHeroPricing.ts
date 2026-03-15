@@ -6,6 +6,14 @@ interface RolePricing {
   cycle: string;
 }
 
+interface PlanData {
+  price: number;
+  cycle: string;
+  planName: string;
+  description: string | null;
+  features: string[];
+}
+
 const FALLBACKS: Record<string, RolePricing> = {
   customer: { label: "$10/yr", cycle: "yearly" },
   designer: { label: "$15/mo", cycle: "monthly" },
@@ -24,33 +32,47 @@ const formatPrice = (amount: number, currency: string, cycle: string): string =>
 
 export const useHeroPricing = () => {
   const [pricing, setPricing] = useState<Record<string, RolePricing>>(FALLBACKS);
+  const [plans, setPlans] = useState<Record<string, PlanData>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetch = async () => {
       const { data } = await supabase
         .from("subscription_rates" as any)
-        .select("role_type, price_amount, price_currency, billing_cycle, sort_order")
+        .select("role_type, plan_name, price_amount, price_currency, billing_cycle, description, features, sort_order")
         .eq("is_active", true)
         .order("sort_order");
 
       if (data && (data as any[]).length > 0) {
         const map: Record<string, RolePricing> = { ...FALLBACKS };
-        // Pick the first active plan per role
+        const planMap: Record<string, PlanData> = {};
+
         for (const row of data as any[]) {
+          // Pick the first active plan per role for hero badges
           if (!map[row.role_type] || map[row.role_type] === FALLBACKS[row.role_type]) {
             map[row.role_type] = {
               label: formatPrice(row.price_amount, row.price_currency, row.billing_cycle),
               cycle: row.billing_cycle,
             };
           }
+          // Store full plan data for pricing section (first per role)
+          if (!planMap[row.role_type]) {
+            planMap[row.role_type] = {
+              price: row.price_amount,
+              cycle: row.billing_cycle,
+              planName: row.plan_name,
+              description: row.description,
+              features: row.features || [],
+            };
+          }
         }
         setPricing(map);
+        setPlans(planMap);
       }
       setLoading(false);
     };
     fetch();
   }, []);
 
-  return { pricing, loading };
+  return { pricing, plans, loading };
 };
