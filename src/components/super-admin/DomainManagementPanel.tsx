@@ -9,12 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Globe, Search, CheckCircle2, Clock,
   Loader2, DollarSign, Plus, Trash2, Save, Edit2, X,
-  Wifi, Server, Mail, Shield, Upload, RefreshCw,
-  AlertTriangle, ExternalLink, Zap, Eye, Code2, Rocket,
+  Wifi, Server, Mail, Shield, Upload,
+  AlertTriangle, ExternalLink, Eye, Code2, Rocket,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
