@@ -1199,35 +1199,7 @@ const DomainManagementPanel = () => {
         </TabsContent>
 
         <TabsContent value="native">
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Wifi size={18} className="text-primary" />
-              <h3 className="font-semibold text-base">Native Subdomain Creation</h3>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Native domains use a wildcard DNS A record (or CNAME) pointed to the FSA platform URL.
-              Subdomains are created instantly upon payment confirmation.
-            </p>
-            <div className="p-4 rounded-lg bg-muted/50 border border-border">
-              <p className="text-sm font-medium mb-1">Wildcard Configuration</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                <div>
-                  <Label className="text-xs">Platform Base Domain</Label>
-                  <Input placeholder="fashionstitchesafrica.com" className="mt-1" defaultValue="fashionstitchesafrica.lovable.app" />
-                </div>
-                <div>
-                  <Label className="text-xs">DNS Record Type</Label>
-                  <Select defaultValue="a">
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="a">A Record (*.domain → IP)</SelectItem>
-                      <SelectItem value="cname">CNAME (*.domain → platform)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </Card>
+          <NativeWebsitePublishingPanel />
         </TabsContent>
       </Tabs>
     </motion.div>
