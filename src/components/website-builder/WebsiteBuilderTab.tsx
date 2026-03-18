@@ -389,6 +389,18 @@ const PricingSection = ({
             payment_gateway: "exemption",
             gateway_reference: `EXEMPT-${org.id.substring(0, 8)}`,
           }, { onConflict: "org_id" });
+          // Also create a website_builder_requests entry for admin tracking
+          await supabase.from("website_builder_requests").insert({
+            org_id: org.id,
+            plan: "lite",
+            status: "pending",
+            one_time_fee: 0,
+            platform_fee: 0,
+            monthly_maintenance: 0,
+            payment_gateway: "exemption",
+            gateway_reference: `EXEMPT-${org.id.substring(0, 8)}`,
+            payment_status: "paid",
+          } as any);
         } else {
           await supabase.from("website_builder_requests").insert({
             org_id: org.id,
@@ -402,7 +414,7 @@ const PricingSection = ({
             payment_status: "paid",
           });
         }
-        toast({ title: "Website Builder activated!", description: "Your organization has complimentary access." });
+        toast({ title: "Website Builder activated!", description: "Your organization has complimentary access. Activation request submitted." });
         onPaymentStarted();
         return;
       }
