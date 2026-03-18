@@ -1353,6 +1353,15 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
           </div>
         </div>
       )}
+
+      {/* ── User Guide ───────────────────────────────────────── */}
+      {activeSection === "guide" && (
+        <WebsiteBuilderManual
+          userRole={role || "org_admin"}
+          currentPlan={currentTier as "lite" | "pro" | "pro-lite" | "none"}
+          orgName={org.name}
+        />
+      )}
     </motion.div>
   );
 };
