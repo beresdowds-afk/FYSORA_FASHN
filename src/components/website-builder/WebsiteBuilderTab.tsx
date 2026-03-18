@@ -689,7 +689,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
   const [proRequest, setProRequest] = useState<WebsiteRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<"plans" | "general" | "branding" | "company" | "catalogue" | "integration">("plans");
+  const [activeSection, setActiveSection] = useState<"plans" | "general" | "branding" | "company" | "catalogue" | "integration" | "guide">("plans");
   const [orgDetails, setOrgDetails] = useState<{ description?: string | null; email?: string | null; phone?: string | null; address?: string | null; logo_url?: string | null }>({});
   const [editingItem, setEditingItem] = useState<CatalogueItem | null>(null);
   const [addingItem, setAddingItem] = useState(false);
