@@ -28,9 +28,9 @@ const WebsiteBuilderManual = ({ userRole, currentPlan, orgName }: ManualProps) =
 
   useEffect(() => {
     const fetchDetails = async () => {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from("platform_settings")
-        .select("key, value")
+        .select("key, value") as any)
         .in("key", ["platform_name", "platform_url", "support_email", "app_download_note"]);
       if (data) {
         const map: Record<string, string> = {};
