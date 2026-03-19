@@ -157,6 +157,7 @@ const OrgBillingInvoicingTab = ({ orgId, orgName, currency, role }: OrgBillingIn
     );
     setPayments((payRes.data as Payment[]) || []);
     setFees((feeRes.data as FeeEntry[]) || []);
+    setSubInvoices((subInvRes.data as any[]) || []);
     setLoading(false);
   }, [orgId]);
 
