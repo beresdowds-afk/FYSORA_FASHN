@@ -141,6 +141,13 @@ const AdminInvoicingPaymentsPanel = () => {
       profiles: profilesRes.data || [],
     });
 
+    setServiceInvoices(
+      (svcInvRes.data || []).map((inv: any) => ({
+        ...inv,
+        org_name: map[inv.org_id] || "Unknown",
+      }))
+    );
+
     setLoading(false);
   }, []);
 
