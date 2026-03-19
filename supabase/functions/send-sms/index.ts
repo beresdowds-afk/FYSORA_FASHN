@@ -57,7 +57,10 @@ async function sendViaTermii(to: string, message: string, countryCode: string, s
     }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(JSON.stringify(data));
+  if (!res.ok) {
+    console.error("Termii SMS error:", JSON.stringify(data));
+    throw new Error("SMS provider delivery failed");
+  }
   return { provider: "termii", id: data.message_id };
 }
 
