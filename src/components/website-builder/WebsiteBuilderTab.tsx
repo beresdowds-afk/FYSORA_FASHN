@@ -340,6 +340,7 @@ const PricingSection = ({
 }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState<"lite" | "pro" | "pro-lite" | null>(null);
+  const paymentFlow = usePaymentFlow();
 
   const hasActiveLite = subscription && (subscription.status === "trial" || subscription.status === "active");
   const hasActivePro = proRequest && proRequest.payment_status === "paid"
