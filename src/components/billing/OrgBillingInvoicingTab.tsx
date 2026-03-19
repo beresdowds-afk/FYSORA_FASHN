@@ -324,6 +324,7 @@ const OrgBillingInvoicingTab = ({ orgId, orgName, currency, role }: OrgBillingIn
           { id: "invoices" as const, label: "Invoices", icon: FileText },
           { id: "payments" as const, label: "Payment History", icon: CreditCard },
           { id: "fees" as const, label: "Fee Ledger", icon: DollarSign },
+          { id: "subscriptions" as const, label: "Service Invoices", icon: Receipt },
         ].map((tab) => (
           <button
             key={tab.id}
