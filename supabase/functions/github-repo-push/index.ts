@@ -189,6 +189,38 @@ serve(async (req) => {
       });
     }
 
+    if (action === "enable-pages") {
+      let repoOwner = GITHUB_USER;
+      const checkOwner = await fetch(`https://api.github.com/repos/${GITHUB_ORG}/${sanitizedRepo}`, { headers });
+      if (checkOwner.status === 200) repoOwner = GITHUB_ORG;
+
+      // Enable GitHub Pages from main branch root
+      const pagesRes = await fetch(`https://api.github.com/repos/${repoOwner}/${sanitizedRepo}/pages`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ source: { branch: "main", path: "/" } }),
+      });
+
+      if (pagesRes.status === 409) {
+        // Pages already enabled, get current config
+        const existingPages = await fetch(`https://api.github.com/repos/${repoOwner}/${sanitizedRepo}/pages`, { headers });
+        const pagesData = await existingPages.json();
+        return new Response(JSON.stringify({ success: true, pages_url: pagesData.html_url, message: "GitHub Pages already enabled" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!pagesRes.ok) {
+        const err = await pagesRes.text();
+        throw new Error(`Enable Pages failed [${pagesRes.status}]: ${err}`);
+      }
+
+      const pagesData = await pagesRes.json();
+      return new Response(JSON.stringify({ success: true, pages_url: pagesData.html_url, message: "GitHub Pages enabled successfully" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
