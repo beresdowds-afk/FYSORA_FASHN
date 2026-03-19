@@ -121,6 +121,24 @@ const Auth = () => {
 
   const requiresIdentity = selectedRole === "tailor" || selectedRole === "designer";
 
+  const checkLeakedPassword = async (pw: string): Promise<boolean> => {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(pw);
+      const hashBuffer = await crypto.subtle.digest("SHA-1", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+      const prefix = hashHex.slice(0, 5);
+      const suffix = hashHex.slice(5);
+      const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+      if (!res.ok) return false; // fail open
+      const text = await res.text();
+      return text.split("\n").some(line => line.startsWith(suffix));
+    } catch {
+      return false; // fail open on network errors
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -134,6 +152,15 @@ const Auth = () => {
       toast({ title: "Identity verification required", description: "Please verify your identity number before registering.", variant: "destructive" });
       setLoading(false);
       return;
+    }
+
+    if (mode === "signup") {
+      const isLeaked = await checkLeakedPassword(password);
+      if (isLeaked) {
+        toast({ title: "Unsafe password", description: "This password has appeared in a data breach. Please choose a different password.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
     }
 
     if (mode === "forgot") {
