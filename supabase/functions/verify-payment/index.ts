@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveGatewayKeys } from "../_shared/resolve-gateway-keys.ts";
+import { runPostVerificationFlow } from "../_shared/post-verification-flow.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,7 +40,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Get the payment record
     const { data: payment } = await serviceClient
       .from("payments")
       .select("*")
@@ -54,7 +54,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ status: "already_completed" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Verify caller is a member of the org
     const userId = claimsData.claims.sub;
     const { data: membership } = await serviceClient
       .from("org_members")
@@ -68,7 +67,6 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
-    // Resolve keys with platform fallback
     const keys = await resolveGatewayKeys(serviceClient, payment.org_id, gateway);
     if (!keys) {
       return new Response(JSON.stringify({ error: `${gateway} keys not configured` }), { status: 400, headers: corsHeaders });
@@ -82,14 +80,12 @@ Deno.serve(async (req) => {
       });
       const verifyData = await verifyRes.json();
       verified = verifyData.data?.status === "success";
-
     } else if (gateway === "flutterwave") {
       const verifyRes = await fetch(`https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`, {
         headers: { Authorization: `Bearer ${keys.secretKey}` },
       });
       const verifyData = await verifyRes.json();
       verified = verifyData.data?.status === "successful";
-
     } else if (gateway === "stripe") {
       const sessionRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(reference)}`, {
         headers: { Authorization: `Basic ${btoa(keys.secretKey + ":")}` },
@@ -99,11 +95,13 @@ Deno.serve(async (req) => {
     }
 
     if (verified) {
+      // Update payment record
       await serviceClient.from("payments").update({
         status: "completed",
         paid_at: new Date().toISOString(),
       }).eq("id", payment.id);
 
+      // Calculate totals
       const { data: orderPayments } = await serviceClient
         .from("payments")
         .select("amount")
@@ -130,24 +128,27 @@ Deno.serve(async (req) => {
         status: "collected",
       }).eq("order_id", payment.order_id).eq("status", "pending");
 
-      // Create subscription invoice for payment tracking
-      await serviceClient.from("subscription_invoices").insert({
-        org_id: payment.org_id,
-        user_id: userId,
-        invoice_number: `INV-PAY-${Date.now().toString(36).toUpperCase()}`,
-        invoice_type: "subscription",
-        description: `Order ${order?.order_number || payment.order_id} - ${order?.title || "Payment"} (${gateway})`,
+      // Unified post-verification flow
+      const result = await runPostVerificationFlow({
+        serviceClient,
+        orgId: payment.org_id,
+        userId,
+        serviceType: "order",
         amount: Number(payment.amount),
         currency: payment.currency || "NGN",
-        status: "paid",
-        payment_method: gateway,
-        gateway_reference: reference,
-        related_entity_type: "order",
-        related_entity_id: payment.order_id,
-        paid_at: new Date().toISOString(),
-      }).catch(() => { /* non-critical */ });
+        gateway,
+        gatewayReference: reference,
+        relatedEntityId: payment.order_id,
+        description: `Order ${order?.order_number || ""} — ${order?.title || "Payment"}`,
+        requiresApproval: false,
+        metadata: { order_number: order?.order_number, payment_status: paymentStatus },
+      });
 
-      return new Response(JSON.stringify({ status: "success", payment_status: paymentStatus }), {
+      return new Response(JSON.stringify({
+        status: "success",
+        payment_status: paymentStatus,
+        invoice_number: result.invoiceNumber,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {

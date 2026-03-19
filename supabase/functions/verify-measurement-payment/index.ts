@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveGatewayKeys } from "../_shared/resolve-gateway-keys.ts";
+import { runPostVerificationFlow } from "../_shared/post-verification-flow.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,7 +96,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use the gateway recorded during initialization, with platform fallback
     const gateway = booking.payment_gateway || "paystack";
     const keys = await resolveGatewayKeys(serviceClient, booking.org_id, gateway);
     if (!keys) {
@@ -105,12 +105,14 @@ Deno.serve(async (req) => {
     const verified = await verifyWithGateway(gateway, keys.secretKey, reference);
 
     if (verified) {
+      // Update booking
       await serviceClient.from("ai_measurement_bookings").update({
         payment_status: "paid",
         booking_status: "confirmed",
         paid_at: new Date().toISOString(),
       }).eq("id", booking.id);
 
+      // Platform + org fee ledger entries
       await serviceClient.from("platform_fee_ledger").insert({
         org_id: booking.org_id,
         fee_type: "ai_measurement_platform_share",
@@ -127,7 +129,26 @@ Deno.serve(async (req) => {
         status: "collected",
       });
 
-      return new Response(JSON.stringify({ status: "success" }), {
+      // Unified post-verification flow: invoice + audit + notifications
+      const result = await runPostVerificationFlow({
+        serviceClient,
+        orgId: booking.org_id,
+        userId,
+        serviceType: "measurement",
+        amount: Number(booking.total_amount),
+        currency: booking.currency || "USD",
+        gateway,
+        gatewayReference: reference,
+        relatedEntityId: booking.id,
+        description: `AI Measurement Session — ${booking.hours_booked} hour${booking.hours_booked > 1 ? "s" : ""}`,
+        requiresApproval: false, // Auto-activated (booking confirmed)
+        metadata: { hours_booked: booking.hours_booked, session_type: booking.session_type },
+      });
+
+      return new Response(JSON.stringify({
+        status: "success",
+        invoice_number: result.invoiceNumber,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

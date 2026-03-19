@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveGatewayKeys } from "../_shared/resolve-gateway-keys.ts";
+import { runPostVerificationFlow } from "../_shared/post-verification-flow.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,8 +79,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
     }
 
-    // Determine which gateway was used from the subscription/request record
-    let gateway = "paystack"; // default
+    // Determine gateway
+    let gateway = "paystack";
     if (plan === "lite") {
       const { data: sub } = await serviceClient
         .from("website_builder_subscriptions")
@@ -98,7 +99,6 @@ Deno.serve(async (req) => {
       if (reqData?.payment_gateway) gateway = reqData.payment_gateway;
     }
 
-    // Resolve keys with platform fallback
     const keys = await resolveGatewayKeys(serviceClient, org_id, gateway);
     if (!keys) {
       return new Response(JSON.stringify({ error: `${gateway} keys not configured` }), { status: 400, headers: corsHeaders });
@@ -113,7 +113,9 @@ Deno.serve(async (req) => {
         "pro-lite": { total: 149, platform: 50, monthly: 5 },
       };
       const pricing = planPrices[plan] || planPrices.pro;
+      const planLabel = plan === "lite" ? "Lite" : plan === "pro" ? "Pro" : "Pro-Lite";
 
+      // Lite: auto-activate subscription + create admin tracking request
       if (plan === "lite") {
         const trialEnd = new Date();
         trialEnd.setMonth(trialEnd.getMonth() + 6);
@@ -131,7 +133,6 @@ Deno.serve(async (req) => {
           activated_at: new Date().toISOString(),
         }, { onConflict: "org_id" });
 
-        // Also create/update the website_builder_requests entry for admin tracking
         await serviceClient.from("website_builder_requests").upsert({
           org_id,
           plan: "lite",
@@ -144,56 +145,35 @@ Deno.serve(async (req) => {
           payment_status: "paid",
           paid_at: new Date().toISOString(),
         }, { onConflict: "org_id,plan" }).catch(() => {
-          // Fallback insert if upsert fails
           serviceClient.from("website_builder_requests").insert({
-            org_id,
-            plan: "lite",
-            status: "pending",
-            one_time_fee: 0,
-            platform_fee: pricing.platform,
-            monthly_maintenance: pricing.monthly,
-            payment_gateway: gateway,
-            gateway_reference: reference,
-            payment_status: "paid",
+            org_id, plan: "lite", status: "pending",
+            one_time_fee: 0, platform_fee: pricing.platform,
+            monthly_maintenance: pricing.monthly, payment_gateway: gateway,
+            gateway_reference: reference, payment_status: "paid",
             paid_at: new Date().toISOString(),
           });
         });
 
-        await serviceClient.from("platform_fee_ledger").insert({
-          org_id,
-          amount: pricing.platform,
-          currency: "USD",
-          fee_type: "website_builder_lite",
-          status: "collected",
-        });
-
       } else {
-        // Pro or Pro-Lite
-        const feeType = plan === "pro" ? "website_builder_pro" : "website_builder_pro_lite";
-
+        // Pro or Pro-Lite: update payment status, requires admin approval
         await serviceClient
           .from("website_builder_requests")
-          .update({
-            payment_status: "paid",
-            paid_at: new Date().toISOString(),
-          })
+          .update({ payment_status: "paid", paid_at: new Date().toISOString() })
           .eq("org_id", org_id)
           .eq("gateway_reference", reference);
-
-        await serviceClient.from("platform_fee_ledger").insert({
-          org_id,
-          amount: pricing.platform,
-          currency: "USD",
-          fee_type: feeType,
-          status: "collected",
-        });
       }
 
-      // Create subscription invoice
-      const invoiceNumber = `INV-WB-${Date.now().toString(36).toUpperCase()}`;
-      const planLabel = plan === "lite" ? "Lite" : plan === "pro" ? "Pro" : "Pro-Lite";
+      // Fee ledger
+      const feeType = plan === "lite" ? "website_builder_lite" : plan === "pro" ? "website_builder_pro" : "website_builder_pro_lite";
+      await serviceClient.from("platform_fee_ledger").insert({
+        org_id,
+        amount: pricing.platform,
+        currency: "USD",
+        fee_type: feeType,
+        status: "collected",
+      });
 
-      // Get the request ID for linking
+      // Get request ID for linking
       const { data: reqRecord } = await serviceClient
         .from("website_builder_requests")
         .select("id")
@@ -202,95 +182,29 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      await serviceClient.from("subscription_invoices").insert({
-        org_id,
-        user_id: userId,
-        invoice_number: invoiceNumber,
-        invoice_type: "website_builder",
-        description: `Website Builder ${planLabel} - Payment Confirmed`,
+      // Unified post-verification: invoice + audit + notifications + approval routing
+      const requiresApproval = plan !== "lite"; // Pro and Pro-Lite need admin setup
+      const result = await runPostVerificationFlow({
+        serviceClient,
+        orgId: org_id,
+        userId,
+        serviceType: "website_builder",
         amount: pricing.total,
         currency: "USD",
-        status: "paid",
-        payment_method: gateway,
-        gateway_reference: reference,
-        related_entity_type: "website_builder_request",
-        related_entity_id: reqRecord?.id || null,
-        paid_at: new Date().toISOString(),
+        gateway,
+        gatewayReference: reference,
+        relatedEntityId: reqRecord?.id || org_id,
+        description: `Website Builder ${planLabel} Plan`,
+        requiresApproval,
+        metadata: { plan, monthly_maintenance: pricing.monthly },
       });
 
-      // Notifications
-      const { data: orgData } = await serviceClient
-        .from("organizations")
-        .select("name, email")
-        .eq("id", org_id)
-        .single();
-
-      const { data: notifSettings } = await serviceClient
-        .from("org_notification_settings")
-        .select("brand_color, email_footer_text, email_enabled")
-        .eq("org_id", org_id)
-        .maybeSingle();
-
-      const { data: orgMembers } = await serviceClient
-        .from("org_members")
-        .select("user_id")
-        .eq("org_id", org_id)
-        .eq("role", "org_admin")
-        .eq("is_active", true);
-
-      for (const member of orgMembers || []) {
-        await serviceClient.from("notifications").insert({
-          org_id,
-          user_id: member.user_id,
-          title: plan === "lite" ? "Website Builder Lite Activated!" : `Website Builder ${planLabel} Payment Confirmed!`,
-          message: plan === "lite"
-            ? "Your 6-month Website Builder Lite trial has started. Your public website is live! Activation request has been submitted."
-            : `Your ${planLabel} plan payment has been received. Activation request submitted to admin portal for setup.`,
-        });
-      }
-
-      if (orgData?.email && (!notifSettings || notifSettings.email_enabled !== false)) {
-        const eventType = plan === "lite" ? "website_lite_activated" : "website_pro_confirmed";
-        const emailSubject = plan === "lite"
-          ? "Your Website Builder Lite Plan is Active!"
-          : `Your Website Builder ${planLabel} Purchase Confirmation`;
-
-        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          },
-          body: JSON.stringify({
-            to: orgData.email,
-            subject: emailSubject,
-            event_type: eventType,
-            org_name: orgData.name,
-            org_id,
-            recipient_id: orgMembers?.[0]?.user_id || "00000000-0000-0000-0000-000000000000",
-            recipient_type: "org_admin",
-            brand_color: notifSettings?.brand_color || "#D4AF37",
-            email_footer_text: notifSettings?.email_footer_text,
-          }),
-        }).catch((e) => console.error("Email dispatch failed:", e));
-      }
-
-      // Notify super admins for all plans (activation request)
-      const { data: superAdmins } = await serviceClient
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "super_admin");
-
-      for (const sa of superAdmins || []) {
-        await serviceClient.from("notifications").insert({
-          org_id,
-          user_id: sa.user_id,
-          title: `New ${planLabel} Website Request — ${orgData?.name || "Unknown Org"}`,
-          message: `${orgData?.name} has purchased Website Builder ${planLabel}. Payment confirmed (${invoiceNumber}). Please review in DNS & Email portal.`,
-        });
-      }
-
-      return new Response(JSON.stringify({ status: "success", plan }), {
+      return new Response(JSON.stringify({
+        status: "success",
+        plan,
+        invoice_number: result.invoiceNumber,
+        activated: result.activated,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {

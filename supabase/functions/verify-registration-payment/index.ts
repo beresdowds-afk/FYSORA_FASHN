@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveGatewayKeys } from "../_shared/resolve-gateway-keys.ts";
+import { runPostVerificationFlow } from "../_shared/post-verification-flow.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -85,7 +86,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use the gateway recorded during initialization, with platform fallback
     const gateway = reg.payment_gateway || "paystack";
     const keys = await resolveGatewayKeys(serviceClient, reg.org_id, gateway);
     if (!keys) {
@@ -95,11 +95,13 @@ Deno.serve(async (req) => {
     const verified = await verifyWithGateway(gateway, keys.secretKey, reference);
 
     if (verified) {
+      // Update registration status
       await serviceClient.from("customer_registrations").update({
         status: "paid",
         paid_at: new Date().toISOString(),
       }).eq("id", reg.id);
 
+      // Platform fee ledger
       await serviceClient.from("platform_fee_ledger").insert({
         org_id: reg.org_id,
         fee_type: "registration_fee",
@@ -108,7 +110,25 @@ Deno.serve(async (req) => {
         status: "collected",
       });
 
-      return new Response(JSON.stringify({ status: "success" }), {
+      // Unified post-verification flow: invoice + audit + notifications
+      const result = await runPostVerificationFlow({
+        serviceClient,
+        orgId: reg.org_id,
+        userId,
+        serviceType: "registration",
+        amount: Number(reg.fee_amount) || 5,
+        currency: reg.fee_currency || "USD",
+        gateway,
+        gatewayReference: reference,
+        relatedEntityId: reg.id,
+        description: "Customer Registration Fee",
+        requiresApproval: false, // Auto-activated
+      });
+
+      return new Response(JSON.stringify({
+        status: "success",
+        invoice_number: result.invoiceNumber,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
