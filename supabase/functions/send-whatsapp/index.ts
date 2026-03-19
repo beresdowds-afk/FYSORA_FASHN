@@ -62,7 +62,10 @@ async function sendViaTermii(to: string, message: string, countryCode: string, m
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(JSON.stringify(data));
+  if (!res.ok) {
+    console.error("Termii WhatsApp error:", JSON.stringify(data));
+    throw new Error("WhatsApp provider delivery failed");
+  }
   return { provider: "termii", id: data.message_id };
 }
 
