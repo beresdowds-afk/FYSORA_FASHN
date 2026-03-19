@@ -448,32 +448,31 @@ const PricingSection = ({
         return;
       }
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/initialize-website-payment`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            org_id: org.id,
-            plan,
-            callback_url: `${window.location.origin}/dashboard`,
-          }),
-        }
-      );
+      const result = await paymentFlow.initializePayment("initialize-website-payment", {
+        org_id: org.id,
+        plan,
+        callback_url: `${window.location.origin}/dashboard`,
+      });
 
-      const data = await response.json();
-      if (data.error) {
-        toast({ title: "Payment Error", description: data.error, variant: "destructive" });
-        return;
-      }
+      if (!result) return;
 
-      // Open Paystack checkout
-      window.open(data.checkout_url, "_blank");
-      onPaymentStarted();
+      // Open payment gateway
+      window.open(result.checkoutUrl, "_blank");
+
+      // Auto-verify after user returns from payment
+      toast({ title: "Payment window opened", description: "Complete payment then wait for automatic verification." });
+
+      // Poll for verification
+      setTimeout(async () => {
+        const { data: { session: verifySession } } = await supabase.auth.getSession();
+        if (!verifySession) return;
+        await paymentFlow.pollVerification("verify-website-payment", {
+          reference: result.reference,
+          org_id: org.id,
+          plan,
+        }, 8, 4000);
+        onPaymentStarted();
+      }, 5000);
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
