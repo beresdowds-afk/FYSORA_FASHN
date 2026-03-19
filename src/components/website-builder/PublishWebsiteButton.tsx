@@ -326,9 +326,10 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       }
 
       setLastPublished(new Date().toLocaleTimeString());
+      broadcastSync("website_published");
       toast({
         title: "Website published! 🎉",
-        description: "Your changes have been pushed to GitHub. It may take 1-2 minutes for GitHub Pages to update.",
+        description: "Your changes have been pushed to GitHub and synced to all connected apps.",
       });
     } catch (err: any) {
       console.error("Publish error:", err);
