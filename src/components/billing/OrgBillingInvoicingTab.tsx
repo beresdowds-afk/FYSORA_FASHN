@@ -124,11 +124,12 @@ const OrgBillingInvoicingTab = ({ orgId, orgName, currency, role }: OrgBillingIn
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [prodRes, orderRes, payRes, feeRes] = await Promise.all([
+    const [prodRes, orderRes, payRes, feeRes, subInvRes] = await Promise.all([
       supabase.from("org_catalogue_items").select("*").eq("org_id", orgId).order("sort_order"),
       supabase.from("orders").select("id, order_number, title, total_amount, amount_paid, currency, payment_status, status, created_at, due_date, customer_id").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
       supabase.from("payments").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(200),
       supabase.from("platform_fee_ledger").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("subscription_invoices").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
     ]);
 
     setProducts((prodRes.data as CatalogueItem[]) || []);
