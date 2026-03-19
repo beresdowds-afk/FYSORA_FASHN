@@ -131,6 +131,10 @@ serve(async (req) => {
           method: "POST", headers,
           body: JSON.stringify({ content: file.content, encoding: "utf-8" }),
         });
+        if (!blobRes.ok) {
+          const blobErr = await blobRes.text();
+          throw new Error(`Blob creation failed for ${file.path} [${blobRes.status}]: ${blobErr}`);
+        }
         const blob = await blobRes.json();
         blobShas.push({ path: file.path, mode: "100644", type: "blob", sha: blob.sha });
       }
@@ -139,18 +143,30 @@ serve(async (req) => {
         method: "POST", headers,
         body: JSON.stringify({ base_tree: latestCommitSha, tree: blobShas }),
       });
+      if (!treeRes.ok) {
+        const treeErr = await treeRes.text();
+        throw new Error(`Tree creation failed [${treeRes.status}]: ${treeErr}`);
+      }
       const tree = await treeRes.json();
 
       const commitRes = await fetch(`https://api.github.com/repos/${repoOwner}/${sanitizedRepo}/git/commits`, {
         method: "POST", headers,
         body: JSON.stringify({ message: `Website update for ${org_name}`, tree: tree.sha, parents: [latestCommitSha] }),
       });
+      if (!commitRes.ok) {
+        const commitErr = await commitRes.text();
+        throw new Error(`Commit creation failed [${commitRes.status}]: ${commitErr}`);
+      }
       const commit = await commitRes.json();
 
-      await fetch(`https://api.github.com/repos/${repoOwner}/${sanitizedRepo}/git/refs/heads/main`, {
+      const refUpdateRes = await fetch(`https://api.github.com/repos/${repoOwner}/${sanitizedRepo}/git/refs/heads/main`, {
         method: "PATCH", headers,
         body: JSON.stringify({ sha: commit.sha }),
       });
+      if (!refUpdateRes.ok) {
+        const refErr = await refUpdateRes.text();
+        throw new Error(`Ref update failed [${refUpdateRes.status}]: ${refErr}`);
+      }
 
       return new Response(JSON.stringify({ success: true, commit_sha: commit.sha, message: "Files pushed successfully" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
