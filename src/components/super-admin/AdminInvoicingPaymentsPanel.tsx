@@ -74,7 +74,7 @@ interface FeeEntry {
 /* ─── Component ─── */
 const AdminInvoicingPaymentsPanel = () => {
   const { toast } = useToast();
-  const [activeView, setActiveView] = useState<"overview" | "invoices" | "payments" | "fees" | "premium" | "verifications">("overview");
+  const [activeView, setActiveView] = useState<"overview" | "invoices" | "payments" | "fees" | "premium" | "verifications" | "service_invoices">("overview");
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -86,6 +86,7 @@ const AdminInvoicingPaymentsPanel = () => {
   const [orgMap, setOrgMap] = useState<Record<string, string>>({});
   const [measurementBookings, setMeasurementBookings] = useState<any[]>([]);
   const [verifications, setVerifications] = useState<{ orgs: any[]; profiles: any[] }>({ orgs: [], profiles: [] });
+  const [serviceInvoices, setServiceInvoices] = useState<any[]>([]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -96,12 +97,13 @@ const AdminInvoicingPaymentsPanel = () => {
     (orgs || []).forEach((o: any) => { map[o.id] = o.name; });
     setOrgMap(map);
 
-    const [orderRes, payRes, feeRes, bookingsRes, profilesRes] = await Promise.all([
+    const [orderRes, payRes, feeRes, bookingsRes, profilesRes, svcInvRes] = await Promise.all([
       supabase.from("orders").select("id, order_number, title, org_id, total_amount, amount_paid, currency, payment_status, created_at").order("created_at", { ascending: false }).limit(500),
       supabase.from("payments").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("platform_fee_ledger").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("ai_measurement_bookings").select("*").order("created_at", { ascending: false }).limit(200),
       supabase.from("profiles").select("id, display_name, identity_number, identity_type, identity_verified, identity_verification_status").not("identity_number", "is", null),
+      supabase.from("subscription_invoices").select("*").order("created_at", { ascending: false }).limit(500),
     ]);
 
     setInvoices(
@@ -138,6 +140,13 @@ const AdminInvoicingPaymentsPanel = () => {
       orgs: (orgs || []).filter((o: any) => o.business_reg_number),
       profiles: profilesRes.data || [],
     });
+
+    setServiceInvoices(
+      (svcInvRes.data || []).map((inv: any) => ({
+        ...inv,
+        org_name: map[inv.org_id] || "Unknown",
+      }))
+    );
 
     setLoading(false);
   }, []);
@@ -278,6 +287,7 @@ const AdminInvoicingPaymentsPanel = () => {
           { id: "invoices" as const, label: "All Invoices", icon: FileText },
           { id: "payments" as const, label: "All Payments", icon: CreditCard },
           { id: "fees" as const, label: "Fee Ledger", icon: DollarSign },
+          { id: "service_invoices" as const, label: "Service Invoices", icon: Receipt },
           { id: "premium" as const, label: "Premium Revenue", icon: Sparkles },
           { id: "verifications" as const, label: "Verifications", icon: Shield },
         ].map((tab) => (
@@ -644,6 +654,43 @@ const AdminInvoicingPaymentsPanel = () => {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ═══ SERVICE INVOICES ═══ */}
+      {activeView === "service_invoices" && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="grid grid-cols-[1fr_1fr_1fr_120px_100px_100px_100px] gap-3 px-5 py-3 bg-muted/30 border-b border-border text-xs font-semibold text-muted-foreground uppercase">
+            <span>Invoice #</span>
+            <span>Organization</span>
+            <span>Description</span>
+            <span>Amount</span>
+            <span>Status</span>
+            <span>Type</span>
+            <span>Date</span>
+          </div>
+          {serviceInvoices.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">No service invoices yet.</div>
+          ) : (
+            serviceInvoices.map((inv: any) => (
+              <div key={inv.id} className="grid grid-cols-[1fr_1fr_1fr_120px_100px_100px_100px] gap-3 px-5 py-3 border-b border-border/50 items-center hover:bg-muted/30 transition-colors">
+                <p className="text-sm font-medium">{inv.invoice_number}</p>
+                <p className="text-sm truncate">{inv.org_name}</p>
+                <p className="text-sm text-muted-foreground truncate">{inv.description}</p>
+                <span className="font-heading font-semibold text-sm">${Number(inv.amount).toLocaleString()}</span>
+                <Badge
+                  variant={inv.status === "paid" || inv.status === "waived" ? "default" : inv.status === "overdue" ? "destructive" : "secondary"}
+                  className="text-[10px] capitalize"
+                >
+                  {inv.status}
+                </Badge>
+                <span className="text-xs text-muted-foreground capitalize">{inv.invoice_type?.replace("_", " ")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(inv.created_at), "MMM d, yyyy")}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       )}
     </motion.div>

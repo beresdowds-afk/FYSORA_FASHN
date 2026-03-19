@@ -5288,6 +5288,80 @@ export type Database = {
           },
         ]
       }
+      subscription_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string
+          due_date: string | null
+          gateway_reference: string | null
+          id: string
+          invoice_number: string
+          invoice_type: string
+          issued_at: string
+          org_id: string | null
+          paid_at: string | null
+          payment_method: string | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          waiver_reason: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description: string
+          due_date?: string | null
+          gateway_reference?: string | null
+          id?: string
+          invoice_number: string
+          invoice_type?: string
+          issued_at?: string
+          org_id?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          waiver_reason?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string
+          due_date?: string | null
+          gateway_reference?: string | null
+          id?: string
+          invoice_number?: string
+          invoice_type?: string
+          issued_at?: string
+          org_id?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_invoices_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           ai_measurement_price: number | null

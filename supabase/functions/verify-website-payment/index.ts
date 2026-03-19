@@ -107,6 +107,13 @@ Deno.serve(async (req) => {
     const verified = await verifyWithGateway(gateway, keys.secretKey, reference);
 
     if (verified) {
+      const planPrices: Record<string, { total: number; platform: number; monthly: number }> = {
+        lite: { total: 27, platform: 10, monthly: 17 },
+        pro: { total: 339, platform: 140, monthly: 7 },
+        "pro-lite": { total: 149, platform: 50, monthly: 5 },
+      };
+      const pricing = planPrices[plan] || planPrices.pro;
+
       if (plan === "lite") {
         const trialEnd = new Date();
         trialEnd.setMonth(trialEnd.getMonth() + 6);
@@ -117,22 +124,53 @@ Deno.serve(async (req) => {
           status: "trial",
           trial_start: new Date().toISOString(),
           trial_end: trialEnd.toISOString(),
-          monthly_fee: 17,
-          platform_fee: 10,
+          monthly_fee: pricing.monthly,
+          platform_fee: pricing.platform,
           payment_gateway: gateway,
           gateway_reference: reference,
           activated_at: new Date().toISOString(),
         }, { onConflict: "org_id" });
 
+        // Also create/update the website_builder_requests entry for admin tracking
+        await serviceClient.from("website_builder_requests").upsert({
+          org_id,
+          plan: "lite",
+          status: "pending",
+          one_time_fee: 0,
+          platform_fee: pricing.platform,
+          monthly_maintenance: pricing.monthly,
+          payment_gateway: gateway,
+          gateway_reference: reference,
+          payment_status: "paid",
+          paid_at: new Date().toISOString(),
+        }, { onConflict: "org_id,plan" }).catch(() => {
+          // Fallback insert if upsert fails
+          serviceClient.from("website_builder_requests").insert({
+            org_id,
+            plan: "lite",
+            status: "pending",
+            one_time_fee: 0,
+            platform_fee: pricing.platform,
+            monthly_maintenance: pricing.monthly,
+            payment_gateway: gateway,
+            gateway_reference: reference,
+            payment_status: "paid",
+            paid_at: new Date().toISOString(),
+          });
+        });
+
         await serviceClient.from("platform_fee_ledger").insert({
           org_id,
-          amount: 10 * 1500,
-          currency: "NGN",
+          amount: pricing.platform,
+          currency: "USD",
           fee_type: "website_builder_lite",
           status: "collected",
         });
 
-      } else if (plan === "pro") {
+      } else {
+        // Pro or Pro-Lite
+        const feeType = plan === "pro" ? "website_builder_pro" : "website_builder_pro_lite";
+
         await serviceClient
           .from("website_builder_requests")
           .update({
@@ -144,12 +182,41 @@ Deno.serve(async (req) => {
 
         await serviceClient.from("platform_fee_ledger").insert({
           org_id,
-          amount: 140 * 1500,
-          currency: "NGN",
-          fee_type: "website_builder_pro",
+          amount: pricing.platform,
+          currency: "USD",
+          fee_type: feeType,
           status: "collected",
         });
       }
+
+      // Create subscription invoice
+      const invoiceNumber = `INV-WB-${Date.now().toString(36).toUpperCase()}`;
+      const planLabel = plan === "lite" ? "Lite" : plan === "pro" ? "Pro" : "Pro-Lite";
+
+      // Get the request ID for linking
+      const { data: reqRecord } = await serviceClient
+        .from("website_builder_requests")
+        .select("id")
+        .eq("org_id", org_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      await serviceClient.from("subscription_invoices").insert({
+        org_id,
+        user_id: userId,
+        invoice_number: invoiceNumber,
+        invoice_type: "website_builder",
+        description: `Website Builder ${planLabel} - Payment Confirmed`,
+        amount: pricing.total,
+        currency: "USD",
+        status: "paid",
+        payment_method: gateway,
+        gateway_reference: reference,
+        related_entity_type: "website_builder_request",
+        related_entity_id: reqRecord?.id || null,
+        paid_at: new Date().toISOString(),
+      });
 
       // Notifications
       const { data: orgData } = await serviceClient
@@ -175,10 +242,10 @@ Deno.serve(async (req) => {
         await serviceClient.from("notifications").insert({
           org_id,
           user_id: member.user_id,
-          title: plan === "lite" ? "Website Builder Lite Activated!" : "Website Builder Pro Payment Confirmed!",
+          title: plan === "lite" ? "Website Builder Lite Activated!" : `Website Builder ${planLabel} Payment Confirmed!`,
           message: plan === "lite"
-            ? "Your 6-month Website Builder Lite trial has started. Your public website is live!"
-            : "Your Pro plan payment has been received. Our team will contact you within 24 hours to set up your custom website.",
+            ? "Your 6-month Website Builder Lite trial has started. Your public website is live! Activation request has been submitted."
+            : `Your ${planLabel} plan payment has been received. Activation request submitted to admin portal for setup.`,
         });
       }
 
@@ -186,7 +253,7 @@ Deno.serve(async (req) => {
         const eventType = plan === "lite" ? "website_lite_activated" : "website_pro_confirmed";
         const emailSubject = plan === "lite"
           ? "Your Website Builder Lite Plan is Active!"
-          : "Your Website Builder Pro Purchase Confirmation";
+          : `Your Website Builder ${planLabel} Purchase Confirmation`;
 
         fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
           method: "POST",
@@ -208,20 +275,19 @@ Deno.serve(async (req) => {
         }).catch((e) => console.error("Email dispatch failed:", e));
       }
 
-      if (plan === "pro") {
-        const { data: superAdmins } = await serviceClient
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "super_admin");
+      // Notify super admins for all plans (activation request)
+      const { data: superAdmins } = await serviceClient
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "super_admin");
 
-        for (const sa of superAdmins || []) {
-          await serviceClient.from("notifications").insert({
-            org_id,
-            user_id: sa.user_id,
-            title: `New Pro Website Request — ${orgData?.name || "Unknown Org"}`,
-            message: `${orgData?.name} has purchased Website Builder Pro. Payment confirmed. Please assign and set up their custom website.`,
-          });
-        }
+      for (const sa of superAdmins || []) {
+        await serviceClient.from("notifications").insert({
+          org_id,
+          user_id: sa.user_id,
+          title: `New ${planLabel} Website Request — ${orgData?.name || "Unknown Org"}`,
+          message: `${orgData?.name} has purchased Website Builder ${planLabel}. Payment confirmed (${invoiceNumber}). Please review in DNS & Email portal.`,
+        });
       }
 
       return new Response(JSON.stringify({ status: "success", plan }), {

@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
       const { data: order } = await serviceClient
         .from("orders")
-        .select("customer_total, total_amount")
+        .select("customer_total, total_amount, order_number, title")
         .eq("id", payment.order_id)
         .single();
 
@@ -129,6 +129,23 @@ Deno.serve(async (req) => {
       await serviceClient.from("platform_fee_ledger").update({
         status: "collected",
       }).eq("order_id", payment.order_id).eq("status", "pending");
+
+      // Create subscription invoice for payment tracking
+      await serviceClient.from("subscription_invoices").insert({
+        org_id: payment.org_id,
+        user_id: userId,
+        invoice_number: `INV-PAY-${Date.now().toString(36).toUpperCase()}`,
+        invoice_type: "subscription",
+        description: `Order ${order?.order_number || payment.order_id} - ${order?.title || "Payment"} (${gateway})`,
+        amount: Number(payment.amount),
+        currency: payment.currency || "NGN",
+        status: "paid",
+        payment_method: gateway,
+        gateway_reference: reference,
+        related_entity_type: "order",
+        related_entity_id: payment.order_id,
+        paid_at: new Date().toISOString(),
+      }).catch(() => { /* non-critical */ });
 
       return new Response(JSON.stringify({ status: "success", payment_status: paymentStatus }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

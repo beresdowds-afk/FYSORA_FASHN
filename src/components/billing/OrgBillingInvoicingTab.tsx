@@ -103,8 +103,9 @@ interface OrgBillingInvoicingTabProps {
 const OrgBillingInvoicingTab = ({ orgId, orgName, currency, role }: OrgBillingInvoicingTabProps) => {
   const { toast } = useToast();
   const { surchargePercent, adminPercent, calculate } = useDynamicPlatformFees();
-  const [activeView, setActiveView] = useState<"products" | "invoices" | "payments" | "fees">("products");
+  const [activeView, setActiveView] = useState<"products" | "invoices" | "payments" | "fees" | "subscriptions">("products");
   const [loading, setLoading] = useState(true);
+  const [subInvoices, setSubInvoices] = useState<any[]>([]);
 
   // Data
   const [products, setProducts] = useState<CatalogueItem[]>([]);
@@ -123,11 +124,12 @@ const OrgBillingInvoicingTab = ({ orgId, orgName, currency, role }: OrgBillingIn
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [prodRes, orderRes, payRes, feeRes] = await Promise.all([
+    const [prodRes, orderRes, payRes, feeRes, subInvRes] = await Promise.all([
       supabase.from("org_catalogue_items").select("*").eq("org_id", orgId).order("sort_order"),
       supabase.from("orders").select("id, order_number, title, total_amount, amount_paid, currency, payment_status, status, created_at, due_date, customer_id").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
       supabase.from("payments").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(200),
       supabase.from("platform_fee_ledger").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("subscription_invoices").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(100),
     ]);
 
     setProducts((prodRes.data as CatalogueItem[]) || []);
@@ -155,6 +157,7 @@ const OrgBillingInvoicingTab = ({ orgId, orgName, currency, role }: OrgBillingIn
     );
     setPayments((payRes.data as Payment[]) || []);
     setFees((feeRes.data as FeeEntry[]) || []);
+    setSubInvoices((subInvRes.data as any[]) || []);
     setLoading(false);
   }, [orgId]);
 
@@ -321,6 +324,7 @@ const OrgBillingInvoicingTab = ({ orgId, orgName, currency, role }: OrgBillingIn
           { id: "invoices" as const, label: "Invoices", icon: FileText },
           { id: "payments" as const, label: "Payment History", icon: CreditCard },
           { id: "fees" as const, label: "Fee Ledger", icon: DollarSign },
+          { id: "subscriptions" as const, label: "Service Invoices", icon: Receipt },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -494,7 +498,43 @@ const OrgBillingInvoicingTab = ({ orgId, orgName, currency, role }: OrgBillingIn
         </div>
       )}
 
-      {/* ═══ FEE LEDGER ═══ */}
+      {/* ═══ SERVICE INVOICES (Subscriptions, Website Builder, etc.) ═══ */}
+      {activeView === "subscriptions" && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="grid grid-cols-[1fr_1fr_120px_100px_100px_80px] gap-3 px-5 py-3 bg-muted/30 border-b border-border text-xs font-semibold text-muted-foreground uppercase">
+            <span>Invoice #</span>
+            <span>Description</span>
+            <span>Amount</span>
+            <span>Status</span>
+            <span>Type</span>
+            <span>Date</span>
+          </div>
+          {subInvoices.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">No service invoices found.</div>
+          ) : (
+            subInvoices.map((inv: any) => (
+              <div key={inv.id} className="grid grid-cols-[1fr_1fr_120px_100px_100px_80px] gap-3 px-5 py-3 border-b border-border/50 items-center hover:bg-muted/30 transition-colors">
+                <p className="text-sm font-medium">{inv.invoice_number}</p>
+                <p className="text-sm text-muted-foreground truncate">{inv.description}</p>
+                <span className="font-heading font-semibold text-sm">
+                  <CurrencyDisplay amount={Number(inv.amount)} currency={inv.currency || currency} />
+                </span>
+                <Badge
+                  variant={inv.status === "paid" || inv.status === "waived" ? "default" : inv.status === "overdue" ? "destructive" : "secondary"}
+                  className="text-[10px] capitalize"
+                >
+                  {inv.status === "waived" ? "Waived" : inv.status === "paid" ? <><CheckCircle2 size={10} className="mr-1" />Paid</> : inv.status}
+                </Badge>
+                <span className="text-xs text-muted-foreground capitalize">{inv.invoice_type?.replace("_", " ")}</span>
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(inv.created_at), "MMM d")}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
       {activeView === "fees" && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

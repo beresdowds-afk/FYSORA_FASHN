@@ -375,6 +375,9 @@ const PricingSection = ({
 
       if (hasExemption) {
         // Free activation — create subscription/request directly without payment
+        const exemptRef = `EXEMPT-${org.id.substring(0, 8)}`;
+        let requestId: string | undefined;
+
         if (plan === "lite") {
           const trialEnd = new Date();
           trialEnd.setFullYear(trialEnd.getFullYear() + 10);
@@ -387,10 +390,9 @@ const PricingSection = ({
             monthly_fee: 0,
             platform_fee: 0,
             payment_gateway: "exemption",
-            gateway_reference: `EXEMPT-${org.id.substring(0, 8)}`,
+            gateway_reference: exemptRef,
           }, { onConflict: "org_id" });
-          // Also create a website_builder_requests entry for admin tracking
-          await supabase.from("website_builder_requests").insert({
+          const { data: reqData } = await supabase.from("website_builder_requests").insert({
             org_id: org.id,
             plan: "lite",
             status: "pending",
@@ -398,11 +400,12 @@ const PricingSection = ({
             platform_fee: 0,
             monthly_maintenance: 0,
             payment_gateway: "exemption",
-            gateway_reference: `EXEMPT-${org.id.substring(0, 8)}`,
+            gateway_reference: exemptRef,
             payment_status: "paid",
-          } as any);
+          } as any).select("id").single();
+          requestId = reqData?.id;
         } else {
-          await supabase.from("website_builder_requests").insert({
+          const { data: reqData } = await supabase.from("website_builder_requests").insert({
             org_id: org.id,
             plan: plan,
             status: "pending",
@@ -410,11 +413,33 @@ const PricingSection = ({
             platform_fee: 0,
             monthly_maintenance: 0,
             payment_gateway: "exemption",
-            gateway_reference: `EXEMPT-${org.id.substring(0, 8)}`,
+            gateway_reference: exemptRef,
             payment_status: "paid",
-          });
+          }).select("id").single();
+          requestId = reqData?.id;
         }
-        toast({ title: "Website Builder activated!", description: "Your organization has complimentary access. Activation request submitted." });
+
+        // Create waived invoice for the exempted plan
+        const planPrices: Record<string, number> = { lite: 17, pro: 339, "pro-lite": 149 };
+        await supabase.from("subscription_invoices").insert({
+          org_id: org.id,
+          user_id: session.user.id,
+          invoice_number: `INV-WB-${Date.now().toString(36).toUpperCase()}`,
+          invoice_type: "website_builder",
+          description: `Website Builder ${plan.charAt(0).toUpperCase() + plan.slice(1)} - Fee Waived`,
+          amount: planPrices[plan] || 0,
+          currency: "USD",
+          status: "waived",
+          payment_method: "exemption",
+          gateway_reference: exemptRef,
+          related_entity_type: "website_builder_request",
+          related_entity_id: requestId || null,
+          waiver_reason: "Complimentary access granted by platform admin",
+          paid_at: new Date().toISOString(),
+        } as any);
+
+        // Submit activation request to super admin DNS/Email portal
+        toast({ title: "Website Builder activated!", description: "Your organization has complimentary access. Activation request submitted to admin portal." });
         onPaymentStarted();
         return;
       }
