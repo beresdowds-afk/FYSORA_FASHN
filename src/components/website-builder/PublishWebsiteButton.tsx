@@ -311,6 +311,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
               { path: "index.html", content: indexHtml },
               { path: "styles.css", content: stylesCss },
               { path: "app.js", content: appJs },
+              { path: "sw.js", content: swJs },
               { path: "README.md", content: readmeMd },
             ],
           }),
