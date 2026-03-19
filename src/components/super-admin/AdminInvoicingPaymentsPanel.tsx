@@ -287,6 +287,7 @@ const AdminInvoicingPaymentsPanel = () => {
           { id: "invoices" as const, label: "All Invoices", icon: FileText },
           { id: "payments" as const, label: "All Payments", icon: CreditCard },
           { id: "fees" as const, label: "Fee Ledger", icon: DollarSign },
+          { id: "service_invoices" as const, label: "Service Invoices", icon: Receipt },
           { id: "premium" as const, label: "Premium Revenue", icon: Sparkles },
           { id: "verifications" as const, label: "Verifications", icon: Shield },
         ].map((tab) => (
