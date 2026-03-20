@@ -17,7 +17,9 @@ function base64urlEncode(data: Uint8Array): string {
 }
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const lines = pem
+  // Normalise escaped newlines that may have been stored in env vars
+  const normalised = pem.replace(/\\n/g, "\n");
+  const lines = normalised
     .replace(/-----BEGIN RSA PRIVATE KEY-----/, "")
     .replace(/-----END RSA PRIVATE KEY-----/, "")
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
