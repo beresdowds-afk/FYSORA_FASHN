@@ -17,13 +17,21 @@ function base64urlEncode(data: Uint8Array): string {
 }
 
 function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const lines = pem
-    .replace(/-----BEGIN RSA PRIVATE KEY-----/, "")
-    .replace(/-----END RSA PRIVATE KEY-----/, "")
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
+  // Normalise escaped newlines that may have been stored in env vars
+  let normalised = pem.replace(/\\n/g, "\n").trim();
+  // Strip PEM headers/footers
+  normalised = normalised
+    .replace(/-----BEGIN [A-Z ]+-----/g, "")
+    .replace(/-----END [A-Z ]+-----/g, "")
     .replace(/\s/g, "");
-  const binary = atob(lines);
+  
+  // Validate base64 characters
+  if (!/^[A-Za-z0-9+/=]+$/.test(normalised)) {
+    console.error("PEM contains invalid base64 chars. First 40 chars:", normalised.substring(0, 40));
+    throw new Error("Private key contains invalid base64 characters after stripping PEM headers");
+  }
+  
+  const binary = atob(normalised);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer;
