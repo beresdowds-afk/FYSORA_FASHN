@@ -49,7 +49,7 @@ async function createGitHubAppJWT(appId: string, privateKeyPem: string): Promise
 
   const keyData = pemToArrayBuffer(privateKeyPem);
 
-  // Try PKCS#8 first, fall back to PKCS#1
+  // Try PKCS#8 first, then wrap PKCS#1 → PKCS#8 automatically
   let cryptoKey: CryptoKey;
   try {
     cryptoKey = await crypto.subtle.importKey(
@@ -60,8 +60,49 @@ async function createGitHubAppJWT(appId: string, privateKeyPem: string): Promise
       ["sign"]
     );
   } catch {
-    // If PKCS#8 fails, wrap PKCS#1 key in PKCS#8 envelope
-    throw new Error("Private key import failed. Ensure the key is in PKCS#8 PEM format (BEGIN PRIVATE KEY). If it starts with BEGIN RSA PRIVATE KEY, convert it using: openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in key.pem -out key-pkcs8.pem");
+    // PKCS#1 → PKCS#8 wrapping: prepend ASN.1 PKCS#8 header for RSA
+    console.log("PKCS#8 import failed, attempting PKCS#1 to PKCS#8 conversion...");
+    const pkcs1Bytes = new Uint8Array(keyData);
+    const pkcs8Header = new Uint8Array([
+      0x30, 0x82, 0x00, 0x00, // SEQUENCE, length placeholder
+      0x02, 0x01, 0x00,       // INTEGER version = 0
+      0x30, 0x0d,             // SEQUENCE (AlgorithmIdentifier)
+      0x06, 0x09,             // OID
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // rsaEncryption
+      0x05, 0x00,             // NULL
+      0x04, 0x82, 0x00, 0x00  // OCTET STRING, length placeholder
+    ]);
+    
+    // Calculate lengths
+    const totalLen = pkcs1Bytes.length + pkcs8Header.length - 4;
+    const octetLen = pkcs1Bytes.length;
+    
+    // Build PKCS#8 wrapper
+    const pkcs8 = new Uint8Array(pkcs8Header.length + pkcs1Bytes.length);
+    pkcs8.set(pkcs8Header);
+    pkcs8.set(pkcs1Bytes, pkcs8Header.length);
+    
+    // Patch SEQUENCE length (bytes 2-3)
+    pkcs8[2] = (totalLen >> 8) & 0xff;
+    pkcs8[3] = totalLen & 0xff;
+    
+    // Patch OCTET STRING length (bytes 24-25)
+    pkcs8[24] = (octetLen >> 8) & 0xff;
+    pkcs8[25] = octetLen & 0xff;
+    
+    try {
+      cryptoKey = await crypto.subtle.importKey(
+        "pkcs8",
+        pkcs8.buffer,
+        { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+      console.log("PKCS#1 to PKCS#8 conversion successful");
+    } catch (e2) {
+      console.error("Both PKCS#8 and PKCS#1 import failed:", e2);
+      throw new Error("Private key import failed. The key format could not be recognized. Please ensure it is a valid RSA private key.");
+    }
   }
 
   const signature = await crypto.subtle.sign(
