@@ -60,35 +60,48 @@ async function createGitHubAppJWT(appId: string, privateKeyPem: string): Promise
       ["sign"]
     );
   } catch {
-    // PKCS#1 → PKCS#8 wrapping: prepend ASN.1 PKCS#8 header for RSA
+    // PKCS#1 → PKCS#8 wrapping with proper ASN.1 DER length encoding
     console.log("PKCS#8 import failed, attempting PKCS#1 to PKCS#8 conversion...");
     const pkcs1Bytes = new Uint8Array(keyData);
-    const pkcs8Header = new Uint8Array([
-      0x30, 0x82, 0x00, 0x00, // SEQUENCE, length placeholder
-      0x02, 0x01, 0x00,       // INTEGER version = 0
-      0x30, 0x0d,             // SEQUENCE (AlgorithmIdentifier)
-      0x06, 0x09,             // OID
-      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, // rsaEncryption
-      0x05, 0x00,             // NULL
-      0x04, 0x82, 0x00, 0x00  // OCTET STRING, length placeholder
+    
+    // Helper to encode ASN.1 DER length
+    function derLength(len: number): Uint8Array {
+      if (len < 0x80) return new Uint8Array([len]);
+      if (len < 0x100) return new Uint8Array([0x81, len]);
+      return new Uint8Array([0x82, (len >> 8) & 0xff, len & 0xff]);
+    }
+    
+    // AlgorithmIdentifier for rsaEncryption
+    const algId = new Uint8Array([
+      0x30, 0x0d, 0x06, 0x09,
+      0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01,
+      0x05, 0x00
     ]);
     
-    // Calculate lengths
-    const totalLen = pkcs1Bytes.length + pkcs8Header.length - 4;
-    const octetLen = pkcs1Bytes.length;
+    // version INTEGER 0
+    const version = new Uint8Array([0x02, 0x01, 0x00]);
     
-    // Build PKCS#8 wrapper
-    const pkcs8 = new Uint8Array(pkcs8Header.length + pkcs1Bytes.length);
-    pkcs8.set(pkcs8Header);
-    pkcs8.set(pkcs1Bytes, pkcs8Header.length);
+    // OCTET STRING wrapping the PKCS#1 key
+    const octetTag = new Uint8Array([0x04]);
+    const octetLenBytes = derLength(pkcs1Bytes.length);
     
-    // Patch SEQUENCE length (bytes 2-3)
-    pkcs8[2] = (totalLen >> 8) & 0xff;
-    pkcs8[3] = totalLen & 0xff;
+    // Inner content: version + algId + octetString
+    const innerLen = version.length + algId.length + octetTag.length + octetLenBytes.length + pkcs1Bytes.length;
     
-    // Patch OCTET STRING length (bytes 24-25)
-    pkcs8[24] = (octetLen >> 8) & 0xff;
-    pkcs8[25] = octetLen & 0xff;
+    // Outer SEQUENCE
+    const seqTag = new Uint8Array([0x30]);
+    const seqLenBytes = derLength(innerLen);
+    
+    // Assemble PKCS#8
+    const pkcs8 = new Uint8Array(seqTag.length + seqLenBytes.length + innerLen);
+    let offset = 0;
+    pkcs8.set(seqTag, offset); offset += seqTag.length;
+    pkcs8.set(seqLenBytes, offset); offset += seqLenBytes.length;
+    pkcs8.set(version, offset); offset += version.length;
+    pkcs8.set(algId, offset); offset += algId.length;
+    pkcs8.set(octetTag, offset); offset += octetTag.length;
+    pkcs8.set(octetLenBytes, offset); offset += octetLenBytes.length;
+    pkcs8.set(pkcs1Bytes, offset);
     
     try {
       cryptoKey = await crypto.subtle.importKey(
@@ -101,7 +114,7 @@ async function createGitHubAppJWT(appId: string, privateKeyPem: string): Promise
       console.log("PKCS#1 to PKCS#8 conversion successful");
     } catch (e2) {
       console.error("Both PKCS#8 and PKCS#1 import failed:", e2);
-      throw new Error("Private key import failed. The key format could not be recognized. Please ensure it is a valid RSA private key.");
+      throw new Error("Private key import failed. The key format could not be recognized.");
     }
   }
 
