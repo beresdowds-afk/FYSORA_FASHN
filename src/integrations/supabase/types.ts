@@ -2144,6 +2144,103 @@ export type Database = {
           },
         ]
       }
+      mcp_event_log: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          event_source: string
+          event_type: string
+          id: string
+          mcp_response: Json | null
+          mcp_tool_name: string | null
+          org_id: string
+          payload: Json | null
+          processing_time_ms: number | null
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          event_source: string
+          event_type: string
+          id?: string
+          mcp_response?: Json | null
+          mcp_tool_name?: string | null
+          org_id: string
+          payload?: Json | null
+          processing_time_ms?: number | null
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          event_source?: string
+          event_type?: string
+          id?: string
+          mcp_response?: Json | null
+          mcp_tool_name?: string | null
+          org_id?: string
+          payload?: Json | null
+          processing_time_ms?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_event_log_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_worker_config: {
+        Row: {
+          auth_method: string | null
+          created_at: string | null
+          event_routing: Json | null
+          id: string
+          is_enabled: boolean | null
+          mcp_server_url: string
+          metadata: Json | null
+          org_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          auth_method?: string | null
+          created_at?: string | null
+          event_routing?: Json | null
+          id?: string
+          is_enabled?: boolean | null
+          mcp_server_url: string
+          metadata?: Json | null
+          org_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          auth_method?: string | null
+          created_at?: string | null
+          event_routing?: Json | null
+          id?: string
+          is_enabled?: boolean | null
+          mcp_server_url?: string
+          metadata?: Json | null
+          org_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_worker_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       measurement_profiles: {
         Row: {
           created_at: string
