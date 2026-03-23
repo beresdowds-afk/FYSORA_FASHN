@@ -2197,6 +2197,142 @@ export type Database = {
           },
         ]
       }
+      mcp_tenant_usage: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          processing_time_ms: number | null
+          status: string | null
+          tenant_id: string
+          tool_name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          processing_time_ms?: number | null
+          status?: string | null
+          tenant_id: string
+          tool_name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          processing_time_ms?: number | null
+          status?: string | null
+          tenant_id?: string
+          tool_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_tenant_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_tenant_webhooks: {
+        Row: {
+          created_at: string | null
+          events: string[]
+          id: string
+          is_active: boolean
+          secret_hash: string | null
+          tenant_id: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          events?: string[]
+          id?: string
+          is_active?: boolean
+          secret_hash?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          events?: string[]
+          id?: string
+          is_active?: boolean
+          secret_hash?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_tenant_webhooks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_tenants: {
+        Row: {
+          allowed_tools: string[] | null
+          api_key_hash: string | null
+          api_key_prefix: string | null
+          base_url: string | null
+          blocked_tools: string[] | null
+          created_at: string | null
+          display_name: string
+          domains: string[]
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          mode: string
+          rate_limit_per_min: number
+          registered_by: string | null
+          tenant_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_tools?: string[] | null
+          api_key_hash?: string | null
+          api_key_prefix?: string | null
+          base_url?: string | null
+          blocked_tools?: string[] | null
+          created_at?: string | null
+          display_name: string
+          domains?: string[]
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          mode?: string
+          rate_limit_per_min?: number
+          registered_by?: string | null
+          tenant_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_tools?: string[] | null
+          api_key_hash?: string | null
+          api_key_prefix?: string | null
+          base_url?: string | null
+          blocked_tools?: string[] | null
+          created_at?: string | null
+          display_name?: string
+          domains?: string[]
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          mode?: string
+          rate_limit_per_min?: number
+          registered_by?: string | null
+          tenant_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       mcp_worker_config: {
         Row: {
           auth_method: string | null
