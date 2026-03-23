@@ -18,6 +18,7 @@ export interface PlatformSettings {
   social_links: Record<string, string>;
   meta_keywords: string;
   copyright_text: string;
+  sentinel_mcp_url: string;
   updated_at: string;
 }
 
