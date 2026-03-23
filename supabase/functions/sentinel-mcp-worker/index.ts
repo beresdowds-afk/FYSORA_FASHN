@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-tenant-key, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Supported MCP tool mappings per event domain
@@ -49,6 +49,39 @@ const EVENT_TOOL_MAP: Record<string, string> = {
   "org.created": "fsa_org_created",
   "org.member_joined": "fsa_member_joined",
   "org.subscription_changed": "fsa_subscription_changed",
+  // Rental domain
+  "rental.listing_created": "rental_listing_created",
+  "rental.booking_confirmed": "rental_booking_confirmed",
+  "rental.payment_received": "rental_payment_received",
+  "rental.maintenance_requested": "rental_maintenance_request",
+  // Real estate domain
+  "realestate.property_listed": "realestate_property_listed",
+  "realestate.viewing_scheduled": "realestate_viewing_scheduled",
+  "realestate.offer_submitted": "realestate_offer_submitted",
+  // Hospitality domain
+  "hospitality.reservation_created": "hospitality_reservation_created",
+  "hospitality.guest_checked_in": "hospitality_guest_checkin",
+  "hospitality.service_requested": "hospitality_service_request",
+};
+
+// Domain-to-events mapping
+const DOMAIN_EVENTS: Record<string, string[]> = {
+  fashion: Object.keys(EVENT_TOOL_MAP).filter(
+    (e) =>
+      e.startsWith("website.") ||
+      e.startsWith("order.") ||
+      e.startsWith("payment.") ||
+      e.startsWith("customer.") ||
+      e.startsWith("comms.") ||
+      e.startsWith("ai.") ||
+      e.startsWith("logistics.") ||
+      e.startsWith("catalogue.") ||
+      e.startsWith("contract.") ||
+      e.startsWith("org.")
+  ),
+  rental: Object.keys(EVENT_TOOL_MAP).filter((e) => e.startsWith("rental.")),
+  realestate: Object.keys(EVENT_TOOL_MAP).filter((e) => e.startsWith("realestate.")),
+  hospitality: Object.keys(EVENT_TOOL_MAP).filter((e) => e.startsWith("hospitality.")),
 };
 
 interface McpToolCall {
@@ -69,19 +102,35 @@ interface EventPayload {
   priority?: "low" | "normal" | "high" | "critical";
 }
 
-// Rate limiting: per org, max 60 events/minute
+// Rate limiting: per tenant, configurable per-min
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(orgId: string): boolean {
+function checkRateLimit(key: string, maxPerMin: number): boolean {
   const now = Date.now();
-  const entry = rateLimitMap.get(orgId);
+  const entry = rateLimitMap.get(key);
   if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(orgId, { count: 1, resetAt: now + 60_000 });
+    rateLimitMap.set(key, { count: 1, resetAt: now + 60_000 });
     return true;
   }
-  if (entry.count >= 60) return false;
+  if (entry.count >= maxPerMin) return false;
   entry.count++;
   return true;
+}
+
+// SHA-256 hash for API key comparison
+async function hashApiKey(key: string): Promise<string> {
+  const encoded = new TextEncoder().encode(key);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Generate a secure API key
+function generateApiKey(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return "smcp_" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 Deno.serve(async (req) => {
@@ -92,89 +141,143 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // Validate auth
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // User-scoped client for auth validation
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub as string;
-
-    // Service role client for DB operations
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Parse request
-    const body: EventPayload | { action: string; org_id?: string; [key: string]: unknown } =
-      await req.json();
+    // Determine auth method: X-Tenant-Key (API key) or Bearer token
+    const tenantKey = req.headers.get("X-Tenant-Key");
+    const authHeader = req.headers.get("Authorization");
 
-    // Admin actions: configure, list-configs, event-history
+    let authMode: "tenant_key" | "bearer" = "bearer";
+    let userId: string | null = null;
+    let tenantRecord: any = null;
+
+    if (tenantKey) {
+      // API key authentication — validate against mcp_tenants
+      authMode = "tenant_key";
+      const keyHash = await hashApiKey(tenantKey);
+
+      const { data: tenant } = await adminClient
+        .from("mcp_tenants")
+        .select("*")
+        .eq("api_key_hash", keyHash)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!tenant) {
+        return jsonResponse({ error: "Invalid or inactive API key" }, 401);
+      }
+      tenantRecord = tenant;
+    } else if (authHeader?.startsWith("Bearer ")) {
+      // JWT authentication — existing flow for dashboard users
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } =
+        await userClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return jsonResponse({ error: "Invalid token" }, 401);
+      }
+      userId = claimsData.claims.sub as string;
+    } else {
+      return jsonResponse({ error: "Unauthorized — provide X-Tenant-Key or Bearer token" }, 401);
+    }
+
+    // Parse request body
+    const body = await req.json();
+
+    // Admin actions (Bearer auth only)
     if ("action" in body) {
-      return await handleAdminAction(body as any, userId, adminClient);
+      if (authMode === "tenant_key") {
+        // Tenants can only use limited admin actions
+        const allowedTenantActions = ["health", "supported-events", "my-usage"];
+        if (!allowedTenantActions.includes(body.action)) {
+          return jsonResponse({ error: "Tenant API keys cannot perform admin actions" }, 403);
+        }
+        return await handleTenantSelfAction(body, tenantRecord, adminClient);
+      }
+      return await handleAdminAction(body, userId!, adminClient);
     }
 
     // Event dispatch
     const event = body as EventPayload;
     if (!event.event_type || !event.org_id) {
-      return new Response(
-        JSON.stringify({ error: "Missing event_type or org_id" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Missing event_type or org_id" }, 400);
     }
 
-    // Rate limit check
-    if (!checkRateLimit(event.org_id)) {
-      return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Max 60 events/minute per organization." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Tenant API key auth — validate domain access and tool permissions
+    if (authMode === "tenant_key" && tenantRecord) {
+      const eventDomain = event.event_type.split(".")[0];
+
+      // Check domain access
+      if (tenantRecord.domains.length > 0 && !tenantRecord.domains.includes(eventDomain)) {
+        return jsonResponse(
+          { error: `Tenant not authorized for domain: ${eventDomain}` },
+          403
+        );
+      }
+
+      // Check tool access
+      const toolName = EVENT_TOOL_MAP[event.event_type];
+      if (toolName) {
+        if (
+          tenantRecord.allowed_tools &&
+          tenantRecord.allowed_tools.length > 0 &&
+          !tenantRecord.allowed_tools.includes(toolName)
+        ) {
+          return jsonResponse({ error: `Tool not in allowed list: ${toolName}` }, 403);
+        }
+        if (
+          tenantRecord.blocked_tools &&
+          tenantRecord.blocked_tools.includes(toolName)
+        ) {
+          return jsonResponse({ error: `Tool is blocked: ${toolName}` }, 403);
+        }
+      }
+
+      // Rate limit per tenant
+      if (!checkRateLimit(`tenant:${tenantRecord.id}`, tenantRecord.rate_limit_per_min)) {
+        return jsonResponse(
+          { error: `Rate limit exceeded. Max ${tenantRecord.rate_limit_per_min} events/minute.` },
+          429
+        );
+      }
+    } else {
+      // Bearer auth — rate limit per org
+      if (!checkRateLimit(`org:${event.org_id}`, 60)) {
+        return jsonResponse(
+          { error: "Rate limit exceeded. Max 60 events/minute per organization." },
+          429
+        );
+      }
+
+      // Verify org membership for bearer auth
+      const [{ data: membership }, { data: superCheck }] = await Promise.all([
+        adminClient
+          .from("org_members")
+          .select("role")
+          .eq("user_id", userId!)
+          .eq("org_id", event.org_id)
+          .eq("is_active", true)
+          .maybeSingle(),
+        adminClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId!)
+          .eq("role", "super_admin")
+          .maybeSingle(),
+      ]);
+
+      if (!membership && !superCheck) {
+        return jsonResponse({ error: "Not a member of this organization" }, 403);
+      }
     }
 
-    // Check org membership
-    const { data: membership } = await adminClient
-      .from("org_members")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("org_id", event.org_id)
-      .eq("is_active", true)
-      .maybeSingle();
-
-    // Allow super_admins even without org membership
-    const { data: superCheck } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "super_admin")
-      .maybeSingle();
-
-    if (!membership && !superCheck) {
-      return new Response(
-        JSON.stringify({ error: "Not a member of this organization" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get org MCP config
+    // Get MCP server URL
     const { data: mcpConfig } = await adminClient
       .from("mcp_worker_config")
       .select("*")
@@ -182,44 +285,33 @@ Deno.serve(async (req) => {
       .eq("is_enabled", true)
       .maybeSingle();
 
-    // Fall back to platform-level config if no org-specific one
     let serverUrl: string | null = mcpConfig?.mcp_server_url || null;
-    let authMethod: string = mcpConfig?.auth_method || "bearer";
-    let routingConfig: Record<string, unknown> = mcpConfig?.event_routing || {};
+    const authMethod: string = mcpConfig?.auth_method || "bearer";
+    const routingConfig: Record<string, unknown> = mcpConfig?.event_routing || {};
 
     if (!serverUrl) {
-      // Check for platform-level MCP config (org_id is null or a sentinel value)
-      const { data: platformConfig } = await adminClient
+      const { data: platformRow } = await adminClient
         .from("platform_settings")
-        .select("value")
-        .eq("key", "sentinel_mcp_url")
-        .maybeSingle();
-
-      serverUrl = platformConfig?.value || null;
+        .select("sentinel_mcp_url")
+        .limit(1)
+        .single();
+      serverUrl = (platformRow as any)?.sentinel_mcp_url || null;
     }
 
     if (!serverUrl) {
-      // Log the event as unrouted but don't fail
       await adminClient.from("mcp_event_log").insert({
         org_id: event.org_id,
         event_type: event.event_type,
         event_source: event.source || "dashboard",
         payload: event.data,
         status: "skipped",
-        error_message: "No MCP server configured for this organization",
+        error_message: "No MCP server configured",
         processing_time_ms: Date.now() - startTime,
       });
-
-      return new Response(
-        JSON.stringify({
-          status: "skipped",
-          message: "No MCP server configured. Event logged.",
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ status: "skipped", message: "No MCP server configured. Event logged." });
     }
 
-    // Check if this event type is routed (if routing config exists)
+    // Check routing config
     const isRouted =
       Object.keys(routingConfig).length === 0 ||
       (routingConfig as Record<string, boolean>)[event.event_type] !== false;
@@ -234,11 +326,7 @@ Deno.serve(async (req) => {
         error_message: "Event type disabled in routing config",
         processing_time_ms: Date.now() - startTime,
       });
-
-      return new Response(
-        JSON.stringify({ status: "skipped", message: "Event type not routed" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ status: "skipped", message: "Event type not routed" });
     }
 
     // Resolve MCP tool name
@@ -253,14 +341,10 @@ Deno.serve(async (req) => {
         error_message: `Unknown event type: ${event.event_type}`,
         processing_time_ms: Date.now() - startTime,
       });
-
-      return new Response(
-        JSON.stringify({ error: `Unknown event type: ${event.event_type}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: `Unknown event type: ${event.event_type}` }, 400);
     }
 
-    // Build MCP Streamable HTTP request
+    // Build MCP request
     const mcpRequest: McpToolCall = {
       jsonrpc: "2.0",
       id: crypto.randomUUID(),
@@ -269,6 +353,7 @@ Deno.serve(async (req) => {
         name: toolName,
         arguments: {
           org_id: event.org_id,
+          tenant_key: tenantRecord?.tenant_key || "fsa_platform",
           event_type: event.event_type,
           priority: event.priority || "normal",
           timestamp: new Date().toISOString(),
@@ -278,24 +363,27 @@ Deno.serve(async (req) => {
       },
     };
 
-    // Resolve auth headers for MCP server
+    // Build fetch headers
     const mcpHeaders: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "application/json, text/event-stream",
     };
 
     if (authMethod === "bearer") {
-      // Use platform-level MCP auth key
       const { data: mcpAuthKey } = await adminClient
         .from("platform_api_keys")
         .select("key_value")
         .eq("key_name", "sentinel_mcp_auth_key")
         .eq("is_active", true)
         .maybeSingle();
-
       if (mcpAuthKey?.key_value) {
         mcpHeaders["Authorization"] = `Bearer ${mcpAuthKey.key_value}`;
       }
+    }
+
+    // If tenant, forward their tenant key to the MCP server
+    if (tenantRecord) {
+      mcpHeaders["X-Tenant-Key"] = tenantRecord.tenant_key;
     }
 
     // Call MCP server
@@ -311,9 +399,7 @@ Deno.serve(async (req) => {
       });
 
       const contentType = response.headers.get("content-type") ?? "";
-
       if (contentType.includes("text/event-stream")) {
-        // Handle SSE stream — collect all events
         const textBody = await response.text();
         mcpResponse = { stream: true, body: textBody };
       } else {
@@ -338,7 +424,7 @@ Deno.serve(async (req) => {
     await adminClient.from("mcp_event_log").insert({
       org_id: event.org_id,
       event_type: event.event_type,
-      event_source: event.source || "dashboard",
+      event_source: event.source || (tenantRecord ? `tenant:${tenantRecord.tenant_key}` : "dashboard"),
       payload: event.data,
       mcp_tool_name: toolName,
       mcp_response: mcpResponse,
@@ -348,27 +434,77 @@ Deno.serve(async (req) => {
       completed_at: new Date().toISOString(),
     });
 
-    return new Response(
-      JSON.stringify({
+    // Track tenant usage
+    if (tenantRecord) {
+      await adminClient.from("mcp_tenant_usage").insert({
+        tenant_id: tenantRecord.id,
+        event_type: event.event_type,
+        tool_name: toolName,
+        status: mcpStatus,
+        processing_time_ms: processingTime,
+      });
+    }
+
+    return jsonResponse(
+      {
         status: mcpStatus,
         tool: toolName,
         mcp_request_id: mcpRequest.id,
         processing_time_ms: processingTime,
         response: mcpResponse,
-      }),
-      { status: mcpStatus === "completed" ? 200 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      },
+      mcpStatus === "completed" ? 200 : 502
     );
   } catch (err) {
     console.error("Sentinel MCP Worker error:", err);
     const message = err instanceof Error ? err.message : "Internal error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ error: message }, 500);
   }
 });
 
-// Handle admin configuration actions
+// Tenant self-service actions (API key auth)
+async function handleTenantSelfAction(
+  body: any,
+  tenant: any,
+  adminClient: ReturnType<typeof createClient>
+) {
+  switch (body.action) {
+    case "my-usage": {
+      const limit = body.limit || 50;
+      const { data } = await adminClient
+        .from("mcp_tenant_usage")
+        .select("*")
+        .eq("tenant_id", tenant.id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      return jsonResponse({ tenant_key: tenant.tenant_key, usage: data || [] });
+    }
+    case "supported-events": {
+      // Filter to tenant's domains
+      const allowedEvents = tenant.domains.length > 0
+        ? Object.entries(EVENT_TOOL_MAP)
+            .filter(([evt]) => tenant.domains.includes(evt.split(".")[0]))
+            .map(([eventType, toolName]) => ({
+              event_type: eventType,
+              mcp_tool: toolName,
+              domain: eventType.split(".")[0],
+            }))
+        : Object.entries(EVENT_TOOL_MAP).map(([eventType, toolName]) => ({
+            event_type: eventType,
+            mcp_tool: toolName,
+            domain: eventType.split(".")[0],
+          }));
+      return jsonResponse({ events: allowedEvents });
+    }
+    case "health": {
+      return jsonResponse({ status: "healthy", tenant: tenant.tenant_key, mode: tenant.mode });
+    }
+    default:
+      return jsonResponse({ error: `Unknown action: ${body.action}` }, 400);
+  }
+}
+
+// Admin actions (Bearer JWT auth)
 async function handleAdminAction(
   body: { action: string; org_id?: string; [key: string]: unknown },
   userId: string,
@@ -378,18 +514,11 @@ async function handleAdminAction(
 
   switch (action) {
     case "configure": {
-      if (!org_id) {
-        return jsonResponse({ error: "org_id required" }, 400);
-      }
-
-      // Verify admin access
+      if (!org_id) return jsonResponse({ error: "org_id required" }, 400);
       const isAdmin = await verifyAdminAccess(userId, org_id, adminClient);
-      if (!isAdmin) {
-        return jsonResponse({ error: "Requires org admin or super admin" }, 403);
-      }
+      if (!isAdmin) return jsonResponse({ error: "Requires org admin or super admin" }, 403);
 
       const { mcp_server_url, is_enabled, event_routing, auth_method, metadata } = body as any;
-
       const { data, error } = await adminClient
         .from("mcp_worker_config")
         .upsert(
@@ -405,44 +534,154 @@ async function handleAdminAction(
         )
         .select()
         .single();
-
-      if (error) {
-        return jsonResponse({ error: error.message }, 500);
-      }
-
+      if (error) return jsonResponse({ error: error.message }, 500);
       return jsonResponse({ status: "configured", config: data });
     }
 
-    case "list-configs": {
+    case "register-tenant": {
       // Super admin only
-      const { data: superCheck } = await adminClient
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "super_admin")
-        .maybeSingle();
+      const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
+      if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
 
-      if (!superCheck) {
-        return jsonResponse({ error: "Super admin access required" }, 403);
+      const { tenant_key, display_name, mode, domains, base_url, rate_limit_per_min, allowed_tools, blocked_tools } = body as any;
+      if (!tenant_key || !display_name) {
+        return jsonResponse({ error: "tenant_key and display_name are required" }, 400);
       }
+
+      // Generate API key
+      const apiKey = generateApiKey();
+      const apiKeyHash = await hashApiKey(apiKey);
+      const apiKeyPrefix = apiKey.substring(0, 12) + "...";
+
+      const { data, error } = await adminClient
+        .from("mcp_tenants")
+        .insert({
+          tenant_key,
+          display_name,
+          mode: mode || "single",
+          domains: domains || [],
+          base_url: base_url || null,
+          rate_limit_per_min: rate_limit_per_min || 60,
+          api_key_hash: apiKeyHash,
+          api_key_prefix: apiKeyPrefix,
+          allowed_tools: allowed_tools || null,
+          blocked_tools: blocked_tools || null,
+          registered_by: userId,
+        })
+        .select()
+        .single();
+
+      if (error) return jsonResponse({ error: error.message }, 500);
+
+      // Return the raw API key ONLY on creation (never stored in plaintext)
+      return jsonResponse({
+        status: "registered",
+        tenant: data,
+        api_key: apiKey,
+        warning: "Store this API key securely — it cannot be retrieved again.",
+      });
+    }
+
+    case "rotate-api-key": {
+      const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
+      if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
+
+      const { tenant_id } = body as any;
+      if (!tenant_id) return jsonResponse({ error: "tenant_id required" }, 400);
+
+      const apiKey = generateApiKey();
+      const apiKeyHash = await hashApiKey(apiKey);
+      const apiKeyPrefix = apiKey.substring(0, 12) + "...";
+
+      const { error } = await adminClient
+        .from("mcp_tenants")
+        .update({ api_key_hash: apiKeyHash, api_key_prefix: apiKeyPrefix })
+        .eq("id", tenant_id);
+
+      if (error) return jsonResponse({ error: error.message }, 500);
+
+      return jsonResponse({
+        status: "rotated",
+        api_key: apiKey,
+        warning: "Store this API key securely — it cannot be retrieved again.",
+      });
+    }
+
+    case "list-tenants": {
+      const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
+      if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
+
+      const { data } = await adminClient
+        .from("mcp_tenants")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      return jsonResponse({ tenants: data || [] });
+    }
+
+    case "update-tenant": {
+      const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
+      if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
+
+      const { tenant_id, ...updates } = body as any;
+      if (!tenant_id) return jsonResponse({ error: "tenant_id required" }, 400);
+
+      // Remove non-updatable fields
+      delete updates.action;
+      delete updates.id;
+      delete updates.api_key_hash;
+      delete updates.api_key_prefix;
+
+      const { data, error } = await adminClient
+        .from("mcp_tenants")
+        .update(updates)
+        .eq("id", tenant_id)
+        .select()
+        .single();
+
+      if (error) return jsonResponse({ error: error.message }, 500);
+      return jsonResponse({ status: "updated", tenant: data });
+    }
+
+    case "register-webhook": {
+      const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
+      if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
+
+      const { tenant_id, url, events, secret } = body as any;
+      if (!tenant_id || !url) return jsonResponse({ error: "tenant_id and url required" }, 400);
+
+      const secretHash = secret ? await hashApiKey(secret) : null;
+
+      const { data, error } = await adminClient
+        .from("mcp_tenant_webhooks")
+        .insert({
+          tenant_id,
+          url,
+          events: events || [],
+          secret_hash: secretHash,
+        })
+        .select()
+        .single();
+
+      if (error) return jsonResponse({ error: error.message }, 500);
+      return jsonResponse({ status: "webhook_registered", webhook: data });
+    }
+
+    case "list-configs": {
+      const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
+      if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
 
       const { data } = await adminClient
         .from("mcp_worker_config")
         .select("*, organizations(name)")
         .order("created_at", { ascending: false });
-
       return jsonResponse({ configs: data || [] });
     }
 
     case "event-history": {
-      if (!org_id) {
-        return jsonResponse({ error: "org_id required" }, 400);
-      }
-
+      if (!org_id) return jsonResponse({ error: "org_id required" }, 400);
       const isAdmin = await verifyAdminAccess(userId, org_id, adminClient);
-      if (!isAdmin) {
-        return jsonResponse({ error: "Requires org admin or super admin" }, 403);
-      }
+      if (!isAdmin) return jsonResponse({ error: "Requires org admin or super admin" }, 403);
 
       const limit = (body.limit as number) || 50;
       const statusFilter = body.status_filter as string | undefined;
@@ -453,13 +692,9 @@ async function handleAdminAction(
         .eq("org_id", org_id)
         .order("created_at", { ascending: false })
         .limit(limit);
-
-      if (statusFilter) {
-        query = query.eq("status", statusFilter);
-      }
+      if (statusFilter) query = query.eq("status", statusFilter);
 
       const { data } = await query;
-
       return jsonResponse({ events: data || [] });
     }
 
@@ -470,13 +705,12 @@ async function handleAdminAction(
           mcp_tool: toolName,
           domain: eventType.split(".")[0],
         })),
+        domains: DOMAIN_EVENTS,
       });
     }
 
     case "health": {
-      if (!org_id) {
-        return jsonResponse({ error: "org_id required" }, 400);
-      }
+      if (!org_id) return jsonResponse({ error: "org_id required" }, 400);
 
       const { data: config } = await adminClient
         .from("mcp_worker_config")
@@ -484,11 +718,8 @@ async function handleAdminAction(
         .eq("org_id", org_id)
         .maybeSingle();
 
-      if (!config?.mcp_server_url) {
-        return jsonResponse({ status: "not_configured" });
-      }
+      if (!config?.mcp_server_url) return jsonResponse({ status: "not_configured" });
 
-      // Ping MCP server with an initialize request
       try {
         const pingRes = await fetch(config.mcp_server_url, {
           method: "POST",
@@ -503,11 +734,10 @@ async function handleAdminAction(
             params: {
               protocolVersion: "2025-03-26",
               capabilities: {},
-              clientInfo: { name: "fsa-sentinel-worker", version: "1.0.0" },
+              clientInfo: { name: "fsa-sentinel-worker", version: "2.0.0" },
             },
           }),
         });
-
         const pingData = await pingRes.json();
         return jsonResponse({
           status: pingRes.ok ? "healthy" : "unhealthy",
@@ -545,8 +775,20 @@ async function verifyAdminAccess(
       .eq("role", "super_admin")
       .maybeSingle(),
   ]);
-
   return !!(orgAdmin || superAdmin);
+}
+
+async function verifySuperAdmin(
+  userId: string,
+  client: ReturnType<typeof createClient>
+): Promise<boolean> {
+  const { data } = await client
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "super_admin")
+    .maybeSingle();
+  return !!data;
 }
 
 function jsonResponse(data: unknown, status = 200) {
