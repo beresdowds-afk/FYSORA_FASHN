@@ -806,6 +806,59 @@ export type Database = {
           },
         ]
       }
+      channel_routing_config: {
+        Row: {
+          created_at: string | null
+          fallback_channel: string | null
+          id: string
+          is_active: boolean | null
+          org_id: string | null
+          primary_channel: string
+          priority: number | null
+          process_name: string
+          provider: string
+          routing_conditions: Json | null
+          secondary_channel: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fallback_channel?: string | null
+          id?: string
+          is_active?: boolean | null
+          org_id?: string | null
+          primary_channel?: string
+          priority?: number | null
+          process_name: string
+          provider?: string
+          routing_conditions?: Json | null
+          secondary_channel?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fallback_channel?: string | null
+          id?: string
+          is_active?: boolean | null
+          org_id?: string | null
+          primary_channel?: string
+          priority?: number | null
+          process_name?: string
+          provider?: string
+          routing_conditions?: Json | null
+          secondary_channel?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_routing_config_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comms_provider_status: {
         Row: {
           balance_amount: number | null
@@ -937,6 +990,68 @@ export type Database = {
             columns: ["wallet_id"]
             isOneToOne: false
             referencedRelation: "credit_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comms_usage_analytics: {
+        Row: {
+          call_minutes: number | null
+          calls_made: number | null
+          channel: string
+          created_at: string | null
+          currency: string | null
+          id: string
+          messages_delivered: number | null
+          messages_failed: number | null
+          messages_sent: number | null
+          org_id: string | null
+          period_end: string
+          period_start: string
+          provider: string
+          total_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          call_minutes?: number | null
+          calls_made?: number | null
+          channel: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          messages_delivered?: number | null
+          messages_failed?: number | null
+          messages_sent?: number | null
+          org_id?: string | null
+          period_end: string
+          period_start: string
+          provider: string
+          total_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          call_minutes?: number | null
+          calls_made?: number | null
+          channel?: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          messages_delivered?: number | null
+          messages_failed?: number | null
+          messages_sent?: number | null
+          org_id?: string | null
+          period_end?: string
+          period_start?: string
+          provider?: string
+          total_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comms_usage_analytics_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
