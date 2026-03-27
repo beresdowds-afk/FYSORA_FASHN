@@ -49,6 +49,11 @@ const FSA_PROVIDERS = [
   { value: "exchange_rate", label: "Exchange Rate API", icon: "💱" },
   { value: "fashn", label: "FASHN (Virtual Try-On)", icon: "👗" },
   { value: "photoroom", label: "PhotoRoom (Image Enhancement)", icon: "🖼️" },
+  { value: "smile_id", label: "Smile ID (KYC Primary)", icon: "🪪" },
+  { value: "youverify", label: "YouVerify (KYC Secondary)", icon: "✅" },
+  { value: "identitypass", label: "IdentityPass (KYC Budget)", icon: "🆔" },
+  { value: "persona", label: "Persona (KYC Global)", icon: "🌐" },
+  { value: "sentinel_mcp", label: "Sentinel MCP", icon: "🛡️" },
   { value: "other", label: "Other", icon: "🔑" },
 ];
 
@@ -79,6 +84,18 @@ const FSA_KEY_NAMES: Record<string, { value: string; label: string }[]> = {
   exchange_rate: [{ value: "api_key", label: "API Key" }],
   fashn: [{ value: "api_key", label: "API Key" }],
   photoroom: [{ value: "api_key", label: "API Key" }],
+  smile_id: [
+    { value: "partner_id", label: "Partner ID" },
+    { value: "api_key", label: "API Key" },
+  ],
+  youverify: [{ value: "api_key", label: "API Key" }],
+  identitypass: [{ value: "api_key", label: "API Key" }],
+  persona: [{ value: "api_key", label: "API Key" }],
+  sentinel_mcp: [
+    { value: "tenant_key", label: "Tenant Key" },
+    { value: "api_key", label: "API Key" },
+    { value: "server_url", label: "Server URL" },
+  ],
   other: [{ value: "api_key", label: "API Key" }],
 };
 
