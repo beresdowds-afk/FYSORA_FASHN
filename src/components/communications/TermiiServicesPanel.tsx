@@ -108,7 +108,9 @@ const TermiiServicesPanel = ({ orgId, role }: TermiiServicesPanelProps) => {
           <TabsTrigger value="campaigns" className="gap-1.5"><Megaphone size={14} /> Campaigns</TabsTrigger>
           <TabsTrigger value="phonebooks" className="gap-1.5"><BookOpen size={14} /> Phonebooks</TabsTrigger>
           <TabsTrigger value="sender-ids" className="gap-1.5"><Send size={14} /> Sender IDs</TabsTrigger>
-          <TabsTrigger value="balance" className="gap-1.5"><Search size={14} /> Balance & Insights</TabsTrigger>
+          {isAdmin && role === "super_admin" && (
+            <TabsTrigger value="balance" className="gap-1.5"><Search size={14} /> Balance & Insights</TabsTrigger>
+          )}
         </TabsList>
 
         {/* OTP Tab */}
@@ -307,36 +309,38 @@ const TermiiServicesPanel = ({ orgId, role }: TermiiServicesPanelProps) => {
           </Card>
         </TabsContent>
 
-        {/* Balance & Insights */}
-        <TabsContent value="balance">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-heading font-semibold text-lg">Balance & Insights</h3>
-              <Button size="sm" variant="outline" onClick={checkBalance} disabled={balanceLoading}>
-                {balanceLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} className="mr-1" />}
-                Check Balance
-              </Button>
-            </div>
-            {balance ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg bg-muted/30 text-center">
-                  <p className="text-xs text-muted-foreground">Balance</p>
-                  <p className="text-2xl font-bold mt-1">{balance.balance || balance.available_balance || "N/A"}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/30 text-center">
-                  <p className="text-xs text-muted-foreground">Currency</p>
-                  <p className="text-2xl font-bold mt-1">{balance.currency || "NGN"}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted/30 text-center">
-                  <p className="text-xs text-muted-foreground">Wallet ID</p>
-                  <p className="text-sm font-mono mt-2">{balance.user?.id || balance.wallet_id || "N/A"}</p>
-                </div>
+        {/* Balance & Insights — super admin only */}
+        {isAdmin && role === "super_admin" && (
+          <TabsContent value="balance">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-heading font-semibold text-lg">Balance & Insights</h3>
+                <Button size="sm" variant="outline" onClick={checkBalance} disabled={balanceLoading}>
+                  {balanceLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} className="mr-1" />}
+                  Check Balance
+                </Button>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-6 text-center">Click "Check Balance" to view your Termii account status.</p>
-            )}
-          </Card>
-        </TabsContent>
+              {balance ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-lg bg-muted/30 text-center">
+                    <p className="text-xs text-muted-foreground">Balance</p>
+                    <p className="text-2xl font-bold mt-1">{balance.balance || balance.available_balance || "N/A"}</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/30 text-center">
+                    <p className="text-xs text-muted-foreground">Currency</p>
+                    <p className="text-2xl font-bold mt-1">{balance.currency || "NGN"}</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/30 text-center">
+                    <p className="text-xs text-muted-foreground">Wallet ID</p>
+                    <p className="text-sm font-mono mt-2">{balance.user?.id || balance.wallet_id || "N/A"}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-6 text-center">Click "Check Balance" to view your Termii account status.</p>
+              )}
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
