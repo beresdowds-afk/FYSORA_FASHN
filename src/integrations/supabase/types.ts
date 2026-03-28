@@ -8252,6 +8252,112 @@ export type Database = {
       }
     }
     Views: {
+      org_websites_public: {
+        Row: {
+          accent_color: string | null
+          brand_color: string | null
+          color_palette: Json | null
+          created_at: string | null
+          facebook_url: string | null
+          favicon_url: string | null
+          font_body: string | null
+          font_heading: string | null
+          hero_description: string | null
+          hero_image_url: string | null
+          id: string | null
+          instagram_url: string | null
+          is_enabled: boolean | null
+          linkedin_url: string | null
+          mission_statement: string | null
+          mode: string | null
+          org_id: string | null
+          tagline: string | null
+          theme: string | null
+          tiktok_url: string | null
+          twitter_url: string | null
+          updated_at: string | null
+          vision_statement: string | null
+          whatsapp_number: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          brand_color?: string | null
+          color_palette?: Json | null
+          created_at?: string | null
+          facebook_url?: string | null
+          favicon_url?: string | null
+          font_body?: string | null
+          font_heading?: string | null
+          hero_description?: string | null
+          hero_image_url?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          is_enabled?: boolean | null
+          linkedin_url?: string | null
+          mission_statement?: string | null
+          mode?: string | null
+          org_id?: string | null
+          tagline?: string | null
+          theme?: string | null
+          tiktok_url?: string | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          vision_statement?: string | null
+          whatsapp_number?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          brand_color?: string | null
+          color_palette?: Json | null
+          created_at?: string | null
+          facebook_url?: string | null
+          favicon_url?: string | null
+          font_body?: string | null
+          font_heading?: string | null
+          hero_description?: string | null
+          hero_image_url?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          is_enabled?: boolean | null
+          linkedin_url?: string | null
+          mission_statement?: string | null
+          mode?: string | null
+          org_id?: string | null
+          tagline?: string | null
+          theme?: string | null
+          tiktok_url?: string | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          vision_statement?: string | null
+          whatsapp_number?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_websites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_websites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_websites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations_public: {
         Row: {
           country: string | null
