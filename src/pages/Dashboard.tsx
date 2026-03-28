@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, CreditCard, Crown, MessageCircle, Video, Globe, Sparkles, Truck, FileText, Download, Receipt, Star, Wallet } from "lucide-react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import OrgDashboardSidebar, { type OrgTabId } from "@/components/dashboard/OrgDashboardSidebar";
 import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel";
 
 import SubscriptionTab from "@/components/billing/SubscriptionTab";
