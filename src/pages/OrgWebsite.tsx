@@ -225,7 +225,7 @@ const OrgWebsite = () => {
       setOrg(orgData as any);
 
       const { data: websiteData } = await supabase
-        .from("org_websites")
+        .from("org_websites_public" as any)
         .select("*")
         .eq("org_id", (orgData as any).id)
         .single();
