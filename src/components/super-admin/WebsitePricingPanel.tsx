@@ -101,7 +101,8 @@ const WebsitePricingPanel = () => {
   const { user } = useAuth();
   const [config, setConfig] = useState<PricingConfig>(DEFAULT_CONFIG);
   const savedConfigRef = useRef<PricingConfig>(DEFAULT_CONFIG);
-  const [stats, setStats] = useState({ activeLite: 0, activePro: 0, mrr: 0, totalPlatformFees: 0 });
+  const [stats, setStats] = useState({ activeLite: 0, activePro: 0, exempted: 0, mrr: 0, totalPlatformFees: 0 });
+  const [exemptions, setExemptions] = useState<{ id: string; org_id: string; org_name: string; exemption_type: string; reason: string | null; expires_at: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
