@@ -117,44 +117,45 @@ const TermiiServicesPanel = ({ orgId, role }: TermiiServicesPanelProps) => {
 
         {/* OTP Tab — super admin only */}
         {role === "super_admin" && (
-          <Card className="p-6">
-            <h3 className="font-heading font-semibold text-lg mb-4">OTP Service</h3>
-            <p className="text-xs text-muted-foreground mb-4">Send and verify one-time passwords via Termii.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm">Send OTP</h4>
-                <div>
-                  <Label className="text-xs">Phone Number</Label>
-                  <Input placeholder="+234XXXXXXXXXX" value={otpPhone} onChange={e => setOtpPhone(e.target.value)} />
+          <TabsContent value="otp">
+            <Card className="p-6">
+              <h3 className="font-heading font-semibold text-lg mb-4">OTP Service</h3>
+              <p className="text-xs text-muted-foreground mb-4">Send and verify one-time passwords via Termii.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">Send OTP</h4>
+                  <div>
+                    <Label className="text-xs">Phone Number</Label>
+                    <Input placeholder="+234XXXXXXXXXX" value={otpPhone} onChange={e => setOtpPhone(e.target.value)} />
+                  </div>
+                  <Button onClick={handleSendOTP} disabled={sendOTP.isPending || !otpPhone} className="w-full">
+                    {sendOTP.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <Send size={14} className="mr-1" />}
+                    Send OTP
+                  </Button>
                 </div>
-                <Button onClick={handleSendOTP} disabled={sendOTP.isPending || !otpPhone} className="w-full">
-                  {sendOTP.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <Send size={14} className="mr-1" />}
-                  Send OTP
-                </Button>
-              </div>
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm">Verify OTP</h4>
-                <div>
-                  <Label className="text-xs">Pin ID</Label>
-                  <Input placeholder="From send response" value={otpPinId} onChange={e => setOtpPinId(e.target.value)} />
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">Verify OTP</h4>
+                  <div>
+                    <Label className="text-xs">Pin ID</Label>
+                    <Input placeholder="From send response" value={otpPinId} onChange={e => setOtpPinId(e.target.value)} />
+                  </div>
+                  <div>
+                    <Label className="text-xs">OTP Code</Label>
+                    <Input placeholder="Enter code" value={otpPin} onChange={e => setOtpPin(e.target.value)} />
+                  </div>
+                  <Button onClick={handleVerifyOTP} disabled={verifyOTP.isPending || !otpPinId || !otpPin} className="w-full" variant="outline">
+                    {verifyOTP.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <CheckCircle size={14} className="mr-1" />}
+                    Verify OTP
+                  </Button>
                 </div>
-                <div>
-                  <Label className="text-xs">OTP Code</Label>
-                  <Input placeholder="Enter code" value={otpPin} onChange={e => setOtpPin(e.target.value)} />
+              </div>
+              {otpResult && (
+                <div className="mt-4 p-3 rounded-lg bg-muted text-sm font-medium">
+                  {otpResult}
                 </div>
-                <Button onClick={handleVerifyOTP} disabled={verifyOTP.isPending || !otpPinId || !otpPin} className="w-full" variant="outline">
-                  {verifyOTP.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <CheckCircle size={14} className="mr-1" />}
-                  Verify OTP
-                </Button>
-              </div>
-            </div>
-            {otpResult && (
-              <div className="mt-4 p-3 rounded-lg bg-muted text-sm font-medium">
-                {otpResult}
-              </div>
-            )}
-          </Card>
-        </TabsContent>
+              )}
+            </Card>
+          </TabsContent>
         )}
 
         {/* Campaigns Tab */}
