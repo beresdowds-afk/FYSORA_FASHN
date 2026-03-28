@@ -1,15 +1,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, History, UserCog, Inbox, Route, Phone, Wallet, MessageSquare, Megaphone, Activity, Share2 } from "lucide-react";
+import { Settings, History, UserCog, Inbox, Phone, Wallet, MessageSquare, Megaphone } from "lucide-react";
 import NotificationSettingsPanel from "./NotificationSettingsPanel";
 import MessageLogViewer from "./MessageLogViewer";
 import UserNotificationPreferences from "./UserNotificationPreferences";
 import MessageInbox from "./MessageInbox";
-import RoutingRulesPanel from "./RoutingRulesPanel";
 import CallHistoryPanel from "./CallHistoryPanel";
 import VoipBillingPanel from "./VoipBillingPanel";
 import WhatChimpPanel from "./WhatChimpPanel";
 import TermiiServicesPanel from "./TermiiServicesPanel";
-import CommsMonitoringPanel from "./CommsMonitoringPanel";
 
 interface CommunicationsTabProps {
   orgId: string;
