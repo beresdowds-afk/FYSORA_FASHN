@@ -25,6 +25,7 @@ import VideoBillingPanel from "@/components/super-admin/VideoBillingPanel";
 import DomainManagementPanel from "@/components/super-admin/DomainManagementPanel";
 import VerificationProvidersPanel from "@/components/super-admin/VerificationProvidersPanel";
 import CommunicationsFullPage from "@/components/communications/CommunicationsFullPage";
+import CarrierSettingsPanel from "@/components/logistics/CarrierSettingsPanel";
 import CustomerRegistrationsTab from "@/components/customers/CustomerRegistrationsTab";
 import DisputesTab from "@/components/disputes/DisputesTab";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
@@ -34,7 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star, ShoppingBag, Download, Settings, LifeBuoy, Banknote, MapPin, MessageSquare, Menu, Video, ClipboardList, Scale } from "lucide-react";
+import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star, ShoppingBag, Download, Settings, LifeBuoy, Banknote, MapPin, MessageSquare, Menu, Video, ClipboardList, Scale, Truck } from "lucide-react";
 import LocationMapFooter from "@/components/shared/LocationMapFooter";
 import TourGuide from "@/components/shared/TourGuide";
 import { useTourGuide } from "@/hooks/useTourGuide";
@@ -77,7 +78,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "registrations" | "disputes";
+type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "registrations" | "disputes";
 
 interface SidebarItem {
   id: TabId;
@@ -151,6 +152,7 @@ const SuperAdminDashboard = () => {
       items: [
         { id: "overview", icon: BarChart3, label: "Overview" },
         { id: "platform_settings", icon: Settings, label: "Platform Settings" },
+        { id: "carriers", icon: Truck, label: "Carriers" },
       ],
     },
     {
@@ -285,6 +287,7 @@ const SuperAdminDashboard = () => {
           <main className="flex-1 p-4 lg:p-6 overflow-auto">
             {activeTab === "overview" && <OverviewPanel stats={stats} orgs={orgs} groups={sidebarGroups} onTabChange={setActiveTab} />}
             {activeTab === "platform_settings" && isSuperAdmin && <PlatformSettingsPanel />}
+            {activeTab === "carriers" && <CarrierSettingsPanel orgId="" />}
             {activeTab === "organizations" && <OrganizationsPanel orgs={orgs} />}
             {activeTab === "users" && <UsersPanel />}
             {activeTab === "accounts" && <AccountManagementPanel />}
