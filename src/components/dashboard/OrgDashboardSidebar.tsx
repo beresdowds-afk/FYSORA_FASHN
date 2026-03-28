@@ -17,7 +17,7 @@ import {
 export type OrgTabId =
   | "overview" | "orders" | "customers" | "bookings" | "premium"
   | "featured" | "logistics" | "contracts" | "members" | "billing"
-  | "invoicing" | "wallet" | "website" | "settings";
+  | "invoicing" | "invoice_manager" | "wallet" | "website" | "settings";
 
 const navGroups = [
   {
@@ -44,6 +44,7 @@ const navGroups = [
       { id: "members" as const, icon: Users, label: "Team Members" },
       { id: "billing" as const, icon: CreditCard, label: "FSA Subscription" },
       { id: "invoicing" as const, icon: Receipt, label: "Billing & Invoicing" },
+      { id: "invoice_manager" as const, icon: FileText, label: "Invoice Manager" },
       { id: "wallet" as const, icon: Wallet, label: "Wallet" },
     ],
   },

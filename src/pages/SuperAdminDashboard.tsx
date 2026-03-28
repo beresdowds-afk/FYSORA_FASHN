@@ -11,6 +11,7 @@ import MobileAppManagementPanel from "@/components/super-admin/MobileAppManageme
 import AuditLogsPanel from "@/components/super-admin/AuditLogsPanel";
 import AccountManagementPanel from "@/components/super-admin/AccountManagementPanel";
 import AdminInvoicingPaymentsPanel from "@/components/super-admin/AdminInvoicingPaymentsPanel";
+import InvoiceManagerPanel from "@/components/invoices/InvoiceManagerPanel";
 import AdminSupportRequestsPanel from "@/components/super-admin/AdminSupportRequestsPanel";
 import BankAccountsPanel from "@/components/super-admin/BankAccountsPanel";
 import MessageCenterDashboard from "@/components/super-admin/MessageCenterDashboard";
@@ -78,7 +79,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "registrations" | "disputes";
+type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "registrations" | "disputes";
 
 interface SidebarItem {
   id: TabId;
@@ -170,6 +171,7 @@ const SuperAdminDashboard = () => {
       items: [
         { id: "revenue", icon: TrendingUp, label: "Platform Revenue" },
         { id: "invoicing", icon: ScrollText, label: "Invoicing & Payments" },
+        { id: "invoice_manager", icon: ScrollText, label: "Invoice Manager" },
         { id: "sub_rates", icon: Crown, label: "Subscription Rates" },
         { id: "tax_compliance", icon: Globe, label: "Tax & Compliance" },
         { id: "regional_management", icon: MapPin, label: "Regional Mgmt" },
@@ -293,6 +295,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "accounts" && <AccountManagementPanel />}
             {activeTab === "revenue" && <PlatformRevenuePanel />}
             {activeTab === "invoicing" && <AdminInvoicingPaymentsPanel />}
+            {activeTab === "invoice_manager" && <InvoiceManagerPanel isSuperAdmin currency="USD" />}
             {activeTab === "sub_rates" && isSuperAdmin && <SubscriptionRatesPanel />}
             {activeTab === "tax_compliance" && isSuperAdmin && <TaxCompliancePanel />}
             {activeTab === "regional_management" && isSuperAdmin && <RegionalManagementPanel />}

@@ -12,6 +12,7 @@ import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel"
 
 import SubscriptionTab from "@/components/billing/SubscriptionTab";
 import OrgBillingInvoicingTab from "@/components/billing/OrgBillingInvoicingTab";
+import InvoiceManagerPanel from "@/components/invoices/InvoiceManagerPanel";
 import { useOrgSubscription } from "@/hooks/useSubscription";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import OrdersTab from "@/components/orders/OrdersTab";
@@ -235,6 +236,7 @@ const Dashboard = () => {
             {activeTab === "members" && <MembersTab orgId={currentOrg.id} role={role} />}
             {activeTab === "billing" && <SubscriptionTab orgId={currentOrg.id} role={role} />}
             {activeTab === "invoicing" && <OrgBillingInvoicingTab orgId={currentOrg.id} orgName={currentOrg.name} currency={currentOrg.currency || "NGN"} role={role} />}
+            {activeTab === "invoice_manager" && <InvoiceManagerPanel orgId={currentOrg.id} orgName={currentOrg.name} currency={currentOrg.currency || "NGN"} />}
             {activeTab === "wallet" && <WalletManagementTab orgId={currentOrg.id} />}
             {activeTab === "website" && <FeatureGate featureKey="website_builder_pro" fallback={<WebsiteBuilderTab org={currentOrg} role={role} />}><WebsiteBuilderTab org={currentOrg} role={role} /></FeatureGate>}
             {activeTab === "settings" && <SettingsTab org={currentOrg} role={role} />}
