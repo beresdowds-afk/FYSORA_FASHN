@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import InvoiceCreatorDialog, { type InvoiceFormData } from "./InvoiceCreatorDialog";
 import { motion } from "framer-motion";
 import {
+  FileText, Plus, Search, Download, RefreshCw, Edit3,
   Clock, CheckCircle2, Send, XCircle, Trash2, Forward,
 } from "lucide-react";
 import ForwardInvoiceDialog from "./ForwardInvoiceDialog";
