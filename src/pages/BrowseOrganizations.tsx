@@ -58,17 +58,18 @@ const BrowseOrganizations = () => {
     const fetchOrgs = async () => {
       // Use public view for authenticated users, summary view for unauthenticated
       const { data } = user
-        ? await supabase
+        ? await (supabase
             .from("organizations_public" as any)
             .select("id, name, slug, country, region, currency, phone, logo_url, specialties, created_at")
             .eq("is_active", true)
-            .order("name")
-        : await supabase
+            .order("name") as any)
+        : await (supabase
             .from("organizations_summary" as any)
             .select("id, name, slug, logo_url, country, region")
-            .order("name");
+            .order("name") as any);
+      const orgsData = (data || []) as OrgCard[];
       
-      const orgIds = (data || []).map(o => o.id);
+      const orgIds = orgsData.map((o: any) => o.id);
       let catalogueCounts: Record<string, number> = {};
       let categoryMap: Record<string, Set<string>> = {};
       if (orgIds.length > 0) {
@@ -84,7 +85,7 @@ const BrowseOrganizations = () => {
         });
       }
 
-      setOrgs((data || []).map(o => ({
+      setOrgs(orgsData.map((o: any) => ({
         ...o,
         catalogue_count: catalogueCounts[o.id] || 0,
         categories: categoryMap[o.id] ? [...categoryMap[o.id]] : [],
