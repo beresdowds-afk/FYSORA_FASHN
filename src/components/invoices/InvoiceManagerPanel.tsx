@@ -7,8 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import InvoiceCreatorDialog, { type InvoiceFormData } from "./InvoiceCreatorDialog";
 import { motion } from "framer-motion";
 import {
-  FileText, Plus, Search, Download, RefreshCw, Edit3, Eye,
-  Clock, CheckCircle2, Send, XCircle, Trash2, Forward, Share2,
+  Clock, CheckCircle2, Send, XCircle, Trash2, Forward,
 } from "lucide-react";
 import ForwardInvoiceDialog from "./ForwardInvoiceDialog";
 import { format } from "date-fns";
@@ -491,6 +490,13 @@ const InvoiceManagerPanel = ({ orgId, orgName, currency = "NGN", isSuperAdmin = 
         editInvoice={editInvoice}
         onSaved={loadInvoices}
         isSuperAdmin={isSuperAdmin}
+      />
+
+      <ForwardInvoiceDialog
+        open={!!forwardInvoice}
+        onOpenChange={(open) => { if (!open) setForwardInvoice(null); }}
+        invoice={forwardInvoice}
+        issuerName={isSuperAdmin ? "Fashion Stitches Africa" : (orgName || "Invoice")}
       />
     </motion.div>
   );
