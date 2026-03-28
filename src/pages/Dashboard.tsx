@@ -67,7 +67,7 @@ const Dashboard = () => {
   const hasPlatformAccess = isSuperAdmin || isSuperAssistant;
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "customers" | "bookings" | "premium" | "featured" | "logistics" | "contracts" | "members" | "billing" | "invoicing" | "wallet" | "website" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<OrgTabId>("overview");
 
   const tourSteps = role === "tailor" ? tailorTourSteps : orgAdminTourSteps;
   const tourId = role === "tailor" ? "tailor-dashboard" : "org-admin-dashboard";

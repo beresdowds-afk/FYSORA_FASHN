@@ -69,7 +69,7 @@ export default function OrgDashboardSidebar({ activeTab, onTabChange }: OrgDashb
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         {navGroups.map((group) => (
-          <SidebarGroup key={group.label} defaultOpen>
+          <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
