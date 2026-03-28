@@ -53,11 +53,11 @@ export const dispatchNotifications = async (params: NotifyParams) => {
 
     if (!settings) return;
 
-    const { data: org } = await supabase
-      .from("organizations")
+    const { data: org } = await (supabase
+      .from("organizations_public" as any)
       .select("name, email, phone")
       .eq("id", params.orgId)
-      .single();
+      .single() as any);
 
     const orgName = org?.name || "Your Organization";
     let emailSubject = "";

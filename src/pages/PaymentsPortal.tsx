@@ -120,7 +120,7 @@ const PaymentsPortal = () => {
     const orgIds = [...new Set((paymentsData || []).map((p: any) => p.org_id).filter(Boolean))];
     let orgMap: Record<string, string> = {};
     if (orgIds.length > 0) {
-      const { data: orgs } = await supabase.from("organizations").select("id, name").in("id", orgIds);
+      const { data: orgs } = await (supabase.from("organizations_public" as any).select("id, name").in("id", orgIds) as any);
       orgMap = Object.fromEntries((orgs || []).map((o: any) => [o.id, o.name]));
     }
 

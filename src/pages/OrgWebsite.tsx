@@ -208,19 +208,26 @@ const OrgWebsite = () => {
     const load = async () => {
       if (!slug) return;
 
-      const { data: orgData } = await supabase
-        .from("organizations")
-        .select("*")
-        .eq("slug", slug)
-        .single();
+      // Use public view for authenticated users, summary for unauthenticated
+      const { data: orgData } = user
+        ? await (supabase
+            .from("organizations_public" as any)
+            .select("*")
+            .eq("slug", slug)
+            .single() as any)
+        : await (supabase
+            .from("organizations_summary" as any)
+            .select("*")
+            .eq("slug", slug)
+            .single() as any);
 
       if (!orgData) { setLoading(false); return; }
-      setOrg(orgData);
+      setOrg(orgData as any);
 
       const { data: websiteData } = await supabase
         .from("org_websites")
         .select("*")
-        .eq("org_id", orgData.id)
+        .eq("org_id", (orgData as any).id)
         .single();
 
       if (websiteData) setWebsite(websiteData as unknown as OrgWebsiteData);

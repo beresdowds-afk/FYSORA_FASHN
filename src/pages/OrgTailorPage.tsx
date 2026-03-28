@@ -58,17 +58,17 @@ const OrgTailorPage = () => {
     const load = async () => {
       if (!slug || !tailorId) return;
 
-      const { data: orgData } = await supabase
-        .from("organizations")
+      const { data: orgData } = await (supabase
+        .from("organizations_public" as any)
         .select("id, name, slug, logo_url, currency")
         .eq("slug", slug)
-        .single();
+        .single() as any);
 
       if (!orgData) { setLoading(false); return; }
-      setOrg(orgData);
+      setOrg(orgData as any);
 
       const [websiteRes, tailorRes, itemsRes] = await Promise.all([
-        supabase.from("org_websites").select("brand_color, accent_color, font_heading, font_body, color_palette, instagram_url").eq("org_id", orgData.id).single(),
+        supabase.from("org_websites").select("brand_color, accent_color, font_heading, font_body, color_palette, instagram_url").eq("org_id", (orgData as any).id).single(),
         supabase.from("profiles").select("id, display_name, bio, specialty, instagram_url, facebook_url, twitter_url, tiktok_url, youtube_url, linkedin_url, portfolio_url").eq("id", tailorId).single(),
         supabase.from("tailor_catalogue_items").select("*").eq("tailor_id", tailorId).eq("is_published", true).order("created_at", { ascending: false }),
       ]);

@@ -28,7 +28,7 @@ const CataloguePage = () => {
     if (!orgId) return;
     const load = async () => {
       const [orgRes, itemsRes, websiteRes, membersRes] = await Promise.all([
-        supabase.from("organizations").select("id, name, slug, currency, phone, logo_url, description").eq("id", orgId).single(),
+        (supabase.from("organizations_public" as any).select("id, name, slug, currency, phone, logo_url, description").eq("id", orgId).single() as any),
         supabase.from("garment_catalog").select("*").eq("org_id", orgId).eq("is_published", true).order("name"),
         supabase.from("org_websites").select("instagram_url, facebook_url, whatsapp_number, twitter_url, linkedin_url, tiktok_url, youtube_url, brand_color").eq("org_id", orgId).single(),
         supabase.from("org_members").select("user_id, role, profiles(id, display_name, specialty)").eq("org_id", orgId).eq("role", "tailor").eq("is_active", true),
