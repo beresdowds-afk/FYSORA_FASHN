@@ -350,7 +350,7 @@ const OrgWebsite = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0d0d0d]/90 backdrop-blur-md border-b border-white/10">
         {/* Banner strip */}
         <div className="text-center py-1.5 text-[11px] font-medium tracking-wide" style={{ background: `${brandColor}15`, color: accentColor }}>
-          ✨ Powered by Fashion Stitches Africa — <Link to="/install" className="underline hover:no-underline">Get the App</Link>
+          ✨ Powered by Fashion Stitches Africa — <Link to={`/site/${slug}/install`} className="underline hover:no-underline">Get the App</Link>
         </div>
         <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-8">
           <div className="flex items-center gap-3">
@@ -536,16 +536,16 @@ const OrgWebsite = () => {
 
               {/* App Download */}
               <div className="mt-6 p-4 rounded-xl border border-white/10 bg-white/5">
-                <p className="text-xs text-gray-400 mb-2">Get the Fashion Stitches Africa app</p>
+                <p className="text-xs text-gray-400 mb-2">Get the {org.name} app</p>
                 <Link
-                  to="/install"
+                  to={`/site/${slug}/install`}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90"
                   style={{ background: brandColor }}
                 >
                   <Download size={14} />
                   Download App
                 </Link>
-                <p className="text-[10px] text-gray-600 mt-2">Register a free FSA account to access all features</p>
+                <p className="text-[10px] text-gray-600 mt-2">Install {org.name} on your device with a guided tour</p>
               </div>
             </div>
           </div>
