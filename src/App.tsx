@@ -27,6 +27,7 @@ import DemoOrgWebsite from "./pages/DemoOrgWebsite";
 import PlatformCataloguePage from "./pages/PlatformCataloguePage";
 import PlatformTour from "./pages/PlatformTour";
 import PaymentsPortal from "./pages/PaymentsPortal";
+import OrgCustomerInstall from "./pages/OrgCustomerInstall";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/video-call" element={<VideoCall />} />
             <Route path="/site/:slug" element={<OrgWebsite />} />
             <Route path="/site/:slug/tailor/:tailorId" element={<OrgTailorPage />} />
+            <Route path="/site/:slug/install" element={<OrgCustomerInstall />} />
             <Route path="/install" element={<Install />} />
             <Route path="/admin-install" element={<AdminInstall />} />
             <Route path="/browse" element={<BrowseOrganizations />} />

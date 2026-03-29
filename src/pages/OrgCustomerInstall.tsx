@@ -7,9 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Download, Smartphone, Check, Share, ArrowRight, Apple, Chrome, Scissors,
-  Volume2, VolumeX, ChevronLeft, ChevronRight, ShoppingBag, Building2, Ruler,
+  Volume2, VolumeX, ChevronLeft, ChevronRight, ShoppingBag, Ruler,
   Sparkles, Package, MessageSquare, Crown, Play, Pause, X, Star, Camera,
-  CreditCard, Bell, Shield, Video, Palette, Globe, Heart, Zap, Lock
+  CreditCard, Bell, Video, Heart, Zap, Lock
 } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -173,7 +173,7 @@ const buildTourFeatures = (orgName: string): TourFeature[] => [
 ];
 
 // ─── Tour Card Component ───────────────────────────────────────────────────
-const TourCard = ({ feature, isActive, brandColor }: { feature: TourFeature; isActive: boolean; brandColor: string }) => {
+const TourCard = ({ feature, isActive }: { feature: TourFeature; isActive: boolean; brandColor: string }) => {
   const Icon = feature.icon;
   return (
     <motion.div
