@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,10 +6,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Instagram, MessageCircle, Phone, Mail, MapPin, ExternalLink, Scissors, Calendar, BookOpen,
   Home, Menu, X, Sparkles, Lock, Facebook, Twitter, Linkedin, Youtube, Users, Download,
-  PhoneCall, MessageSquare, Send, Map, ChevronUp, Info, Globe
+  PhoneCall, MessageSquare, Send, Map, ChevronUp, Info, Globe, Heart, ShoppingBag,
+  Leaf, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getTemplate, isLightTemplate } from "@/config/websiteTemplates";
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface OrgWebsiteData {
   id: string;
   org_id: string;
@@ -35,6 +38,7 @@ interface OrgWebsiteData {
   favicon_url?: string | null;
   vision_statement?: string | null;
   mission_statement?: string | null;
+  template_id?: string | null;
 }
 
 interface OfficerData {
@@ -81,7 +85,7 @@ interface TailorData {
 }
 
 // ─── Floating Communication CTA ──────────────────────────────────────────────
-const FloatingCTA = ({ org, website, brandColor }: { org: OrgData; website: OrgWebsiteData; brandColor: string }) => {
+const FloatingCTA = ({ org, website, brandColor, isLight }: { org: OrgData; website: OrgWebsiteData; brandColor: string; isLight: boolean }) => {
   const [expanded, setExpanded] = useState(false);
 
   const actions = [
@@ -108,7 +112,7 @@ const FloatingCTA = ({ org, website, brandColor }: { org: OrgData; website: OrgW
             transition={{ delay: i * 0.05 }}
             className="flex items-center gap-3 group"
           >
-            <span className="hidden sm:block px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-black/80 backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className={`hidden sm:block px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity ${isLight ? "bg-black/80 text-white" : "bg-white/90 text-black"} backdrop-blur-sm`}>
               {action.label}
             </span>
             <div
@@ -132,12 +136,16 @@ const FloatingCTA = ({ org, website, brandColor }: { org: OrgData; website: OrgW
 };
 
 // ─── Google Maps Link ────────────────────────────────────────────────────────
-const GoogleMapsLink = ({ address }: { address: string }) => (
+const GoogleMapsLink = ({ address, isLight }: { address: string; isLight: boolean }) => (
   <a
     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
     target="_blank"
     rel="noopener noreferrer"
-    className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 text-sm text-gray-300 hover:text-white hover:border-white/30 transition-all bg-white/5"
+    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all ${
+      isLight
+        ? "border border-black/10 text-black/60 hover:text-black hover:border-black/20 bg-black/5"
+        : "border border-white/15 text-gray-300 hover:text-white hover:border-white/30 bg-white/5"
+    }`}
   >
     <Map size={16} className="text-red-400" />
     View on Google Maps
@@ -145,7 +153,7 @@ const GoogleMapsLink = ({ address }: { address: string }) => (
 );
 
 // ─── Newsletter Signup ───────────────────────────────────────────────────────
-const NewsletterSignup = ({ brandColor }: { brandColor: string }) => {
+const NewsletterSignup = ({ brandColor, isLight }: { brandColor: string; isLight: boolean }) => {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
@@ -156,7 +164,7 @@ const NewsletterSignup = ({ brandColor }: { brandColor: string }) => {
 
   if (subscribed) {
     return (
-      <p className="text-sm text-green-400 flex items-center gap-2">
+      <p className="text-sm text-green-600 flex items-center gap-2">
         <Sparkles size={14} /> Thanks for subscribing!
       </p>
     );
@@ -170,11 +178,15 @@ const NewsletterSignup = ({ brandColor }: { brandColor: string }) => {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Enter your email"
-        className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
+        className={`flex-1 px-4 py-2.5 rounded-full text-sm focus:outline-none transition-colors ${
+          isLight
+            ? "border border-black/10 bg-white text-black placeholder:text-black/30 focus:border-black/30"
+            : "border border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus:border-white/30"
+        }`}
       />
       <button
         type="submit"
-        className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+        className="px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-all hover:opacity-90"
         style={{ background: brandColor }}
       >
         Subscribe
@@ -183,6 +195,28 @@ const NewsletterSignup = ({ brandColor }: { brandColor: string }) => {
   );
 };
 
+// ─── Scroll To Top ───────────────────────────────────────────────────────────
+const ScrollToTop = ({ brandColor }: { brandColor: string }) => {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 600);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  if (!visible) return null;
+  return (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed bottom-6 left-6 z-50 w-10 h-10 rounded-full flex items-center justify-center border border-black/10 bg-white/80 backdrop-blur-sm hover:scale-110 transition-transform shadow-lg"
+    >
+      <ChevronUp size={18} style={{ color: brandColor }} />
+    </button>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
 const OrgWebsite = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -208,18 +242,9 @@ const OrgWebsite = () => {
     const load = async () => {
       if (!slug) return;
 
-      // Use public view for authenticated users, summary for unauthenticated
       const { data: orgData } = user
-        ? await (supabase
-            .from("organizations_public" as any)
-            .select("*")
-            .eq("slug", slug)
-            .single() as any)
-        : await (supabase
-            .from("organizations_summary" as any)
-            .select("*")
-            .eq("slug", slug)
-            .single() as any);
+        ? await (supabase.from("organizations_public" as any).select("*").eq("slug", slug).single() as any)
+        : await (supabase.from("organizations_summary" as any).select("*").eq("slug", slug).single() as any);
 
       if (!orgData) { setLoading(false); return; }
       setOrg(orgData as any);
@@ -233,23 +258,9 @@ const OrgWebsite = () => {
       if (websiteData) setWebsite(websiteData as unknown as OrgWebsiteData);
 
       const [catalogueResult, officersResult, tailorsResult] = await Promise.all([
-        supabase
-          .from("org_catalogue_items")
-          .select("*")
-          .eq("org_id", orgData.id)
-          .eq("is_available", true)
-          .order("sort_order"),
-        supabase
-          .from("org_company_officers")
-          .select("*")
-          .eq("org_id", orgData.id)
-          .eq("is_public", true)
-          .order("display_order"),
-        supabase
-          .from("tailor_contracts")
-          .select("tailor_id")
-          .eq("org_id", orgData.id)
-          .eq("status", "active"),
+        supabase.from("org_catalogue_items").select("*").eq("org_id", orgData.id).eq("is_available", true).order("sort_order"),
+        supabase.from("org_company_officers").select("*").eq("org_id", orgData.id).eq("is_public", true).order("display_order"),
+        supabase.from("tailor_contracts").select("tailor_id").eq("org_id", orgData.id).eq("status", "active"),
       ]);
 
       setCatalogue((catalogueResult.data || []) as CatalogueItem[]);
@@ -257,10 +268,7 @@ const OrgWebsite = () => {
 
       const tailorIds = (tailorsResult.data || []).map((t: any) => t.tailor_id);
       if (tailorIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, display_name, specialty, bio")
-          .in("id", tailorIds);
+        const { data: profiles } = await supabase.from("profiles").select("id, display_name, specialty, bio").in("id", tailorIds);
         setTailors((profiles || []) as TailorData[]);
       }
 
@@ -269,35 +277,44 @@ const OrgWebsite = () => {
     load();
   }, [slug]);
 
+  // Determine template — GABULK FASHION STUDIO uses Heritage Luxe by default
+  const templateId = useMemo(() => {
+    if (website?.template_id) return website.template_id;
+    // Auto-detect GABULK
+    if (org?.name?.toUpperCase().includes("GABULK")) return "hertunba-luxe";
+    return "dark-atelier";
+  }, [website, org]);
+
+  const template = getTemplate(templateId);
+  const isLight = isLightTemplate(templateId);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: template.design.bgBase }}>
+        <div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: template.design.textSecondary }} />
       </div>
     );
   }
 
   if (!org || !website || !website.is_enabled) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center gap-4 text-white">
-        <Scissors size={48} className="text-purple-400 opacity-50" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: template.design.bgBase, color: template.design.textPrimary }}>
+        <Scissors size={48} style={{ color: template.design.textSecondary }} className="opacity-50" />
         <h1 className="text-2xl font-bold">Website not found</h1>
-        <p className="text-gray-400">This organization doesn't have a public website yet.</p>
-        <Link to="/" className="text-purple-400 hover:underline text-sm">← Back to Fashion Stitches</Link>
+        <p style={{ color: template.design.textSecondary }}>This organization doesn't have a public website yet.</p>
+        <Link to="/" className="text-sm hover:underline" style={{ color: template.design.textSecondary }}>← Back to Fashion Stitches</Link>
       </div>
     );
   }
 
   if (website.mode === "custom_integration" && website.webhook_url) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center gap-4 text-white">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: template.design.bgBase, color: template.design.textPrimary }}>
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2">{org.name}</h1>
-          <p className="text-gray-400 mb-6">This organisation uses a custom website integration.</p>
+          <p className="mb-6" style={{ color: template.design.textSecondary }}>This organisation uses a custom website integration.</p>
           <a href={website.webhook_url} target="_blank" rel="noopener noreferrer">
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              Visit Website <ExternalLink size={16} className="ml-2" />
-            </Button>
+            <Button>Visit Website <ExternalLink size={16} className="ml-2" /></Button>
           </a>
         </div>
       </div>
@@ -307,11 +324,9 @@ const OrgWebsite = () => {
   const brandColor = website.brand_color || "#8B5CF6";
   const accentColor = website.accent_color || "#D4AF37";
   const currency = org.currency || "NGN";
-  const fontHeading = website.font_heading || "Inter";
-  const fontBody = website.font_body || "Inter";
-  const palette = website.color_palette || {};
-  const bgColor = palette.background || "#0d0d0d";
-  const surfaceColor = palette.surface || "#1a1a1a";
+  const fontHeading = website.font_heading || template.design.fontHeadingDefault;
+  const fontBody = website.font_body || template.design.fontBodyDefault;
+  const td = template.design;
 
   // Load Google Fonts
   const fontsToLoad = [...new Set([fontHeading, fontBody])].filter(f => f !== "Inter");
@@ -323,120 +338,130 @@ const OrgWebsite = () => {
       document.head.appendChild(el);
       return el;
     })();
-    (link as HTMLLinkElement).href = `https://fonts.googleapis.com/css2?${fontsToLoad.map(f => `family=${f.replace(/ /g, "+")}:wght@400;600;700`).join("&")}&display=swap`;
+    (link as HTMLLinkElement).href = `https://fonts.googleapis.com/css2?${fontsToLoad.map(f => `family=${f.replace(/ /g, "+")}:wght@300;400;500;600;700`).join("&")}&display=swap`;
   }
 
   const navItems = [
     { id: "home" as const, label: "Home", icon: Home },
-    { id: "about" as const, label: "About Us", icon: Info },
-    { id: "catalogue" as const, label: "Catalogue", icon: BookOpen },
-    { id: "tailors" as const, label: "Our Tailors", icon: Users },
-    { id: "booking" as const, label: "Book Appointment", icon: Calendar },
+    { id: "about" as const, label: "About", icon: Info },
+    { id: "catalogue" as const, label: "Collections", icon: BookOpen },
+    { id: "tailors" as const, label: "Artisans", icon: Users },
+    { id: "booking" as const, label: "Book", icon: Calendar },
   ];
 
   const socialLinks = [
     website.instagram_url && { icon: Instagram, href: website.instagram_url, label: "Instagram" },
     website.facebook_url && { icon: Facebook, href: website.facebook_url, label: "Facebook" },
     website.whatsapp_number && { icon: MessageCircle, href: `https://wa.me/${website.whatsapp_number.replace(/\D/g, "")}`, label: "WhatsApp" },
-    website.twitter_url && { icon: Twitter, href: website.twitter_url, label: "X (Twitter)" },
+    website.twitter_url && { icon: Twitter, href: website.twitter_url, label: "X" },
     website.linkedin_url && { icon: Linkedin, href: website.linkedin_url, label: "LinkedIn" },
     website.youtube_url && { icon: Youtube, href: website.youtube_url, label: "YouTube" },
     website.tiktok_url && { icon: Globe, href: website.tiktok_url, label: "TikTok" },
   ].filter(Boolean) as { icon: any; href: string; label: string }[];
 
+  // Shared style helpers
+  const textMain = { color: td.textPrimary };
+  const textMuted = { color: td.textSecondary };
+  const borderStyle = isLight ? "border-black/[0.08]" : "border-white/[0.08]";
+
   return (
-    <div className="min-h-screen text-white" style={{ backgroundColor: bgColor, fontFamily: fontBody }}>
-      {/* ─── Header with Logo, Banner & Menu ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0d0d0d]/90 backdrop-blur-md border-b border-white/10">
-        {/* Banner strip */}
-        <div className="text-center py-1.5 text-[11px] font-medium tracking-wide" style={{ background: `${brandColor}15`, color: accentColor }}>
-          ✨ Powered by Fashion Stitches Africa — <Link to={`/site/${slug}/install`} className="underline hover:no-underline">Get the App</Link>
+    <div className="min-h-screen" style={{ backgroundColor: td.bgBase, color: td.textPrimary, fontFamily: `'${fontBody}', sans-serif` }}>
+      {/* ─── Editorial Navigation ─── */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b ${borderStyle}`}
+        style={{ backgroundColor: isLight ? `${td.bgBase}ee` : `${td.bgBase}ee` }}>
+        {/* FSA Banner */}
+        <div className="text-center py-1.5 text-[11px] tracking-[0.15em] uppercase" style={{ background: isLight ? `${brandColor}08` : `${brandColor}15`, color: accentColor }}>
+          Powered by Fashion Stitches Africa — <Link to={`/site/${slug}/install`} className="underline hover:no-underline">Get the App</Link>
         </div>
-        <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-8">
+
+        <div className={`${td.containerMaxWidth} mx-auto flex items-center justify-between h-16 px-6 lg:px-12`}>
           <div className="flex items-center gap-3">
             {org.logo_url ? (
-              <img src={org.logo_url} alt={org.name} className="w-10 h-10 rounded-full object-contain border border-white/10" />
+              <img src={org.logo_url} alt={org.name} className="w-10 h-10 rounded-full object-contain" />
             ) : (
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: brandColor }}>
                 <Scissors size={16} className="text-white" />
               </div>
             )}
             <div className="flex flex-col">
-              <span className="font-bold text-sm tracking-wide" style={{ color: accentColor }}>{org.name}</span>
-              {website.tagline && <span className="text-[10px] text-gray-500 hidden sm:block">{website.tagline}</span>}
+              <span className="font-medium text-sm tracking-wide" style={{ fontFamily: `'${fontHeading}'`, color: td.textPrimary }}>{org.name}</span>
+              {website.tagline && <span className="text-[10px] hidden sm:block" style={textMuted}>{website.tagline}</span>}
             </div>
           </div>
 
           {/* Desktop nav */}
-          <div className="hidden lg:flex items-center gap-6">
+          <div className="hidden lg:flex items-center gap-8">
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => { setActivePage(item.id); window.scrollTo(0, 0); }}
-                className={`text-sm font-medium transition-colors ${activePage === item.id ? "text-white" : "text-gray-400 hover:text-white"}`}
-                style={activePage === item.id ? { color: accentColor } : {}}
+                onClick={() => { setActivePage(item.id); setMobileMenuOpen(false); window.scrollTo(0, 0); }}
+                className="text-xs font-medium tracking-[0.12em] uppercase transition-colors"
+                style={{ color: activePage === item.id ? brandColor : td.textSecondary }}
               >
                 {item.label}
               </button>
             ))}
           </div>
 
-          {/* Desktop CTA buttons */}
-          <div className="hidden lg:flex items-center gap-2">
+          {/* Desktop actions */}
+          <div className="hidden lg:flex items-center gap-3">
             {org.phone && (
-              <a href={`tel:${org.phone}`} className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 hover:border-green-500/50 transition-colors" title="Call">
-                <PhoneCall size={14} className="text-green-400" />
+              <a href={`tel:${org.phone}`} className={`w-9 h-9 rounded-full flex items-center justify-center border ${borderStyle} transition-colors hover:opacity-70`}>
+                <PhoneCall size={14} style={textMuted} />
               </a>
             )}
             {org.email && (
-              <a href={`mailto:${org.email}`} className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 hover:border-blue-500/50 transition-colors" title="Email">
-                <Mail size={14} className="text-blue-400" />
+              <a href={`mailto:${org.email}`} className={`w-9 h-9 rounded-full flex items-center justify-center border ${borderStyle} transition-colors hover:opacity-70`}>
+                <Mail size={14} style={textMuted} />
               </a>
             )}
             {website.whatsapp_number && (
-              <a href={`https://wa.me/${website.whatsapp_number.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center border border-white/10 hover:border-green-500/50 transition-colors" title="WhatsApp">
-                <MessageCircle size={14} className="text-green-400" />
+              <a href={`https://wa.me/${website.whatsapp_number.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className={`w-9 h-9 rounded-full flex items-center justify-center border ${borderStyle} transition-colors hover:opacity-70`}>
+                <MessageCircle size={14} style={textMuted} />
               </a>
             )}
           </div>
 
-          <button className="lg:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} style={textMain}>
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
+
+        {/* Mobile menu */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="lg:hidden bg-[#111] border-t border-white/10 overflow-hidden"
+              className={`lg:hidden border-t ${borderStyle} overflow-hidden`}
+              style={{ backgroundColor: td.bgSurface }}
             >
-              <div className="px-4 py-4 flex flex-col gap-4">
+              <div className="px-6 py-6 flex flex-col gap-5">
                 {navItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => { setActivePage(item.id); setMobileMenuOpen(false); window.scrollTo(0, 0); }}
-                    className="text-left text-sm font-medium text-gray-300 hover:text-white flex items-center gap-3"
+                    className="text-left text-sm tracking-[0.1em] uppercase flex items-center gap-3"
+                    style={{ color: activePage === item.id ? brandColor : td.textSecondary }}
                   >
-                    <item.icon size={16} style={{ color: accentColor }} />
+                    <item.icon size={16} />
                     {item.label}
                   </button>
                 ))}
-                {/* Mobile CTA row */}
-                <div className="flex gap-3 pt-3 border-t border-white/10">
+                <div className={`flex gap-3 pt-4 border-t ${borderStyle}`}>
                   {org.phone && (
-                    <a href={`tel:${org.phone}`} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-xs font-medium text-green-400">
+                    <a href={`tel:${org.phone}`} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full border ${borderStyle} text-xs font-medium`} style={textMuted}>
                       <PhoneCall size={14} /> Call
                     </a>
                   )}
                   {org.email && (
-                    <a href={`mailto:${org.email}`} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-xs font-medium text-blue-400">
+                    <a href={`mailto:${org.email}`} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full border ${borderStyle} text-xs font-medium`} style={textMuted}>
                       <Mail size={14} /> Email
                     </a>
                   )}
                   {website.whatsapp_number && (
-                    <a href={`https://wa.me/${website.whatsapp_number.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-xs font-medium text-green-400">
+                    <a href={`https://wa.me/${website.whatsapp_number.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full border ${borderStyle} text-xs font-medium`} style={textMuted}>
                       <MessageCircle size={14} /> WhatsApp
                     </a>
                   )}
@@ -447,35 +472,33 @@ const OrgWebsite = () => {
         </AnimatePresence>
       </nav>
 
-      {/* Extra top offset for banner + nav */}
+      {/* ─── Page Content ─── */}
       <div className="pt-[calc(4rem+1.75rem)]">
         {activePage === "home" && (
-          <HomePage org={org} website={website} brandColor={brandColor} accentColor={accentColor} fontHeading={fontHeading} officers={officers} tailors={tailors} slug={slug!} onNavigate={setActivePage} user={user} requireAuth={requireAuth} />
+          <HomePage org={org} website={website} brandColor={brandColor} accentColor={accentColor} fontHeading={fontHeading} officers={officers} tailors={tailors} slug={slug!} onNavigate={setActivePage} user={user} requireAuth={requireAuth} template={template} isLight={isLight} />
         )}
         {activePage === "about" && (
-          <AboutPage org={org} website={website} brandColor={brandColor} accentColor={accentColor} fontHeading={fontHeading} officers={officers} />
+          <AboutPage org={org} website={website} brandColor={brandColor} accentColor={accentColor} fontHeading={fontHeading} officers={officers} template={template} isLight={isLight} />
         )}
         {activePage === "catalogue" && (
-          <CataloguePage items={catalogue} currency={currency} brandColor={brandColor} accentColor={accentColor} user={user} requireAuth={requireAuth} />
+          <CataloguePage items={catalogue} currency={currency} brandColor={brandColor} accentColor={accentColor} user={user} requireAuth={requireAuth} template={template} isLight={isLight} fontHeading={fontHeading} />
         )}
         {activePage === "tailors" && (
-          <TailorsPage tailors={tailors} brandColor={brandColor} accentColor={accentColor} fontHeading={fontHeading} slug={slug!} />
+          <TailorsPage tailors={tailors} brandColor={brandColor} accentColor={accentColor} fontHeading={fontHeading} slug={slug!} template={template} isLight={isLight} />
         )}
         {activePage === "booking" && (
-          <BookingPage org={org} brandColor={brandColor} accentColor={accentColor} />
+          <BookingPage org={org} brandColor={brandColor} accentColor={accentColor} template={template} isLight={isLight} fontHeading={fontHeading} />
         )}
       </div>
 
-      {/* ─── Floating Communication CTA ─── */}
-      <FloatingCTA org={org} website={website} brandColor={brandColor} />
+      <FloatingCTA org={org} website={website} brandColor={brandColor} isLight={isLight} />
 
-      {/* ─── Enhanced Footer ─── */}
-      <footer className="border-t border-white/10 pt-16 pb-8 mt-16">
-        <div className="container mx-auto px-4 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
-            {/* Brand column */}
+      {/* ─── Luxe Footer ─── */}
+      <footer className={`border-t ${borderStyle} pt-20 pb-10 mt-20`} style={{ backgroundColor: td.bgSurface }}>
+        <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
             <div className="lg:col-span-1">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-5">
                 {org.logo_url ? (
                   <img src={org.logo_url} alt={org.name} className="w-8 h-8 rounded-full object-contain" />
                 ) : (
@@ -483,24 +506,17 @@ const OrgWebsite = () => {
                     <Scissors size={12} className="text-white" />
                   </div>
                 )}
-                <span className="font-bold text-lg" style={{ color: accentColor }}>{org.name}</span>
+                <span className="text-lg" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>{org.name}</span>
               </div>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">{website.tagline || org.description || "Quality tailoring services."}</p>
-
-              {/* Google Maps */}
-              {org.address && <GoogleMapsLink address={org.address} />}
+              <p className="text-sm leading-relaxed mb-5" style={textMuted}>{website.tagline || org.description}</p>
+              {org.address && <GoogleMapsLink address={org.address} isLight={isLight} />}
             </div>
 
-            {/* Sitemap */}
             <div>
-              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-gray-400">Sitemap</h4>
-              <div className="flex flex-col gap-2.5">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] mb-5" style={textMuted}>Navigate</h4>
+              <div className="flex flex-col gap-3">
                 {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => { setActivePage(item.id); window.scrollTo(0, 0); }}
-                    className="text-left text-gray-300 hover:text-white text-sm transition-colors flex items-center gap-2"
-                  >
+                  <button key={item.id} onClick={() => { setActivePage(item.id); window.scrollTo(0, 0); }} className="text-left text-sm transition-colors hover:opacity-70 flex items-center gap-2" style={textMuted}>
                     <item.icon size={13} style={{ color: accentColor }} />
                     {item.label}
                   </button>
@@ -508,19 +524,17 @@ const OrgWebsite = () => {
               </div>
             </div>
 
-            {/* Contact & Social */}
             <div>
-              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-gray-400">Contact</h4>
-              <div className="flex flex-col gap-2.5 text-sm text-gray-400 mb-4">
-                {org.phone && <a href={`tel:${org.phone}`} className="flex items-center gap-2 hover:text-white transition-colors"><Phone size={14} /> {org.phone}</a>}
-                {org.email && <a href={`mailto:${org.email}`} className="flex items-center gap-2 hover:text-white transition-colors"><Mail size={14} /> {org.email}</a>}
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] mb-5" style={textMuted}>Contact</h4>
+              <div className="flex flex-col gap-3 text-sm mb-5" style={textMuted}>
+                {org.phone && <a href={`tel:${org.phone}`} className="flex items-center gap-2 hover:opacity-70"><Phone size={14} /> {org.phone}</a>}
+                {org.email && <a href={`mailto:${org.email}`} className="flex items-center gap-2 hover:opacity-70"><Mail size={14} /> {org.email}</a>}
                 {org.address && <span className="flex items-center gap-2"><MapPin size={14} /> {org.address}</span>}
               </div>
-              {/* Social links */}
               {socialLinks.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="flex flex-wrap gap-2">
                   {socialLinks.map((s) => (
-                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-white/30 transition-colors" title={s.label}>
+                    <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className={`w-9 h-9 rounded-full border ${borderStyle} flex items-center justify-center transition-colors hover:opacity-70`} style={textMuted} title={s.label}>
                       <s.icon size={16} />
                     </a>
                   ))}
@@ -528,475 +542,520 @@ const OrgWebsite = () => {
               )}
             </div>
 
-            {/* Newsletter & App Download */}
             <div>
-              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider text-gray-400">Stay Updated</h4>
-              <p className="text-sm text-gray-500 mb-3">Subscribe for latest styles, offers, and updates.</p>
-              <NewsletterSignup brandColor={brandColor} />
-
-              {/* App Download */}
-              <div className="mt-6 p-4 rounded-xl border border-white/10 bg-white/5">
-                <p className="text-xs text-gray-400 mb-2">Get the {org.name} app</p>
+              <h4 className="text-xs font-semibold uppercase tracking-[0.2em] mb-5" style={textMuted}>Stay Updated</h4>
+              <p className="text-sm mb-4" style={textMuted}>Subscribe for new collections and exclusive offers.</p>
+              <NewsletterSignup brandColor={brandColor} isLight={isLight} />
+              <div className={`mt-6 p-4 rounded-xl border ${borderStyle}`} style={{ backgroundColor: isLight ? `${brandColor}06` : "rgba(255,255,255,0.03)" }}>
+                <p className="text-xs mb-2" style={textMuted}>Get the {org.name} app</p>
                 <Link
                   to={`/site/${slug}/install`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white transition-all hover:opacity-90"
                   style={{ background: brandColor }}
                 >
-                  <Download size={14} />
-                  Download App
+                  <Download size={14} /> Download App
                 </Link>
-                <p className="text-[10px] text-gray-600 mt-2">Install {org.name} on your device with a guided tour</p>
+                <p className="text-[10px] mt-2" style={{ color: `${td.textSecondary}99` }}>Install {org.name} on your device with a guided tour</p>
               </div>
             </div>
           </div>
 
-          {/* Bottom bar */}
-          <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+          {/* Sustainability */}
+          {td.showSustainabilityBadge && (
+            <div className={`border-t ${borderStyle} py-6 mb-6 flex items-center justify-center gap-3`}>
+              <Leaf size={16} style={{ color: "#22c55e" }} />
+              <span className="text-xs tracking-[0.15em] uppercase" style={textMuted}>{template.copy.sustainabilityNote}</span>
+            </div>
+          )}
+
+          <div className={`border-t ${borderStyle} pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs`} style={textMuted}>
             <span>© {new Date().getFullYear()} {org.name}. All rights reserved.</span>
             <div className="flex items-center gap-4">
-              <Link to="/auth" className="hover:text-white transition-colors">Create FSA Account</Link>
+              <Link to="/auth" className="hover:opacity-70 transition-colors">Create FSA Account</Link>
               <span>·</span>
-              <Link to="/" className="hover:text-white transition-colors">Fashion Stitches Africa</Link>
+              <Link to="/" className="hover:opacity-70 transition-colors">Fashion Stitches Africa</Link>
             </div>
           </div>
         </div>
       </footer>
 
-      {/* Scroll to top */}
       <ScrollToTop brandColor={brandColor} />
     </div>
   );
 };
 
-// ─── Scroll To Top ───────────────────────────────────────────────────────────
-const ScrollToTop = ({ brandColor }: { brandColor: string }) => {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 600);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  if (!visible) return null;
-  return (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-6 left-6 z-50 w-10 h-10 rounded-full flex items-center justify-center border border-white/10 bg-black/60 backdrop-blur-sm hover:scale-110 transition-transform"
-    >
-      <ChevronUp size={18} className="text-white" />
-    </button>
-  );
-};
-
-// ─── About Us Page ───────────────────────────────────────────────────────────
-const AboutPage = ({ org, website, brandColor, accentColor, fontHeading, officers }: {
-  org: OrgData;
-  website: OrgWebsiteData;
-  brandColor: string;
-  accentColor: string;
-  fontHeading: string;
-  officers: OfficerData[];
-}) => (
-  <div className="container mx-auto px-4 lg:px-8 py-16">
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="mb-16 text-center">
-        <h1 className="font-bold text-4xl md:text-5xl mb-4" style={{ fontFamily: fontHeading }}>About {org.name}</h1>
-        <p className="text-gray-400 max-w-xl mx-auto">{org.description || website.tagline || "Crafting excellence in African fashion."}</p>
-      </div>
-
-      {/* Vision & Mission */}
-      {(website.vision_statement || website.mission_statement) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-          {website.vision_statement && (
-            <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="p-8 rounded-2xl border border-white/10 bg-white/5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-px w-8" style={{ background: accentColor }} />
-                <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: accentColor }}>Our Vision</span>
-              </div>
-              <p className="text-lg text-gray-300 leading-relaxed">{website.vision_statement}</p>
-            </motion.div>
-          )}
-          {website.mission_statement && (
-            <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="p-8 rounded-2xl border border-white/10 bg-white/5">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-px w-8" style={{ background: brandColor }} />
-                <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: brandColor }}>Our Mission</span>
-              </div>
-              <p className="text-lg text-gray-300 leading-relaxed">{website.mission_statement}</p>
-            </motion.div>
-          )}
-        </div>
-      )}
-
-      {/* Officers / Team */}
-      {officers.length > 0 && (
-        <div>
-          <div className="text-center mb-12">
-            <h2 className="font-bold text-3xl mb-4" style={{ fontFamily: fontHeading }}>Meet Our Team</h2>
-            <p className="text-gray-400 max-w-xl mx-auto">The people behind the craft.</p>
-          </div>
-          <div className={`grid gap-8 ${officers.length <= 3 ? `grid-cols-1 md:grid-cols-${officers.length}` : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
-            {officers.map((officer, i) => (
-              <motion.div
-                key={officer.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-center group"
-              >
-                <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-2 border-white/10 mb-5 group-hover:border-white/30 transition-colors">
-                  {officer.photo_url ? (
-                    <img src={officer.photo_url} alt={officer.full_name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-white/5">
-                      <span className="text-3xl font-bold text-gray-500">
-                        {officer.full_name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <h3 className="font-bold text-lg mb-1" style={{ fontFamily: fontHeading }}>{officer.full_name}</h3>
-                <p className="text-sm mb-2" style={{ color: accentColor }}>{officer.title}</p>
-                {officer.bio && <p className="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto">{officer.bio}</p>}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-    </motion.div>
-  </div>
-);
-
-// ─── Home Page ───────────────────────────────────────────────────────────────
-const HomePage = ({ org, website, brandColor, accentColor, fontHeading, officers, tailors, slug, onNavigate, user, requireAuth }: {
-  org: OrgData;
-  website: OrgWebsiteData;
-  brandColor: string;
-  accentColor: string;
-  fontHeading: string;
-  officers: OfficerData[];
-  tailors: TailorData[];
-  slug: string;
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOME PAGE — Editorial Luxury
+// ═══════════════════════════════════════════════════════════════════════════════
+const HomePage = ({ org, website, brandColor, accentColor, fontHeading, officers, tailors, slug, onNavigate, user, requireAuth, template, isLight }: {
+  org: OrgData; website: OrgWebsiteData; brandColor: string; accentColor: string; fontHeading: string;
+  officers: OfficerData[]; tailors: TailorData[]; slug: string;
   onNavigate: (p: "home" | "about" | "catalogue" | "booking" | "tailors") => void;
-  user: any;
-  requireAuth: (action: string) => boolean;
-}) => (
-  <div>
-    {/* Hero */}
-    <section className="relative min-h-screen flex items-center overflow-hidden">
-      {website.hero_image_url ? (
-        <div className="absolute inset-0">
-          <img src={website.hero_image_url} alt="Hero" className="w-full h-full object-cover opacity-30" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0d0d0d]/60 via-transparent to-[#0d0d0d]" />
-        </div>
-      ) : (
-        <div className="absolute inset-0">
-          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 30% 50%, ${brandColor}22 0%, transparent 60%)` }} />
-          <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 80% 20%, ${accentColor}11 0%, transparent 50%)` }} />
-          <svg className="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="ankara" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M0 30 Q15 0 30 30 Q45 60 60 30" stroke={accentColor} strokeWidth="1" fill="none" />
-                <path d="M0 30 Q15 60 30 30 Q45 0 60 30" stroke={brandColor} strokeWidth="1" fill="none" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#ankara)" />
-          </svg>
-        </div>
-      )}
+  user: any; requireAuth: (action: string) => boolean;
+  template: any; isLight: boolean;
+}) => {
+  const td = template.design;
+  const textMuted = { color: td.textSecondary };
+  const borderStyle = isLight ? "border-black/[0.08]" : "border-white/[0.08]";
 
-      <div className="relative container mx-auto px-4 lg:px-8 py-24">
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="max-w-3xl">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="h-px w-12" style={{ background: accentColor }} />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: accentColor }}>
-              Est. {new Date().getFullYear()}
-            </span>
+  return (
+    <div>
+      {/* ─── Hero: Full-screen Editorial ─── */}
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+        {website.hero_image_url ? (
+          <div className="absolute inset-0">
+            <img src={website.hero_image_url} alt="Hero" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30" />
           </div>
-          <h1 className="font-bold text-5xl md:text-7xl leading-tight mb-6" style={{ fontFamily: fontHeading }}>
-            {org.name}
-          </h1>
-          {website.tagline && (
-            <p className="text-xl md:text-2xl mb-4 font-light" style={{ color: accentColor }}>
-              {website.tagline}
-            </p>
-          )}
-          {website.hero_description && (
-            <p className="text-gray-400 text-lg leading-relaxed mb-8 max-w-xl">
-              {website.hero_description}
-            </p>
-          )}
-          <div className="flex flex-wrap gap-4 mb-6">
-            <button
-              onClick={() => onNavigate("booking")}
-              className="px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest transition-all hover:scale-105"
-              style={{ background: brandColor }}
-            >
-              Book Appointment
-            </button>
-            <button
-              onClick={() => onNavigate("catalogue")}
-              className="px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest border transition-all hover:bg-white/10"
-              style={{ borderColor: accentColor, color: accentColor }}
-            >
-              View Catalogue
-            </button>
+        ) : (
+          <div className="absolute inset-0" style={{ background: td.bgSurface }}>
+            <div className="absolute inset-0 opacity-20" style={{ background: `radial-gradient(ellipse at 30% 50%, ${brandColor} 0%, transparent 60%)` }} />
+            {/* Textile pattern */}
+            <svg className="absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="ankara" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+                  <path d="M0 40 Q20 0 40 40 Q60 80 80 40" stroke={accentColor} strokeWidth="0.5" fill="none" />
+                  <path d="M0 40 Q20 80 40 40 Q60 0 80 40" stroke={brandColor} strokeWidth="0.5" fill="none" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#ankara)" />
+            </svg>
           </div>
-          {/* Google Maps quick link on hero */}
-          {org.address && <GoogleMapsLink address={org.address} />}
-        </motion.div>
-      </div>
-    </section>
-
-    {/* Services */}
-    <section className="py-24 border-t border-white/10">
-      <div className="container mx-auto px-4 lg:px-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-          <h2 className="font-bold text-3xl md:text-4xl mb-4">What We Offer</h2>
-          <p className="text-gray-400 max-w-xl mx-auto">From concept to creation — we handle every aspect of your garment journey.</p>
-        </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            { icon: Scissors, title: "Bespoke Tailoring", desc: "Every piece is crafted to your exact measurements. No two garments are the same." },
-            { icon: Calendar, title: "Consultations", desc: "Book a session with our expert tailors to discuss styles, fabrics, and timelines." },
-            { icon: BookOpen, title: "African Textiles", desc: "Premium Ankara, Adire, Kente, and Aso-Oke sourced from across the continent." },
-          ].map((item, i) => (
-            <motion.div
-              key={item.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="p-8 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: `${brandColor}22` }}>
-                <item.icon size={24} style={{ color: brandColor }} />
-              </div>
-              <h3 className="font-bold text-xl mb-3">{item.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    {/* FSA Platform Features */}
-    <section className="py-24 border-t border-white/10">
-      <div className="container mx-auto px-4 lg:px-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles size={20} className="text-purple-400" />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-400">Powered by Fashion Stitches Africa</span>
-          </div>
-          <h2 className="font-bold text-3xl md:text-4xl mb-4">Smart Fashion Tools</h2>
-          <p className="text-gray-400 max-w-xl mx-auto">Access AI-powered measurements, virtual try-on, and seamless ordering — all from this page.</p>
-        </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { icon: Sparkles, title: "AI Body Measurements", desc: "Get precise measurements using your phone camera — powered by AI.", action: "ai_measurements" },
-            { icon: Scissors, title: "Virtual Try-On", desc: "See how garments look on you before ordering — try styles virtually.", action: "virtual_tryon" },
-            { icon: Calendar, title: "Video Consultation", desc: "Book a live video session with a tailor for real-time style advice and fittings.", action: "video_consultation" },
-            { icon: BookOpen, title: "Place an Order", desc: "Commission bespoke garments directly with tracked delivery and payments.", action: "place_order" },
-          ].map((feat, i) => (
-            <motion.div
-              key={feat.action}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="relative p-8 rounded-2xl border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 transition-colors cursor-pointer group"
-              onClick={() => requireAuth(feat.action)}
-            >
-              {!user && (
-                <div className="absolute top-4 right-4">
-                  <Lock size={14} className="text-purple-400/60" />
-                </div>
-              )}
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 bg-purple-500/20">
-                <feat.icon size={24} className="text-purple-400" />
-              </div>
-              <h3 className="font-bold text-xl mb-3">{feat.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">{feat.desc}</p>
-              <span className="text-sm font-medium text-purple-400 group-hover:underline">
-                {user ? "Open →" : "Sign in to access →"}
-              </span>
-            </motion.div>
-          ))}
-        </div>
-        {!user && (
-          <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center text-sm text-gray-500 mt-8">
-            These features require a free <a href="/auth" className="text-purple-400 hover:underline">Fashion Stitches Africa</a> account.
-          </motion.p>
         )}
-      </div>
-    </section>
 
-    {/* Our Tailors Showcase */}
-    {tailors.length > 0 && (
-      <section className="py-24 border-t border-white/10">
-        <div className="container mx-auto px-4 lg:px-8">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-            <h2 className="font-bold text-3xl md:text-4xl mb-4" style={{ fontFamily: fontHeading }}>Our Tailors</h2>
-            <p className="text-gray-400 max-w-xl mx-auto">Meet the skilled artisans who bring your visions to life.</p>
-          </motion.div>
-          <div className={`grid gap-8 ${tailors.length <= 3 ? "grid-cols-1 md:grid-cols-" + tailors.length : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
-            {tailors.slice(0, 6).map((t, i) => (
-              <motion.div
-                key={t.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+        <div className={`relative ${td.containerMaxWidth} mx-auto px-6 lg:px-12 py-32`}>
+          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: "easeOut" }} className="max-w-3xl">
+            {/* Editorial accent line */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="h-px w-16" style={{ background: accentColor }} />
+              <span className="text-[11px] font-medium uppercase tracking-[0.25em]" style={{ color: website.hero_image_url ? "#ffffff99" : td.textSecondary }}>
+                Est. {new Date().getFullYear()}
+              </span>
+            </div>
+
+            <h1
+              className="text-5xl md:text-7xl lg:text-8xl leading-[0.95] mb-6"
+              style={{
+                fontFamily: `'${fontHeading}'`,
+                fontWeight: td.headingWeight,
+                letterSpacing: td.headingSpacing,
+                color: website.hero_image_url ? "#ffffff" : td.textPrimary,
+              }}
+            >
+              {org.name}
+            </h1>
+
+            {website.tagline && (
+              <p className="text-xl md:text-2xl mb-4 font-light tracking-wide" style={{ color: website.hero_image_url ? "#ffffffcc" : accentColor }}>
+                {website.tagline}
+              </p>
+            )}
+
+            {website.hero_description && (
+              <p className="text-base md:text-lg leading-relaxed mb-10 max-w-xl" style={{ color: website.hero_image_url ? "#ffffff99" : td.textSecondary }}>
+                {website.hero_description}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-4 mb-8">
+              <button
+                onClick={() => onNavigate("catalogue")}
+                className="px-10 py-4 rounded-none font-medium text-xs uppercase tracking-[0.2em] text-white transition-all hover:opacity-90"
+                style={{ background: brandColor }}
               >
-                <Link
-                  to={`/site/${slug}/tailor/${t.id}`}
-                  className="block p-6 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/25 transition-all group"
-                >
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center" style={{ background: `${brandColor}20` }}>
-                      <Scissors size={24} style={{ color: brandColor }} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg group-hover:text-white transition-colors">{t.display_name || "Tailor"}</h3>
-                      {t.specialty && <span className="text-xs" style={{ color: accentColor }}>{t.specialty}</span>}
-                    </div>
-                  </div>
-                  {t.bio && <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed">{t.bio}</p>}
-                  <span className="inline-block mt-4 text-sm font-medium group-hover:translate-x-1 transition-transform" style={{ color: accentColor }}>
-                    View Portfolio →
-                  </span>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-          {tailors.length > 6 && (
-            <div className="text-center mt-8">
-              <button onClick={() => onNavigate("tailors")} className="text-sm font-medium hover:underline" style={{ color: accentColor }}>
-                View All Tailors ({tailors.length}) →
+                {template.copy.ctaPrimary}
+              </button>
+              <button
+                onClick={() => onNavigate("about")}
+                className="px-10 py-4 rounded-none font-medium text-xs uppercase tracking-[0.2em] border transition-all hover:opacity-70"
+                style={{
+                  borderColor: website.hero_image_url ? "#ffffff44" : `${td.textPrimary}22`,
+                  color: website.hero_image_url ? "#ffffff" : td.textPrimary,
+                }}
+              >
+                {template.copy.ctaSecondary}
               </button>
             </div>
+
+            {org.address && <GoogleMapsLink address={org.address} isLight={!website.hero_image_url && isLight} />}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── Services Strip ─── */}
+      <section className={`${td.sectionPadding} border-t ${borderStyle}`}>
+        <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12`}>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
+            <span className="text-[11px] font-medium uppercase tracking-[0.25em] mb-4 block" style={textMuted}>What We Offer</span>
+            <h2 className="text-3xl md:text-4xl" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Crafted With Care</h2>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {[
+              { icon: Scissors, title: "Bespoke Tailoring", desc: "Every piece is crafted to your exact measurements. No two garments are the same." },
+              { icon: Calendar, title: "Consultations", desc: "Book a session with our expert tailors to discuss styles, fabrics, and timelines." },
+              { icon: BookOpen, title: "African Textiles", desc: "Premium Ankara, Adire, Kente, and Aso-Oke sourced from across the continent." },
+            ].map((item, i) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 }}
+                className="text-center group"
+              >
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 transition-transform group-hover:scale-110" style={{ background: `${brandColor}12` }}>
+                  <item.icon size={28} style={{ color: brandColor }} />
+                </div>
+                <h3 className="text-lg font-medium mb-3" style={{ fontFamily: `'${fontHeading}'` }}>{item.title}</h3>
+                <p className="text-sm leading-relaxed" style={textMuted}>{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Best Sellers / Featured ─── */}
+      <section className={`${td.sectionPadding} border-t ${borderStyle}`} style={{ backgroundColor: td.bgSurface }}>
+        <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12`}>
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="flex items-center justify-between mb-12">
+            <div>
+              <span className="text-[11px] font-medium uppercase tracking-[0.25em] mb-2 block" style={textMuted}>Featured</span>
+              <h2 className="text-3xl" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Best Sellers</h2>
+            </div>
+            <button onClick={() => onNavigate("catalogue")} className="text-xs font-medium uppercase tracking-[0.15em] hover:opacity-70 transition-colors" style={{ color: brandColor }}>
+              View All →
+            </button>
+          </motion.div>
+          {/* This will be empty if no catalogue items */}
+        </div>
+      </section>
+
+      {/* ─── FSA Platform Features ─── */}
+      <section className={`${td.sectionPadding} border-t ${borderStyle}`}>
+        <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12`}>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Sparkles size={18} style={{ color: brandColor }} />
+              <span className="text-[11px] font-medium uppercase tracking-[0.25em]" style={{ color: brandColor }}>Powered by Fashion Stitches Africa</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Smart Fashion Tools</h2>
+            <p className="max-w-xl mx-auto text-sm leading-relaxed" style={textMuted}>Access AI-powered measurements, virtual try-on, and seamless ordering.</p>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: Sparkles, title: "AI Body Measurements", desc: "Get precise measurements using your phone camera — powered by AI.", action: "ai_measurements" },
+              { icon: Eye, title: "Virtual Try-On", desc: "See how garments look on you before ordering — try styles virtually.", action: "virtual_tryon" },
+              { icon: Calendar, title: "Video Consultation", desc: "Book a live video session with a tailor for real-time style advice.", action: "video_consultation" },
+              { icon: ShoppingBag, title: "Place an Order", desc: "Commission bespoke garments directly with tracked delivery.", action: "place_order" },
+            ].map((feat, i) => (
+              <motion.div
+                key={feat.action}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className={`relative p-8 border ${borderStyle} hover:shadow-lg transition-all cursor-pointer group`}
+                style={{ backgroundColor: `${brandColor}06` }}
+                onClick={() => requireAuth(feat.action)}
+              >
+                {!user && (
+                  <div className="absolute top-4 right-4">
+                    <Lock size={14} style={{ color: `${td.textSecondary}60` }} />
+                  </div>
+                )}
+                <div className="w-12 h-12 flex items-center justify-center mb-5" style={{ background: `${brandColor}12` }}>
+                  <feat.icon size={24} style={{ color: brandColor }} />
+                </div>
+                <h3 className="font-medium text-base mb-2" style={{ fontFamily: `'${fontHeading}'` }}>{feat.title}</h3>
+                <p className="text-sm leading-relaxed mb-4" style={textMuted}>{feat.desc}</p>
+                <span className="text-xs font-medium uppercase tracking-[0.1em] group-hover:opacity-70" style={{ color: brandColor }}>
+                  {user ? "Open →" : "Sign in →"}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+          {!user && (
+            <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center text-sm mt-8" style={textMuted}>
+              These features require a free <Link to="/auth" style={{ color: brandColor }} className="hover:underline">Fashion Stitches Africa</Link> account.
+            </motion.p>
           )}
         </div>
       </section>
-    )}
 
-    {/* CTA */}
-    <section className="py-24">
-      <div className="container mx-auto px-4 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="rounded-3xl p-12 text-center border border-white/10 relative overflow-hidden"
-          style={{ background: `linear-gradient(135deg, ${brandColor}22, ${accentColor}11)` }}
-        >
-          <h2 className="font-bold text-3xl md:text-4xl mb-4">Ready to Start Your Order?</h2>
-          <p className="text-gray-400 mb-8 max-w-md mx-auto">Book a free consultation and let us bring your vision to life with Africa's finest fabrics.</p>
-          <button
-            onClick={() => onNavigate("booking")}
-            className="px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-widest transition-all hover:scale-105"
-            style={{ background: brandColor }}
+      {/* ─── Tailors Showcase ─── */}
+      {tailors.length > 0 && (
+        <section className={`${td.sectionPadding} border-t ${borderStyle}`} style={{ backgroundColor: td.bgSurface }}>
+          <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12`}>
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-16">
+              <span className="text-[11px] font-medium uppercase tracking-[0.25em] mb-3 block" style={textMuted}>The Team</span>
+              <h2 className="text-3xl md:text-4xl" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Our Artisans</h2>
+            </motion.div>
+            <div className={`grid gap-8 ${tailors.length <= 3 ? "grid-cols-1 md:grid-cols-" + tailors.length : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"}`}>
+              {tailors.slice(0, 6).map((t, i) => (
+                <motion.div key={t.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                  <Link to={`/site/${slug}/tailor/${t.id}`} className={`block p-6 border ${borderStyle} hover:shadow-lg transition-all group`}>
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-14 h-14 flex items-center justify-center" style={{ background: `${brandColor}12` }}>
+                        <Scissors size={24} style={{ color: brandColor }} />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-base" style={{ fontFamily: `'${fontHeading}'` }}>{t.display_name || "Tailor"}</h3>
+                        {t.specialty && <span className="text-xs" style={{ color: accentColor }}>{t.specialty}</span>}
+                      </div>
+                    </div>
+                    {t.bio && <p className="text-sm line-clamp-2 leading-relaxed" style={textMuted}>{t.bio}</p>}
+                    <span className="inline-block mt-4 text-xs font-medium uppercase tracking-[0.1em] group-hover:opacity-70" style={{ color: accentColor }}>
+                      View Portfolio →
+                    </span>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ─── CTA Banner ─── */}
+      <section className={`${td.sectionPadding}`}>
+        <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12`}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="py-16 px-12 text-center relative overflow-hidden"
+            style={{ background: `linear-gradient(135deg, ${brandColor}15, ${accentColor}08)`, border: `1px solid ${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)"}` }}
           >
-            Book Now — It's Free
-          </button>
-        </motion.div>
-      </div>
-    </section>
-  </div>
-);
+            <h2 className="text-3xl md:text-4xl mb-4" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Ready to Start?</h2>
+            <p className="mb-8 max-w-md mx-auto text-sm leading-relaxed" style={textMuted}>Book a free consultation and let us bring your vision to life with Africa's finest fabrics.</p>
+            <button
+              onClick={() => onNavigate("booking")}
+              className="px-10 py-4 text-white font-medium text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90"
+              style={{ background: brandColor }}
+            >
+              Book Now — It's Free
+            </button>
+          </motion.div>
+        </div>
+      </section>
+    </div>
+  );
+};
 
-// ─── Catalogue Page ───────────────────────────────────────────────────────────
-const CataloguePage = ({ items, currency, brandColor, accentColor, user, requireAuth }: {
-  items: CatalogueItem[];
-  currency: string;
-  brandColor: string;
-  accentColor: string;
-  user: any;
-  requireAuth: (action: string) => boolean;
+// ═══════════════════════════════════════════════════════════════════════════════
+// ABOUT PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+const AboutPage = ({ org, website, brandColor, accentColor, fontHeading, officers, template, isLight }: {
+  org: OrgData; website: OrgWebsiteData; brandColor: string; accentColor: string; fontHeading: string;
+  officers: OfficerData[]; template: any; isLight: boolean;
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const categories = ["All", ...Array.from(new Set(items.map((i) => i.category).filter(Boolean) as string[]))];
-  const filtered = selectedCategory === "All" ? items : items.filter((i) => i.category === selectedCategory);
+  const td = template.design;
+  const textMuted = { color: td.textSecondary };
+  const borderStyle = isLight ? "border-black/[0.08]" : "border-white/[0.08]";
 
   return (
-    <div className="container mx-auto px-4 lg:px-8 py-16">
+    <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12 py-20`}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="mb-12 text-center">
-          <h1 className="font-bold text-4xl md:text-5xl mb-4">Our Catalogue</h1>
-          <p className="text-gray-400 max-w-lg mx-auto">Explore our collections — every piece is available as a bespoke commission tailored to your measurements.</p>
+        <div className="mb-20 text-center max-w-2xl mx-auto">
+          <span className="text-[11px] font-medium uppercase tracking-[0.25em] mb-4 block" style={textMuted}>Our Story</span>
+          <h1 className="text-4xl md:text-5xl mb-6" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>About {org.name}</h1>
+          <p className="text-base leading-relaxed" style={textMuted}>{org.description || template.copy.aboutIntro}</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 justify-center mb-10">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat ? "text-white" : "border border-white/20 text-gray-400 hover:border-white/40"}`}
-              style={selectedCategory === cat ? { background: brandColor } : {}}
-            >
-              {cat}
-            </button>
-          ))}
+        {(website.vision_statement || website.mission_statement) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
+            {website.vision_statement && (
+              <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className={`p-10 border ${borderStyle}`} style={{ backgroundColor: `${brandColor}04` }}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-px w-10" style={{ background: accentColor }} />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.25em]" style={{ color: accentColor }}>Our Vision</span>
+                </div>
+                <p className="text-lg leading-relaxed" style={textMuted}>{website.vision_statement}</p>
+              </motion.div>
+            )}
+            {website.mission_statement && (
+              <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className={`p-10 border ${borderStyle}`} style={{ backgroundColor: `${accentColor}04` }}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-px w-10" style={{ background: brandColor }} />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.25em]" style={{ color: brandColor }}>Our Mission</span>
+                </div>
+                <p className="text-lg leading-relaxed" style={textMuted}>{website.mission_statement}</p>
+              </motion.div>
+            )}
+          </div>
+        )}
+
+        {officers.length > 0 && (
+          <div>
+            <div className="text-center mb-14">
+              <span className="text-[11px] font-medium uppercase tracking-[0.25em] mb-3 block" style={textMuted}>Leadership</span>
+              <h2 className="text-3xl" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Meet Our Team</h2>
+            </div>
+            <div className={`grid gap-10 ${officers.length <= 3 ? `grid-cols-1 md:grid-cols-${officers.length}` : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"}`}>
+              {officers.map((officer, i) => (
+                <motion.div key={officer.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="text-center group">
+                  <div className={`w-28 h-28 mx-auto overflow-hidden mb-5 border-2 ${borderStyle} group-hover:shadow-lg transition-all`} style={{ borderRadius: "50%" }}>
+                    {officer.photo_url ? (
+                      <img src={officer.photo_url} alt={officer.full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: `${brandColor}08` }}>
+                        <span className="text-2xl font-light" style={textMuted}>
+                          {officer.full_name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="font-medium text-base mb-1" style={{ fontFamily: `'${fontHeading}'` }}>{officer.full_name}</h3>
+                  <p className="text-xs mb-2" style={{ color: accentColor }}>{officer.title}</p>
+                  {officer.bio && <p className="text-sm leading-relaxed max-w-xs mx-auto" style={textMuted}>{officer.bio}</p>}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CATALOGUE PAGE — Editorial Grid (Hertunba Aka Olu Style)
+// ═══════════════════════════════════════════════════════════════════════════════
+const CataloguePage = ({ items, currency, brandColor, accentColor, user, requireAuth, template, isLight, fontHeading }: {
+  items: CatalogueItem[]; currency: string; brandColor: string; accentColor: string;
+  user: any; requireAuth: (action: string) => boolean;
+  template: any; isLight: boolean; fontHeading: string;
+}) => {
+  const td = template.design;
+  const textMuted = { color: td.textSecondary };
+  const borderStyle = isLight ? "border-black/[0.08]" : "border-white/[0.08]";
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [sortBy, setSortBy] = useState<string>("featured");
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  const categories = ["All", ...Array.from(new Set(items.map((i) => i.category).filter(Boolean) as string[]))];
+
+  let filtered = selectedCategory === "All" ? items : items.filter((i) => i.category === selectedCategory);
+
+  if (sortBy === "price-low") filtered = [...filtered].sort((a, b) => (a.price || 0) - (b.price || 0));
+  if (sortBy === "price-high") filtered = [...filtered].sort((a, b) => (b.price || 0) - (a.price || 0));
+
+  return (
+    <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12 py-20`}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        {/* Collection Header */}
+        <div className="mb-16 text-center max-w-2xl mx-auto">
+          <span className="text-[11px] font-medium uppercase tracking-[0.25em] mb-4 block" style={textMuted}>Collection</span>
+          <h1 className="text-4xl md:text-5xl mb-6" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Our Catalogue</h1>
+          {td.editorialDescriptions && (
+            <p className="text-base leading-relaxed" style={{ ...textMuted, fontStyle: "italic" }}>{template.copy.catalogueIntro}</p>
+          )}
         </div>
 
+        {/* Filters & Sort */}
+        <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 mb-10 pb-6 border-b ${borderStyle}`}>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className="px-5 py-2 text-xs font-medium uppercase tracking-[0.12em] transition-all"
+                style={{
+                  background: selectedCategory === cat ? brandColor : "transparent",
+                  color: selectedCategory === cat ? "#ffffff" : td.textSecondary,
+                  border: selectedCategory === cat ? "none" : `1px solid ${isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)"}`,
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="text-xs px-4 py-2 bg-transparent border rounded-none focus:outline-none"
+            style={{ borderColor: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)", color: td.textSecondary }}
+          >
+            <option value="featured">Featured</option>
+            <option value="price-low">Price: Low → High</option>
+            <option value="price-high">Price: High → Low</option>
+          </select>
+        </div>
+
+        {/* Product Grid */}
         {filtered.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
+          <div className="text-center py-24" style={textMuted}>
             <Scissors size={40} className="mx-auto mb-4 opacity-30" />
-            <p>No items in this category yet. Check back soon.</p>
+            <p>No items in this category yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10">
             {filtered.map((item, i) => (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden hover:border-white/25 transition-all group"
+                transition={{ delay: i * 0.04 }}
+                className="group cursor-pointer"
+                onMouseEnter={() => setHoveredId(item.id)}
+                onMouseLeave={() => setHoveredId(null)}
               >
-                <div className="h-56 bg-white/5 flex items-center justify-center relative overflow-hidden">
+                {/* Image Container — Portrait ratio like Hertunba */}
+                <div className="relative overflow-hidden mb-4" style={{ aspectRatio: "3/4" }}>
                   {item.image_url ? (
-                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
                   ) : (
-                    <div className="flex flex-col items-center gap-2 opacity-30">
-                      <Scissors size={36} style={{ color: accentColor }} />
-                      <span className="text-xs text-gray-500">{item.category}</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center" style={{ backgroundColor: `${brandColor}08` }}>
+                      <Scissors size={32} style={{ color: `${td.textSecondary}40` }} />
+                      <span className="text-[10px] mt-2" style={{ color: `${td.textSecondary}60` }}>{item.category}</span>
                     </div>
                   )}
-                  {item.category && (
-                    <span className="absolute top-3 left-3 px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-black/60 text-gray-300 backdrop-blur-sm">
-                      {item.category}
-                    </span>
+
+                  {/* Hover overlay */}
+                  <AnimatePresence>
+                    {hoveredId === item.id && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 flex items-end justify-center pb-4 bg-gradient-to-t from-black/40 to-transparent"
+                      >
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); requireAuth("virtual_tryon"); }}
+                            className="px-4 py-2 bg-white text-black text-[10px] font-medium uppercase tracking-[0.12em] hover:bg-gray-100 transition-colors"
+                          >
+                            Try On
+                          </button>
+                          <button className="w-9 h-9 bg-white/90 flex items-center justify-center hover:bg-white transition-colors">
+                            <Heart size={14} className="text-black" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Sold out badge */}
+                  {item.tags?.includes("sold-out") && (
+                    <div className="absolute top-3 left-3 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.1em] bg-black text-white">
+                      Sold Out
+                    </div>
                   )}
                 </div>
-                <div className="p-6">
-                  <h3 className="font-bold text-lg mb-2">{item.name}</h3>
-                  {item.description && (
-                    <p className="text-gray-400 text-sm leading-relaxed mb-4 line-clamp-3">{item.description}</p>
+
+                {/* Product Info — Clean, minimal like Hertunba */}
+                <div>
+                  <h3 className="text-sm font-medium mb-1 tracking-wide" style={{ fontFamily: `'${fontHeading}'` }}>{item.name}</h3>
+                  {item.price ? (
+                    <span className="text-sm" style={textMuted}>
+                      {item.price.toLocaleString()} {item.currency || currency}
+                    </span>
+                  ) : (
+                    <span className="text-xs italic" style={textMuted}>Price on request</span>
                   )}
-                  {item.tags && item.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {item.tags.slice(0, 3).map((tag) => (
-                        <span key={tag} className="px-2 py-0.5 rounded text-[10px] bg-white/10 text-gray-400">{tag}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    {item.price ? (
-                      <span className="font-bold text-xl" style={{ color: accentColor }}>
-                        {item.price.toLocaleString()} <span className="text-sm font-normal text-gray-400">{item.currency || currency}</span>
-                      </span>
-                    ) : (
-                      <span className="text-sm text-gray-400 italic">Price on request</span>
-                    )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); requireAuth("virtual_tryon"); }}
-                      className="flex items-center gap-1 text-xs font-medium text-purple-400 hover:text-purple-300 transition-colors"
-                    >
-                      {!user && <Lock size={10} />}
-                      Try On
-                    </button>
-                  </div>
                 </div>
               </motion.div>
             ))}
@@ -1007,90 +1066,74 @@ const CataloguePage = ({ items, currency, brandColor, accentColor, user, require
   );
 };
 
-// ─── Tailors Page ────────────────────────────────────────────────────────────
-const TailorsPage = ({ tailors, brandColor, accentColor, fontHeading, slug }: {
-  tailors: TailorData[];
-  brandColor: string;
-  accentColor: string;
-  fontHeading: string;
-  slug: string;
-}) => (
-  <div className="container mx-auto px-4 lg:px-8 py-16">
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="mb-12 text-center">
-        <h1 className="font-bold text-4xl md:text-5xl mb-4" style={{ fontFamily: fontHeading }}>Our Tailors</h1>
-        <p className="text-gray-400 max-w-lg mx-auto">Discover the talented artisans behind our bespoke creations.</p>
-      </div>
+// ═══════════════════════════════════════════════════════════════════════════════
+// TAILORS PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+const TailorsPage = ({ tailors, brandColor, accentColor, fontHeading, slug, template, isLight }: {
+  tailors: TailorData[]; brandColor: string; accentColor: string; fontHeading: string; slug: string;
+  template: any; isLight: boolean;
+}) => {
+  const td = template.design;
+  const textMuted = { color: td.textSecondary };
+  const borderStyle = isLight ? "border-black/[0.08]" : "border-white/[0.08]";
 
-      {tailors.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
-          <Scissors size={48} className="mx-auto mb-4 opacity-30" />
-          <p>No tailors listed yet. Check back soon.</p>
+  return (
+    <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12 py-20`}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="mb-16 text-center">
+          <span className="text-[11px] font-medium uppercase tracking-[0.25em] mb-4 block" style={textMuted}>The Craft</span>
+          <h1 className="text-4xl md:text-5xl mb-4" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Our Artisans</h1>
+          <p className="max-w-lg mx-auto text-sm leading-relaxed" style={textMuted}>Discover the talented artisans behind our bespoke creations.</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {tailors.map((t, i) => (
-            <motion.div
-              key={t.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
-            >
-              <Link
-                to={`/site/${slug}/tailor/${t.id}`}
-                className="block rounded-2xl border border-white/10 bg-white/5 overflow-hidden hover:border-white/25 hover:bg-white/10 transition-all group"
-              >
-                <div className="h-32 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${brandColor}20, ${accentColor}10)` }}>
-                  <svg className="absolute inset-0 w-full h-full opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <pattern id={`tp-${t.id}`} x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
-                        <circle cx="15" cy="15" r="1" fill={accentColor} />
-                      </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill={`url(#tp-${t.id})`} />
-                  </svg>
-                  <div className="absolute bottom-0 left-6 translate-y-1/2">
-                    <div className="w-20 h-20 rounded-xl border-4 flex items-center justify-center" style={{ borderColor: `${brandColor}40`, background: `${brandColor}20` }}>
-                      <Scissors size={32} style={{ color: brandColor }} className="opacity-60" />
+
+        {tailors.length === 0 ? (
+          <div className="text-center py-24" style={textMuted}>
+            <Scissors size={48} className="mx-auto mb-4 opacity-30" />
+            <p>No tailors listed yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {tailors.map((t, i) => (
+              <motion.div key={t.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
+                <Link to={`/site/${slug}/tailor/${t.id}`} className={`block border ${borderStyle} overflow-hidden hover:shadow-lg transition-all group`}>
+                  <div className="h-32 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${brandColor}12, ${accentColor}08)` }}>
+                    <div className="absolute bottom-0 left-6 translate-y-1/2">
+                      <div className="w-20 h-20 flex items-center justify-center border-4" style={{ borderColor: `${brandColor}30`, background: `${brandColor}10`, borderRadius: "50%" }}>
+                        <Scissors size={32} style={{ color: brandColor }} className="opacity-50" />
+                      </div>
                     </div>
                   </div>
-                </div>
+                  <div className="p-6 pt-14">
+                    <h3 className="font-medium text-lg mb-1" style={{ fontFamily: `'${fontHeading}'` }}>{t.display_name || "Tailor"}</h3>
+                    {t.specialty && <span className="text-xs" style={{ color: accentColor }}>{t.specialty}</span>}
+                    {t.bio && <p className="text-sm mt-3 line-clamp-3 leading-relaxed" style={textMuted}>{t.bio}</p>}
+                    <span className="inline-block mt-4 text-xs font-medium uppercase tracking-[0.1em] group-hover:opacity-70" style={{ color: accentColor }}>
+                      View Portfolio →
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </motion.div>
+    </div>
+  );
+};
 
-                <div className="p-6 pt-14">
-                  <h3 className="font-bold text-xl mb-1" style={{ fontFamily: fontHeading }}>{t.display_name || "Tailor"}</h3>
-                  {t.specialty && (
-                    <span className="text-xs font-medium" style={{ color: accentColor }}>{t.specialty}</span>
-                  )}
-                  {t.bio && (
-                    <p className="text-gray-400 text-sm mt-3 line-clamp-3 leading-relaxed">{t.bio}</p>
-                  )}
-                  <span className="inline-block mt-4 text-sm font-medium group-hover:translate-x-1 transition-transform" style={{ color: accentColor }}>
-                    View Portfolio →
-                  </span>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </motion.div>
-  </div>
-);
-
-// ─── Booking Page ─────────────────────────────────────────────────────────────
-const BookingPage = ({ org, brandColor, accentColor }: {
-  org: OrgData;
-  brandColor: string;
-  accentColor: string;
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOOKING PAGE
+// ═══════════════════════════════════════════════════════════════════════════════
+const BookingPage = ({ org, brandColor, accentColor, template, isLight, fontHeading }: {
+  org: OrgData; brandColor: string; accentColor: string; template: any; isLight: boolean; fontHeading: string;
 }) => {
+  const td = template.design;
+  const textMuted = { color: td.textSecondary };
+  const borderStyle = isLight ? "border-black/[0.08]" : "border-white/[0.08]";
+
   const [form, setForm] = useState({
-    customer_name: "",
-    customer_email: "",
-    customer_phone: "",
-    service_type: "consultation",
-    preferred_date: "",
-    preferred_time: "",
-    message: "",
+    customer_name: "", customer_email: "", customer_phone: "",
+    service_type: "consultation", preferred_date: "", preferred_time: "", message: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -1100,21 +1143,10 @@ const BookingPage = ({ org, brandColor, accentColor }: {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-
-    const { error: err } = await supabase
-      .from("org_consultations")
-      .insert({
-        org_id: org.id,
-        ...form,
-        preferred_date: form.preferred_date || null,
-      });
-
+    const { error: err } = await supabase.from("org_consultations").insert({ org_id: org.id, ...form, preferred_date: form.preferred_date || null });
     setSubmitting(false);
-    if (err) {
-      setError("Something went wrong. Please try again or contact us directly.");
-    } else {
-      setSubmitted(true);
-    }
+    if (err) setError("Something went wrong. Please try again.");
+    else setSubmitted(true);
   };
 
   const serviceTypes = [
@@ -1124,23 +1156,28 @@ const BookingPage = ({ org, brandColor, accentColor }: {
     { value: "order_pickup", label: "Order Pickup" },
     { value: "other", label: "Other" },
   ];
-
   const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"];
+
+  const inputClass = `w-full px-4 py-3 text-sm focus:outline-none transition-colors ${
+    isLight
+      ? "border border-black/10 bg-white text-black placeholder:text-black/30 focus:border-black/30"
+      : "border border-white/10 bg-white/5 text-white placeholder:text-gray-600 focus:border-white/30"
+  }`;
 
   if (submitted) {
     return (
-      <div className="container mx-auto px-4 lg:px-8 py-24 flex flex-col items-center justify-center text-center max-w-lg mx-auto">
+      <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12 py-32 flex flex-col items-center justify-center text-center max-w-lg mx-auto`}>
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-6">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: `${brandColor}22` }}>
+          <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: `${brandColor}12` }}>
             <Calendar size={36} style={{ color: brandColor }} />
           </div>
-          <h2 className="font-bold text-3xl">Booking Received!</h2>
-          <p className="text-gray-400 leading-relaxed">
-            Thank you, <strong className="text-white">{form.customer_name}</strong>! We've received your appointment request and will confirm via email within 24 hours.
+          <h2 className="text-3xl" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Booking Received</h2>
+          <p className="leading-relaxed" style={textMuted}>
+            Thank you, <strong style={{ color: td.textPrimary }}>{form.customer_name}</strong>! We'll confirm via email within 24 hours.
           </p>
           <button
             onClick={() => { setSubmitted(false); setForm({ customer_name: "", customer_email: "", customer_phone: "", service_type: "consultation", preferred_date: "", preferred_time: "", message: "" }); }}
-            className="px-6 py-3 rounded-full text-sm font-medium border border-white/20 hover:bg-white/10 transition-colors"
+            className={`px-6 py-3 text-xs font-medium uppercase tracking-[0.12em] border ${borderStyle} hover:opacity-70 transition-colors`}
           >
             Book Another Appointment
           </button>
@@ -1150,110 +1187,63 @@ const BookingPage = ({ org, brandColor, accentColor }: {
   }
 
   return (
-    <div className="container mx-auto px-4 lg:px-8 py-16 max-w-2xl">
+    <div className={`${td.containerMaxWidth} mx-auto px-6 lg:px-12 py-20 max-w-2xl`}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="mb-10 text-center">
-          <h1 className="font-bold text-4xl md:text-5xl mb-4">Book an Appointment</h1>
-          <p className="text-gray-400">Fill in your details and we'll confirm your slot within 24 hours.</p>
+        <div className="mb-12 text-center">
+          <span className="text-[11px] font-medium uppercase tracking-[0.25em] mb-4 block" style={textMuted}>Appointments</span>
+          <h1 className="text-4xl md:text-5xl mb-4" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Book a Session</h1>
+          <p className="text-sm" style={textMuted}>Fill in your details and we'll confirm within 24 hours.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-white/10 bg-white/5 p-8">
+        <form onSubmit={handleSubmit} className={`space-y-5 p-10 border ${borderStyle}`} style={{ backgroundColor: `${td.bgSurface}` }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Full Name *</label>
-              <input
-                required
-                value={form.customer_name}
-                onChange={(e) => setForm({ ...form, customer_name: e.target.value })}
-                placeholder="Your name"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
-              />
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={textMuted}>Full Name *</label>
+              <input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} placeholder="Your name" className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Email *</label>
-              <input
-                required
-                type="email"
-                value={form.customer_email}
-                onChange={(e) => setForm({ ...form, customer_email: e.target.value })}
-                placeholder="your@email.com"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
-              />
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={textMuted}>Email *</label>
+              <input required type="email" value={form.customer_email} onChange={(e) => setForm({ ...form, customer_email: e.target.value })} placeholder="your@email.com" className={inputClass} />
             </div>
           </div>
-
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Phone Number</label>
-            <input
-              value={form.customer_phone}
-              onChange={(e) => setForm({ ...form, customer_phone: e.target.value })}
-              placeholder="+234 800 000 0000"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
-            />
+            <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={textMuted}>Phone Number</label>
+            <input value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} placeholder="+234 800 000 0000" className={inputClass} />
           </div>
-
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Service Type *</label>
-            <select
-              required
-              value={form.service_type}
-              onChange={(e) => setForm({ ...form, service_type: e.target.value })}
-              className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
-            >
-              {serviceTypes.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
+            <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={textMuted}>Service Type *</label>
+            <select required value={form.service_type} onChange={(e) => setForm({ ...form, service_type: e.target.value })} className={inputClass} style={{ backgroundColor: td.bgSurface }}>
+              {serviceTypes.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Preferred Date</label>
-              <input
-                type="date"
-                min={new Date().toISOString().split("T")[0]}
-                value={form.preferred_date}
-                onChange={(e) => setForm({ ...form, preferred_date: e.target.value })}
-                className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
-              />
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={textMuted}>Preferred Date</label>
+              <input type="date" min={new Date().toISOString().split("T")[0]} value={form.preferred_date} onChange={(e) => setForm({ ...form, preferred_date: e.target.value })} className={inputClass} style={{ backgroundColor: td.bgSurface }} />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Preferred Time</label>
-              <select
-                value={form.preferred_time}
-                onChange={(e) => setForm({ ...form, preferred_time: e.target.value })}
-                className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
-              >
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={textMuted}>Preferred Time</label>
+              <select value={form.preferred_time} onChange={(e) => setForm({ ...form, preferred_time: e.target.value })} className={inputClass} style={{ backgroundColor: td.bgSurface }}>
                 <option value="">Select a time</option>
                 {timeSlots.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
-
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Message / Special Requests</label>
-            <textarea
-              rows={4}
-              value={form.message}
-              onChange={(e) => setForm({ ...form, message: e.target.value })}
-              placeholder="Tell us about your style ideas, fabric preferences, or any other details..."
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500 transition-colors resize-none"
-            />
+            <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] mb-2" style={textMuted}>Special Requests</label>
+            <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Tell us about your style ideas..." className={`${inputClass} resize-none`} />
           </div>
-
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-4 rounded-xl font-semibold text-sm uppercase tracking-widest transition-all hover:opacity-90 disabled:opacity-50"
+            className="w-full py-4 text-white font-medium text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90 disabled:opacity-50"
             style={{ background: brandColor }}
           >
             {submitting ? "Submitting..." : "Request Appointment"}
           </button>
-
-          <p className="text-center text-xs text-gray-500">
-            We'll reach out within 24 hours to confirm your appointment.
+          <p className="text-center text-[10px]" style={{ color: `${td.textSecondary}80` }}>
+            We'll reach out within 24 hours to confirm.
           </p>
         </form>
       </motion.div>
