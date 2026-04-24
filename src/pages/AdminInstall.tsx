@@ -217,7 +217,7 @@ const AdminInstall = () => {
                 <Chrome size={32} className="text-primary mx-auto mb-3" />
                 <h2 className="font-heading font-bold text-lg mb-2">Install Admin Console</h2>
                 <p className="text-muted-foreground text-sm mb-4">
-                  Use Chrome or Edge on desktop — click the install icon in the address bar, or use the browser menu → <strong>"Install Fashion Stitches Africa"</strong>.
+                  Use Chrome or Edge on desktop — click the install icon in the address bar, or use the browser menu → <strong>"Install FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)"</strong>.
                 </p>
                 <div className="bg-muted rounded-lg p-4 mb-4">
                   <p className="text-xs text-muted-foreground mb-2">Or share this link with authorized admins:</p>

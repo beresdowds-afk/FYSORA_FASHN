@@ -181,7 +181,7 @@ export async function initializeGatewayPayment(opts: {
       },
       customizations: {
         title: productName || "Payment",
-        description: `Payment via Fashion Stitches Africa`,
+        description: `Payment via FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)`,
         logo: "https://fashionstitchesafrica.lovable.app/pwa-192x192.png",
       },
       payment_options: paymentOptions,

@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     }
 
     // Call Lovable AI with tool calling for structured output
-    const systemPrompt = `You are an AI dispute resolution specialist for Fashion Stitches Africa, a fashion/tailoring platform. Analyze disputes and provide structured classification, sentiment analysis, and resolution recommendations.
+    const systemPrompt = `You are an AI dispute resolution specialist for FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa), a fashion/tailoring platform. Analyze disputes and provide structured classification, sentiment analysis, and resolution recommendations.
 
 Context: This platform connects fashion designers, tailors, and customers across Africa. Common disputes involve quality issues, delivery delays, measurement mismatches, payment problems, and communication breakdowns.
 

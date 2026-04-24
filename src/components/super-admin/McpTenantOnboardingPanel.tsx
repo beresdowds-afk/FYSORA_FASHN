@@ -14,7 +14,7 @@ import { Shield, Key, RefreshCw, Copy, AlertTriangle, Plus, Settings2 } from "lu
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const DOMAINS = [
-  { id: "fashion", label: "Fashion", desc: "Fashion Stitches Africa" },
+  { id: "fashion", label: "Fashion", desc: "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)" },
   { id: "rental", label: "Rental", desc: "RentMaikar" },
   { id: "realestate", label: "Real Estate", desc: "Property listings & sales" },
   { id: "hospitality", label: "Hospitality", desc: "Hotels & reservations" },

@@ -56,7 +56,7 @@ const DisclaimerDialog = ({ open, onOpenChange, disclaimerType, context = "regis
               onCheckedChange={(c) => setChecked(!!c)}
             />
             <label htmlFor="disclaimer-agree" className="text-sm cursor-pointer">
-              I have read, understood, and agree to the terms outlined above. I acknowledge that Fashion Stitches Africa operates as a neutral technology intermediary.
+              I have read, understood, and agree to the terms outlined above. I acknowledge that FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) operates as a neutral technology intermediary.
             </label>
           </div>
           <Button
@@ -83,7 +83,7 @@ export const DisclaimerBanner = ({ compact = false }: { compact?: boolean }) => 
         <div>
           <p className={`font-medium ${compact ? "text-xs" : "text-sm"}`}>Platform Disclaimer</p>
           <p className={`text-muted-foreground ${compact ? "text-[10px]" : "text-xs"} mt-0.5`}>
-            Fashion Stitches Africa is a neutral technology platform. All services are provided by independent Organizations and Tailors.
+            FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) is a neutral technology platform. All services are provided by independent Organizations and Tailors.
             FSA does not guarantee quality, timeliness, or outcomes of any work performed.{" "}
             {!compact && "Users engage with service providers at their own risk. See full terms for details."}
           </p>

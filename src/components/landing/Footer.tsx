@@ -25,7 +25,7 @@ const Footer = () => {
                 className="w-9 h-9 object-contain"
               />
               <span className="font-heading font-bold text-lg text-ivory">
-                {settings.platform_short_name || "Fashion Stitches"}
+                {settings.platform_short_name || "FYSORA FASHN (Fashion Stitches Africa)"}
               </span>
             </div>
             <p className="text-ivory/50 text-sm leading-relaxed mb-6 max-w-xs">

@@ -16,7 +16,7 @@ interface PlatformDetails {
 }
 
 const DEFAULT_DETAILS: PlatformDetails = {
-  platformName: "Fashion Stitches Africa",
+  platformName: "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)",
   platformUrl: "fs-africa.org.ng",
   supportEmail: "support@fs-africa.org.ng",
   appDownloadNote: "App download from Google Play and other app stores is coming soon.",

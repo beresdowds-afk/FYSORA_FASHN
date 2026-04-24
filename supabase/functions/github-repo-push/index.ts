@@ -286,11 +286,11 @@ serve(async (req) => {
       const filesToPush = files.length > 0 ? files : [
         {
           path: "README.md",
-          content: `# ${org_name} - Fashion Stitches Africa\n\nNatively generated website powered by Fashion Stitches Africa platform.\n`,
+          content: `# ${org_name} - FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)\n\nNatively generated website powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) platform.\n`,
         },
         {
           path: "index.html",
-          content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${org_name} | Fashion Stitches Africa</title>\n</head>\n<body>\n  <h1>${org_name}</h1>\n  <p>Powered by Fashion Stitches Africa</p>\n</body>\n</html>\n`,
+          content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${org_name} | FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</title>\n</head>\n<body>\n  <h1>${org_name}</h1>\n  <p>Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</p>\n</body>\n</html>\n`,
         },
       ];
 

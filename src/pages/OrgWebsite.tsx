@@ -302,7 +302,7 @@ const OrgWebsite = () => {
         <Scissors size={48} style={{ color: template.design.textSecondary }} className="opacity-50" />
         <h1 className="text-2xl font-bold">Website not found</h1>
         <p style={{ color: template.design.textSecondary }}>This organization doesn't have a public website yet.</p>
-        <Link to="/" className="text-sm hover:underline" style={{ color: template.design.textSecondary }}>← Back to Fashion Stitches</Link>
+        <Link to="/" className="text-sm hover:underline" style={{ color: template.design.textSecondary }}>← Back to FYSORA FASHN (Fashion Stitches Africa)</Link>
       </div>
     );
   }
@@ -371,7 +371,7 @@ const OrgWebsite = () => {
         style={{ backgroundColor: isLight ? `${td.bgBase}ee` : `${td.bgBase}ee` }}>
         {/* FSA Banner */}
         <div className="text-center py-1.5 text-[11px] tracking-[0.15em] uppercase" style={{ background: isLight ? `${brandColor}08` : `${brandColor}15`, color: accentColor }}>
-          Powered by Fashion Stitches Africa — <Link to={`/site/${slug}/install`} className="underline hover:no-underline">Get the App</Link>
+          Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) — <Link to={`/site/${slug}/install`} className="underline hover:no-underline">Get the App</Link>
         </div>
 
         <div className={`${td.containerMaxWidth} mx-auto flex items-center justify-between h-16 px-6 lg:px-12`}>
@@ -573,7 +573,7 @@ const OrgWebsite = () => {
             <div className="flex items-center gap-4">
               <Link to="/auth" className="hover:opacity-70 transition-colors">Create FSA Account</Link>
               <span>·</span>
-              <Link to="/" className="hover:opacity-70 transition-colors">Fashion Stitches Africa</Link>
+              <Link to="/" className="hover:opacity-70 transition-colors">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</Link>
             </div>
           </div>
         </div>
@@ -736,7 +736,7 @@ const HomePage = ({ org, website, brandColor, accentColor, fontHeading, officers
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Sparkles size={18} style={{ color: brandColor }} />
-              <span className="text-[11px] font-medium uppercase tracking-[0.25em]" style={{ color: brandColor }}>Powered by Fashion Stitches Africa</span>
+              <span className="text-[11px] font-medium uppercase tracking-[0.25em]" style={{ color: brandColor }}>Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</span>
             </div>
             <h2 className="text-3xl md:text-4xl mb-3" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>Smart Fashion Tools</h2>
             <p className="max-w-xl mx-auto text-sm leading-relaxed" style={textMuted}>Access AI-powered measurements, virtual try-on, and seamless ordering.</p>
@@ -776,7 +776,7 @@ const HomePage = ({ org, website, brandColor, accentColor, fontHeading, officers
           </div>
           {!user && (
             <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center text-sm mt-8" style={textMuted}>
-              These features require a free <Link to="/auth" style={{ color: brandColor }} className="hover:underline">Fashion Stitches Africa</Link> account.
+              These features require a free <Link to="/auth" style={{ color: brandColor }} className="hover:underline">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</Link> account.
             </motion.p>
           )}
         </div>

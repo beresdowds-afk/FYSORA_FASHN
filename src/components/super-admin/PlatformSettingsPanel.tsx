@@ -132,7 +132,7 @@ export default function PlatformSettingsPanel() {
             </div>
             <div className="space-y-2">
               <Label>Short Name</Label>
-              <Input value={form.platform_short_name} onChange={(e) => update("platform_short_name", e.target.value)} placeholder="e.g. Fashion Stitches" />
+              <Input value={form.platform_short_name} onChange={(e) => update("platform_short_name", e.target.value)} placeholder="e.g. FYSORA FASHN (Fashion Stitches Africa)" />
             </div>
           </div>
           <div className="space-y-2">

@@ -48,7 +48,7 @@ const Install = () => {
             <Check size={36} className="text-primary-foreground" />
           </div>
           <h1 className="font-heading font-bold text-2xl mb-3">You're All Set!</h1>
-          <p className="text-muted-foreground mb-6">Fashion Stitches Africa is installed on your device.</p>
+          <p className="text-muted-foreground mb-6">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) is installed on your device.</p>
           <Button variant="hero" onClick={() => navigate("/auth")} className="w-full">
             Get Started <ArrowRight size={16} className="ml-2" />
           </Button>
@@ -66,7 +66,7 @@ const Install = () => {
           <div className="w-24 h-24 rounded-3xl bg-gradient-brand flex items-center justify-center mx-auto mb-6 shadow-gold">
             <span className="font-heading font-bold text-primary-foreground text-2xl">FS</span>
           </div>
-          <h1 className="font-heading font-bold text-3xl mb-2">Fashion Stitches Africa</h1>
+          <h1 className="font-heading font-bold text-3xl mb-2">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</h1>
           <p className="text-muted-foreground">
             The operating system for African fashion commerce
           </p>
@@ -78,7 +78,7 @@ const Install = () => {
           >
             <Check size={32} className="text-secondary mx-auto mb-3" />
             <h2 className="font-heading font-bold text-lg">Successfully Installed!</h2>
-            <p className="text-muted-foreground text-sm mt-1">Find Fashion Stitches Africa on your home screen.</p>
+            <p className="text-muted-foreground text-sm mt-1">Find FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) on your home screen.</p>
           </motion.div>
         )}
 
@@ -146,7 +146,7 @@ const Install = () => {
                 <Smartphone size={32} className="text-primary mx-auto mb-3" />
                 <h2 className="font-heading font-bold text-lg mb-2">Get the App</h2>
                 <p className="text-muted-foreground text-sm mb-4">
-                  Open this page on your mobile device to install Fashion Stitches Africa.
+                  Open this page on your mobile device to install FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa).
                 </p>
                 <div className="bg-muted rounded-lg p-4">
                   <p className="text-xs text-muted-foreground mb-2">Share this link:</p>

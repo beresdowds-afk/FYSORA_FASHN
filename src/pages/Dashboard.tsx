@@ -141,7 +141,7 @@ const Dashboard = () => {
               <div className="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center">
                 <span className="font-heading font-bold text-primary-foreground text-sm">FS</span>
               </div>
-              <span className="font-heading font-bold text-sm">Fashion Stitches Africa</span>
+              <span className="font-heading font-bold text-sm">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</span>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => navigate("/super-admin")}>{isSuperAdmin ? "Super Admin" : "Admin"} Panel</Button>

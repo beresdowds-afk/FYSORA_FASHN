@@ -12,12 +12,12 @@ export interface PlatformTourStep {
 export const platformTourSteps: PlatformTourStep[] = [
   {
     id: "welcome",
-    title: "Welcome to Fashion Stitches Africa",
+    title: "Welcome to FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)",
     subtitle: "Your gateway to African fashion",
     description:
-      "Fashion Stitches Africa connects you with the finest fashion houses, tailors, and designers across Africa. Let us show you around!",
+      "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) connects you with the finest fashion houses, tailors, and designers across Africa. Let us show you around!",
     narration:
-      "Welcome to Fashion Stitches Africa! We're thrilled to have you here. This platform connects you with the finest fashion houses, talented tailors, and creative designers across Africa. Let me take you on a quick tour of everything we have to offer.",
+      "Welcome to FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)! We're thrilled to have you here. This platform connects you with the finest fashion houses, talented tailors, and creative designers across Africa. Let me take you on a quick tour of everything we have to offer.",
     icon: "Sparkles",
     visual: "welcome",
     highlights: ["Global Marketplace", "Verified Fashion Houses", "Premium Services"],

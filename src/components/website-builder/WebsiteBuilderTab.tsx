@@ -487,7 +487,7 @@ const PricingSection = ({
       <div>
         <h3 className="font-heading font-bold text-lg">Website Builder Plans</h3>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Choose a plan to unlock your professional fashion website on Fashion Stitches Africa.
+          Choose a plan to unlock your professional fashion website on FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa).
         </p>
       </div>
 
@@ -1135,7 +1135,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
             return (
               <div className="rounded-xl bg-card border border-border p-6 space-y-3">
                 <h3 className="font-heading font-semibold text-base">Custom Domain</h3>
-                <p className="text-xs text-muted-foreground">Point your own domain to your Fashion Stitches website (+$2/mo).</p>
+                <p className="text-xs text-muted-foreground">Point your own domain to your FYSORA FASHN (Fashion Stitches Africa) website (+$2/mo).</p>
                 <input
                   placeholder="yourbrand.com"
                   disabled={!canEdit}
@@ -1337,7 +1337,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
         <div className="rounded-xl bg-card border border-border p-6 space-y-6">
           <div>
             <h3 className="font-heading font-semibold text-base mb-1">API Integration</h3>
-            <p className="text-xs text-muted-foreground">Use these credentials to connect your own website or app to sync data with Fashion Stitches.</p>
+            <p className="text-xs text-muted-foreground">Use these credentials to connect your own website or app to sync data with FYSORA FASHN (Fashion Stitches Africa).</p>
           </div>
 
           {/* Upgrade prompt for Lite users on custom integration */}
@@ -1388,7 +1388,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
                   placeholder="https://yourwebsite.com"
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                 />
-                <p className="text-xs text-muted-foreground">Visitors to your Fashion Stitches page will be redirected here.</p>
+                <p className="text-xs text-muted-foreground">Visitors to your FYSORA FASHN (Fashion Stitches Africa) page will be redirected here.</p>
               </div>
 
               {canEdit && (

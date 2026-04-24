@@ -132,7 +132,7 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
                 </Button>
               )}
               {showInvoice && (
-                <InvoiceGenerator order={order} orgName={orgName || "Fashion Stitches"} orgSettings={orgSettings} />
+                <InvoiceGenerator order={order} orgName={orgName || "FYSORA FASHN (Fashion Stitches Africa)"} orgSettings={orgSettings} />
               )}
             </div>
           </div>

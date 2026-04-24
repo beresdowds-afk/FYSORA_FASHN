@@ -344,7 +344,7 @@ const Auth = () => {
             <div className="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center">
               <span className="font-heading font-bold text-primary-foreground text-sm">FS</span>
             </div>
-            <span className="font-heading font-bold text-lg">Fashion Stitches Africa</span>
+            <span className="font-heading font-bold text-lg">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</span>
           </div>
 
           <h1 className="font-heading font-bold text-2xl mt-4 mb-1">
@@ -523,7 +523,7 @@ const Auth = () => {
                     onCheckedChange={(c) => setTermsAccepted(!!c)}
                   />
                   <label htmlFor="terms" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                    I acknowledge that Fashion Stitches Africa is a neutral platform and does not guarantee the quality of services provided by Organizations or Tailors.{" "}
+                    I acknowledge that FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) is a neutral platform and does not guarantee the quality of services provided by Organizations or Tailors.{" "}
                     <button type="button" onClick={() => setShowDisclaimer(true)} className="text-primary hover:underline">
                       Read full terms
                     </button>
@@ -659,7 +659,7 @@ const Auth = () => {
           <DialogHeader>
             <DialogTitle>Choose your account type</DialogTitle>
             <DialogDescription>
-              Pick the role that best describes how you'll use Fashion Stitches Africa. You can adjust this later.
+              Pick the role that best describes how you'll use FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa). You can adjust this later.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2 mt-2">

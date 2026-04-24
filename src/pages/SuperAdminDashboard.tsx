@@ -255,7 +255,7 @@ const SuperAdminDashboard = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-heading font-bold text-sm text-ivory hidden sm:inline">
-                    Fashion Stitches Africa
+                    FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)
                   </span>
                   <span className="font-heading font-bold text-sm text-ivory sm:hidden">
                     FSA
@@ -462,7 +462,7 @@ const OverviewPanel = ({ stats, orgs, groups, onTabChange }: { stats: { orgs: nu
     <div>
       <h1 className="font-heading font-bold text-2xl">Platform Overview</h1>
       <p className="text-muted-foreground text-sm mt-1">
-        Monitor all organizations and users across Fashion Stitches Africa.
+        Monitor all organizations and users across FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa).
       </p>
     </div>
 

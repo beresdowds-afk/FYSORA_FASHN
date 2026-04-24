@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
       },
       manifest: {
         id: "/admin-install",
-        name: "Fashion Stitches Africa — Admin Console",
+        name: "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) — Admin Console",
         short_name: "FSA Admin",
         description: "The operating system for African fashion commerce — Super Admin backend management",
         theme_color: "#C8963E",

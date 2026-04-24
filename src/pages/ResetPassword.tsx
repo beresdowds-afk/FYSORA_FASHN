@@ -73,7 +73,7 @@ const ResetPassword = () => {
             <div className="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center">
               <span className="font-heading font-bold text-primary-foreground text-sm">FS</span>
             </div>
-            <span className="font-heading font-bold text-lg">Fashion Stitches Africa</span>
+            <span className="font-heading font-bold text-lg">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</span>
           </div>
 
           {success ? (

@@ -157,7 +157,7 @@ const InvoiceManagerPanel = ({ orgId, orgName, currency = "NGN", isSuperAdmin = 
     let y = 20;
 
     // Header
-    const issuerName = isSuperAdmin ? "Fashion Stitches Africa" : (orgName || "Invoice");
+    const issuerName = isSuperAdmin ? "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)" : (orgName || "Invoice");
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text(issuerName, 20, y);
@@ -497,7 +497,7 @@ const InvoiceManagerPanel = ({ orgId, orgName, currency = "NGN", isSuperAdmin = 
         open={!!forwardInvoice}
         onOpenChange={(open) => { if (!open) setForwardInvoice(null); }}
         invoice={forwardInvoice}
-        issuerName={isSuperAdmin ? "Fashion Stitches Africa" : (orgName || "Invoice")}
+        issuerName={isSuperAdmin ? "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)" : (orgName || "Invoice")}
       />
     </motion.div>
   );

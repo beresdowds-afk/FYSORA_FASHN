@@ -138,13 +138,13 @@ const DemoOrgWebsite = () => {
     <div className="min-h-screen text-white" style={{ backgroundColor: "#0d0d0d", fontFamily: "Inter, sans-serif" }}>
       {/* ─── Demo Banner ─── */}
       <div className="fixed top-0 left-0 right-0 z-[60] bg-yellow-500/90 text-black text-center py-1.5 text-xs font-bold tracking-wide">
-        ⚡ DEMO PREVIEW — This is a sample of how an organization app looks on Fashion Stitches Africa
+        ⚡ DEMO PREVIEW — This is a sample of how an organization app looks on FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)
       </div>
 
       {/* ─── Header ─── */}
       <nav className="fixed top-7 left-0 right-0 z-50 bg-[#0d0d0d]/90 backdrop-blur-md border-b border-white/10">
         <div className="text-center py-1.5 text-[11px] font-medium tracking-wide" style={{ background: `${brandColor}15`, color: accentColor }}>
-          ✨ Powered by Fashion Stitches Africa — <Link to="/install" className="underline hover:no-underline">Get the App</Link>
+          ✨ Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) — <Link to="/install" className="underline hover:no-underline">Get the App</Link>
         </div>
         <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-8">
           <div className="flex items-center gap-3">
@@ -267,7 +267,7 @@ const DemoOrgWebsite = () => {
               <p className="text-sm text-gray-500 mb-3">Subscribe for latest styles, offers, and updates.</p>
               <NewsletterSignup brandColor={brandColor} />
               <div className="mt-6 p-4 rounded-xl border border-white/10 bg-white/5">
-                <p className="text-xs text-gray-400 mb-2">Get the Fashion Stitches Africa app</p>
+                <p className="text-xs text-gray-400 mb-2">Get the FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) app</p>
                 <Link to="/install" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white hover:opacity-90" style={{ background: brandColor }}>
                   <Download size={14} /> Download App
                 </Link>
@@ -281,7 +281,7 @@ const DemoOrgWebsite = () => {
             <div className="flex items-center gap-4">
               <Link to="/auth" className="hover:text-white transition-colors">Create FSA Account</Link>
               <span>·</span>
-              <Link to="/" className="hover:text-white transition-colors">Fashion Stitches Africa</Link>
+              <Link to="/" className="hover:text-white transition-colors">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</Link>
             </div>
           </div>
         </div>
@@ -360,7 +360,7 @@ const DemoHomePage = ({ brandColor, accentColor, fontHeading, onNavigate }: { br
         <div className="text-center mb-16">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Sparkles size={20} className="text-purple-400" />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-400">Powered by Fashion Stitches Africa</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-purple-400">Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</span>
           </div>
           <h2 className="font-bold text-3xl md:text-4xl mb-4">Smart Fashion Tools</h2>
           <p className="text-gray-400 max-w-xl mx-auto">AI-powered measurements, virtual try-on, and seamless ordering.</p>
