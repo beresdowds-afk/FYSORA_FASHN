@@ -28,6 +28,7 @@ import {
   SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar
 } from "@/components/ui/sidebar";
 import fsaLogo from "@/assets/fsa-logo.png";
+import { TrialBanner } from "@/components/TrialBanner";
 
 type TabId = "overview" | "work-queue" | "contracts" | "earnings" | "catalogue" | "featured" | "invoice_manager" | "website" | "billing" | "payments" | "profile";
 
