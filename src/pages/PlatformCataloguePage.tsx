@@ -7,8 +7,20 @@ import FreeTourConsentDialog from "@/components/shared/FreeTourConsentDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { ArrowLeft, Search, ShoppingBag, Tag, Building2, LogIn, Eye, Lock } from "lucide-react";
+import {
+  ArrowLeft, Search, ShoppingBag, Tag, Building2, LogIn, Eye, Lock,
+  Info, Check, X, ShieldCheck,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const MAX_FREE_TOURS = 2;
@@ -136,11 +148,93 @@ const PlatformCataloguePage = () => {
         </header>
 
         <div className="container mx-auto px-4 lg:px-8 py-4 max-w-6xl">
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 mb-4 flex items-start gap-2">
-            <Lock size={14} className="text-primary mt-0.5 shrink-0" />
-            <p className="text-xs text-muted-foreground">
-              You're browsing the curated featured catalogue as a guest. <button onClick={() => navigate("/auth")} className="text-primary hover:underline font-medium">Sign in or create a free account</button> to view details, contact fashion houses, and place orders.
-            </p>
+          {/* Guest access banner with clear capability list */}
+          <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5 p-4 mb-5">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <ShieldCheck size={16} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-heading font-bold text-sm">You're browsing as a guest</h2>
+                  <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary">Free Preview</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 mb-3">
+                  Explore curated products from fashion houses across Africa — no account needed.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                  <div className="space-y-1.5">
+                    <p className="font-medium text-foreground">You can</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li className="flex items-start gap-1.5"><Check size={12} className="text-secondary mt-0.5 shrink-0" /> Browse all curated products</li>
+                      <li className="flex items-start gap-1.5"><Check size={12} className="text-secondary mt-0.5 shrink-0" /> Search by name or fashion house</li>
+                      <li className="flex items-start gap-1.5"><Check size={12} className="text-secondary mt-0.5 shrink-0" /> Filter by category</li>
+                      <li className="flex items-start gap-1.5"><Check size={12} className="text-secondary mt-0.5 shrink-0" /> See prices &amp; tags</li>
+                    </ul>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="font-medium text-foreground">Sign in to</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li className="flex items-start gap-1.5"><X size={12} className="text-destructive mt-0.5 shrink-0" /> Open product details</li>
+                      <li className="flex items-start gap-1.5"><X size={12} className="text-destructive mt-0.5 shrink-0" /> Contact a fashion house</li>
+                      <li className="flex items-start gap-1.5"><X size={12} className="text-destructive mt-0.5 shrink-0" /> Save to wishlist</li>
+                      <li className="flex items-start gap-1.5"><X size={12} className="text-destructive mt-0.5 shrink-0" /> Place orders &amp; bookings</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 mt-4">
+                  <Button variant="hero" size="sm" onClick={() => navigate("/auth")}>
+                    <LogIn size={14} className="mr-1" /> Sign In / Sign Up — Free
+                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-xs">
+                        <Info size={12} className="mr-1" /> About guest access
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <ShieldCheck size={18} className="text-primary" /> Guest Access Policy
+                        </DialogTitle>
+                        <DialogDescription>
+                          Fashion Stitches Africa lets anyone preview the curated platform catalogue without creating an account.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <p className="font-medium mb-1">Available without signing in</p>
+                          <ul className="text-xs text-muted-foreground space-y-0.5 pl-4 list-disc">
+                            <li>Read-only browsing of curated products</li>
+                            <li>Searching, filtering, and viewing prices</li>
+                            <li>Public-facing organization names &amp; tags</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="font-medium mb-1">Requires a free account</p>
+                          <ul className="text-xs text-muted-foreground space-y-0.5 pl-4 list-disc">
+                            <li>Opening product detail pages</li>
+                            <li>Contacting an organization or designer</li>
+                            <li>Bookings, measurements &amp; video calls</li>
+                            <li>Placing orders and tracking shipments</li>
+                          </ul>
+                        </div>
+                        <div className="rounded-md border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
+                          Tapping any product card while in guest mode will redirect you to the sign-in page. Your search and filter selections are not stored until you sign in.
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="hero" size="sm" className="w-full" onClick={() => navigate("/auth")}>
+                          <LogIn size={14} className="mr-1" /> Continue to Sign In
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Search (read-only filtering allowed) */}
