@@ -361,7 +361,7 @@ const OrgTailorPage = () => {
             <span>·</span>
             <Link to={`/site/${slug}`} className="hover:text-white transition-colors">{org.name}</Link>
           </div>
-          <span>Powered by <Link to="/" className="hover:text-white transition-colors">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</Link></span>
+          <span>Powered by <Link to="/" className="hover:text-white transition-colors">FYSORA FASHN (Fashion Stitches Africa)</Link></span>
         </div>
       </footer>
     </div>

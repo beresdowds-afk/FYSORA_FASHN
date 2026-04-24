@@ -73,8 +73,8 @@ const MobileAppManagementPanel = () => {
   const shareLink = async () => {
     if (navigator.share) {
       await navigator.share({
-        title: "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)",
-        text: "Download FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) – The operating system for African fashion commerce",
+        title: "FYSORA FASHN (Fashion Stitches Africa)",
+        text: "Download FYSORA FASHN (Fashion Stitches Africa) – The operating system for African fashion commerce",
         url: installUrl,
       });
     } else {
@@ -163,7 +163,7 @@ const OverviewSection = ({
         <h3 className="font-heading font-semibold">Shareable Download Link</h3>
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        Share this link with users to install FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) on their mobile devices.
+        Share this link with users to install FYSORA FASHN (Fashion Stitches Africa) on their mobile devices.
       </p>
       <div className="flex gap-2 mb-4">
         <Input value={installUrl} readOnly className="font-mono text-sm" />

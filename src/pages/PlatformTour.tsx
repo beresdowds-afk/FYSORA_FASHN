@@ -87,7 +87,7 @@ const PlatformTour = () => {
           </div>
           <h2 className="font-heading font-bold text-2xl mb-2">Tour Complete!</h2>
           <p className="text-muted-foreground text-sm mb-6">
-            You've seen what FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) has to offer. Ready to unlock the full experience?
+            You've seen what FYSORA FASHN (Fashion Stitches Africa) has to offer. Ready to unlock the full experience?
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button variant="default" onClick={goSubscribe} className="gap-2">

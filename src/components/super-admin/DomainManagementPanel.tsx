@@ -84,7 +84,7 @@ const generateId = () => Math.random().toString(36).substring(2, 9);
 const defaultDnsConfigs: DomainDnsConfig[] = [
   {
     domain: "fs-africa.org.ng",
-    label: "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)",
+    label: "FYSORA FASHN (Fashion Stitches Africa)",
     plan: "Platform (Lite + Pro + Pro-Lite)",
     badgeColor: "bg-emerald-500/10 text-emerald-600",
     hosting: [
@@ -325,7 +325,7 @@ const DomainDnsCard = ({ config, onUpdate }: { config: DomainDnsConfig; onUpdate
           action: "create-repo",
           org_name: config.label,
           repo_name: repoName,
-          description: `${config.label} — Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)`,
+          description: `${config.label} — Powered by FYSORA FASHN (Fashion Stitches Africa)`,
         }),
       });
 
@@ -524,7 +524,7 @@ function buildWebsiteContent(config: DomainDnsConfig, settings: any, catalogue: 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>${orgName} — ${tagline}</title>
-  <meta name="description" content="${orgName}. ${tagline}. Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)." />
+  <meta name="description" content="${orgName}. ${tagline}. Powered by FYSORA FASHN (Fashion Stitches Africa)." />
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=${fontHeading.replace(/ /g, "+")}:wght@700&family=${fontBody.replace(/ /g, "+")}:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -595,7 +595,7 @@ function buildWebsiteContent(config: DomainDnsConfig, settings: any, catalogue: 
         ${socialHtml}
       </div>
       <div class="footer-bottom">
-        <p>&copy; ${new Date().getFullYear()} ${orgName}. Powered by <a href="https://fs-africa.org.ng" target="_blank">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</a></p>
+        <p>&copy; ${new Date().getFullYear()} ${orgName}. Powered by <a href="https://fs-africa.org.ng" target="_blank">FYSORA FASHN (Fashion Stitches Africa)</a></p>
       </div>
     </div>
   </footer>
@@ -803,7 +803,7 @@ self.addEventListener('message', (e) => {
     },
     {
       path: "README.md",
-      content: `# ${orgName}\n\n${tagline}\n\nPowered by [FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)](https://fs-africa.org.ng)\n\n## Features\n- Customizable hero section\n- Product catalogue with cart\n- Auto-submit orders to FSA dashboard\n- Social media integration\n- Mobile responsive\n\n## App Sync\nThis website automatically syncs with all associated FSA apps via the service worker.`,
+      content: `# ${orgName}\n\n${tagline}\n\nPowered by [FYSORA FASHN (Fashion Stitches Africa)](https://fs-africa.org.ng)\n\n## Features\n- Customizable hero section\n- Product catalogue with cart\n- Auto-submit orders to FSA dashboard\n- Social media integration\n- Mobile responsive\n\n## App Sync\nThis website automatically syncs with all associated FSA apps via the service worker.`,
     },
   ];
 }
@@ -1246,7 +1246,7 @@ const NativeWebsitePublishingPanel = () => {
       await fetch(`https://${projectId}.supabase.co/functions/v1/github-repo-push`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ action: "create-repo", org_name: site.orgName, repo_name: repoName, description: `${site.orgName} — Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)` }),
+        body: JSON.stringify({ action: "create-repo", org_name: site.orgName, repo_name: repoName, description: `${site.orgName} — Powered by FYSORA FASHN (Fashion Stitches Africa)` }),
       });
 
       // Push files

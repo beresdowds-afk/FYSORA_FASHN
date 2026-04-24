@@ -113,7 +113,7 @@ export default function FreeTourConsentDialog({
             <Mail size={10} className="inline mx-1" />
             and notifications
             <Bell size={10} className="inline mx-1" />
-            from <span className="font-semibold">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</span> about new products, features, and offers.
+            from <span className="font-semibold">FYSORA FASHN (Fashion Stitches Africa)</span> about new products, features, and offers.
           </label>
         </div>
 

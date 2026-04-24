@@ -43,7 +43,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
 
       const orgName = orgData.name || org.name;
       const slug = orgData.slug || org.slug;
-      const description = orgData.description || "Premium bespoke fashion powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa).";
+      const description = orgData.description || "Premium bespoke fashion powered by FYSORA FASHN (Fashion Stitches Africa).";
       const email = orgData.email || "";
       const phone = orgData.phone || "";
       const address = orgData.address || "";
@@ -120,7 +120,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${orgName} | FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</title>
+  <title>${orgName} | FYSORA FASHN (Fashion Stitches Africa)</title>
   <meta name="description" content="${(description || "").replace(/"/g, "&quot;").substring(0, 160)}">
   ${logoUrl ? `<link rel="icon" type="image/png" href="${logoUrl}">` : ""}
   <link rel="stylesheet" href="styles.css">
@@ -218,7 +218,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
     <div class="container">
       <div class="cta-card">
         <h2>Ready to Look Your Best?</h2>
-        <p>Place your order through FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) and experience bespoke fashion like never before.</p>
+        <p>Place your order through FYSORA FASHN (Fashion Stitches Africa) and experience bespoke fashion like never before.</p>
         <div class="cta-actions">
           <a href="${platformUrl}" class="btn btn-primary" target="_blank">Get Started</a>
           <a href="#contact" class="btn btn-outline">Contact Us</a>
@@ -249,7 +249,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       <div class="footer-grid">
         <div class="footer-brand">
           ${logoUrl ? `<img src="${logoUrl}" alt="${orgName}" class="footer-logo">` : ""}
-          <p>${description ? description.substring(0, 120) : orgName + " — Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)."}</p>
+          <p>${description ? description.substring(0, 120) : orgName + " — Powered by FYSORA FASHN (Fashion Stitches Africa)."}</p>
           ${socialLinks ? `<div class="social-links">${socialLinks}</div>` : ""}
         </div>
         <div class="footer-links">
@@ -264,14 +264,14 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
         <div class="footer-links">
           <h4>Platform</h4>
           <ul>
-            <li><a href="${platformUrl}" target="_blank">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</a></li>
+            <li><a href="${platformUrl}" target="_blank">FYSORA FASHN (Fashion Stitches Africa)</a></li>
             <li><a href="${platformUrl}/browse" target="_blank">Browse Tailors</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
         <p>&copy; ${new Date().getFullYear()} ${orgName}. All rights reserved.</p>
-        <p class="powered-by">Powered by <a href="${platformUrl}" target="_blank">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</a> ✦</p>
+        <p class="powered-by">Powered by <a href="${platformUrl}" target="_blank">FYSORA FASHN (Fashion Stitches Africa)</a> ✦</p>
       </div>
     </div>
   </footer>
@@ -288,12 +288,12 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
 
       const stylesCss = generateStyles(brandColor, accentColor, bgColor, textColor, surfaceColor, fontHeading, fontBody);
 
-      const appJs = `const navbar=document.getElementById('navbar');window.addEventListener('scroll',()=>{navbar.classList.toggle('scrolled',window.scrollY>50)});const navToggle=document.getElementById('navToggle'),navLinks=document.getElementById('navLinks');navToggle.addEventListener('click',()=>{navLinks.classList.toggle('open')});navLinks.querySelectorAll('a').forEach(l=>{l.addEventListener('click',()=>{navLinks.classList.remove('open')})});document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});const observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';observer.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -50px 0px'});document.querySelectorAll('.section').forEach(s=>{s.style.opacity='0';s.style.transform='translateY(30px)';s.style.transition='opacity 0.6s ease, transform 0.6s ease';observer.observe(s)});if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(r=>{console.log('SW registered:',r.scope);const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){console.log('FSA update received:',e.data);if(e.data.action==='reload')location.reload()}};bc.postMessage({type:'FSA_UPDATE',action:'website_loaded',orgId:'${org.id}',timestamp:Date.now()})}).catch(e=>console.warn('SW registration failed:',e))}console.log('${slug} website loaded — powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)');`;
+      const appJs = `const navbar=document.getElementById('navbar');window.addEventListener('scroll',()=>{navbar.classList.toggle('scrolled',window.scrollY>50)});const navToggle=document.getElementById('navToggle'),navLinks=document.getElementById('navLinks');navToggle.addEventListener('click',()=>{navLinks.classList.toggle('open')});navLinks.querySelectorAll('a').forEach(l=>{l.addEventListener('click',()=>{navLinks.classList.remove('open')})});document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});const observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';observer.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -50px 0px'});document.querySelectorAll('.section').forEach(s=>{s.style.opacity='0';s.style.transform='translateY(30px)';s.style.transition='opacity 0.6s ease, transform 0.6s ease';observer.observe(s)});if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(r=>{console.log('SW registered:',r.scope);const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){console.log('FSA update received:',e.data);if(e.data.action==='reload')location.reload()}};bc.postMessage({type:'FSA_UPDATE',action:'website_loaded',orgId:'${org.id}',timestamp:Date.now()})}).catch(e=>console.warn('SW registration failed:',e))}console.log('${slug} website loaded — powered by FYSORA FASHN (Fashion Stitches Africa)');`;
 
       // Service Worker for bidirectional sync between website and apps
       const swJs = `const CACHE_NAME='fsa-${slug}-v${Date.now()}';const ASSETS=['/','/index.html','/styles.css','/app.js'];self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).then(r=>{if(r.ok&&e.request.method==='GET'){const rc=r.clone();caches.open(CACHE_NAME).then(c=>c.put(e.request,rc))}return r}).catch(()=>caches.match(e.request)))});self.addEventListener('message',e=>{if(e.data&&e.data.type==='FSA_UPDATE'){self.clients.matchAll().then(clients=>{clients.forEach(c=>c.postMessage(e.data))})}});const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){self.clients.matchAll().then(clients=>{clients.forEach(c=>c.postMessage(e.data))})}};`;
 
-      const readmeMd = `# ${orgName}\n\n${description || "Fashion studio powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)."}\n\n## Contact\n${address ? `- **Address**: ${address}\n` : ""}${email ? `- **Email**: ${email}\n` : ""}${phone ? `- **Phone**: ${phone}\n` : ""}\n## Powered By\n\nThis website is natively generated and managed by [FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)](${platformUrl}).\n`;
+      const readmeMd = `# ${orgName}\n\n${description || "Fashion studio powered by FYSORA FASHN (Fashion Stitches Africa)."}\n\n## Contact\n${address ? `- **Address**: ${address}\n` : ""}${email ? `- **Email**: ${email}\n` : ""}${phone ? `- **Phone**: ${phone}\n` : ""}\n## Powered By\n\nThis website is natively generated and managed by [FYSORA FASHN (Fashion Stitches Africa)](${platformUrl}).\n`;
 
       // Push to GitHub
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;

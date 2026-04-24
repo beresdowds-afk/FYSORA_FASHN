@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     }
 
     const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
-    const fromName = Deno.env.get("RESEND_FROM_NAME") || "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)";
+    const fromName = Deno.env.get("RESEND_FROM_NAME") || "FYSORA FASHN (Fashion Stitches Africa)";
 
     const {
       to, subject, event_type, order_number, order_title,

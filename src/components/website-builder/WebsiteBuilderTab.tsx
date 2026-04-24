@@ -487,7 +487,7 @@ const PricingSection = ({
       <div>
         <h3 className="font-heading font-bold text-lg">Website Builder Plans</h3>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Choose a plan to unlock your professional fashion website on FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa).
+          Choose a plan to unlock your professional fashion website on FYSORA FASHN (Fashion Stitches Africa).
         </p>
       </div>
 

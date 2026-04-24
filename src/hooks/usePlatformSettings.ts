@@ -24,7 +24,7 @@ export interface PlatformSettings {
 
 const DEFAULTS: PlatformSettings = {
   id: "",
-  platform_name: "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)",
+  platform_name: "FYSORA FASHN (Fashion Stitches Africa)",
   platform_short_name: "FYSORA FASHN (Fashion Stitches Africa)",
   tagline: "The Future of African Fashion Tech",
   description: "Digitizing and scaling African fashion businesses through innovative technology solutions since 2024.",
@@ -38,7 +38,7 @@ const DEFAULTS: PlatformSettings = {
   favicon_url: "",
   social_links: {},
   meta_keywords: "",
-  copyright_text: "© 2024 FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa). All rights reserved.",
+  copyright_text: "© 2024 FYSORA FASHN (Fashion Stitches Africa). All rights reserved.",
   sentinel_mcp_url: "",
   updated_at: "",
 };

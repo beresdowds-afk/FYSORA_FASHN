@@ -40,8 +40,8 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const regulations = REGION_REGULATIONS[region] || REGION_REGULATIONS["DEFAULT"];
-    const effectiveOrgName = orgName || "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)";
-    const platformName = "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)";
+    const effectiveOrgName = orgName || "FYSORA FASHN (Fashion Stitches Africa)";
+    const platformName = "FYSORA FASHN (Fashion Stitches Africa)";
 
     const docTypePrompts: Record<string, string> = {
       "terms": `Generate comprehensive Terms & Conditions for "${effectiveOrgName}", a fashion/tailoring business operating on the ${platformName} platform. The business is based in ${orgCountry || region}. 

@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${config.organizations?.name || "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)"}</title>
+  <title>${config.organizations?.name || "FYSORA FASHN (Fashion Stitches Africa)"}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0F0F1A; }
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
     <a href="${appUrl}/site/${orgSlug}" target="_blank" class="brand">
       ✦ ${config.organizations?.name || "Fashion Services"}
     </a>
-    <span class="powered">Powered by <a href="${appUrl}" target="_blank">FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)</a></span>
+    <span class="powered">Powered by <a href="${appUrl}" target="_blank">FYSORA FASHN (Fashion Stitches Africa)</a></span>
   </div>
   <div class="fsa-embed-nav" id="featureNav"></div>
   <div class="fsa-embed-container">
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
     orgName: "${config.organizations?.name || ""}",
     features: ${JSON.stringify(features)},
     theme: ${JSON.stringify(theme)},
-    branding: "${config.branding_text || "Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)"}"
+    branding: "${config.branding_text || "Powered by FYSORA FASHN (Fashion Stitches Africa)"}"
   };
 
   // Inject styles
@@ -330,13 +330,13 @@ Deno.serve(async (req) => {
   var btn = document.createElement('button');
   btn.id = 'fsa-widget-btn';
   btn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>';
-  btn.title = 'FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)';
+  btn.title = 'FYSORA FASHN (Fashion Stitches Africa)';
   document.body.appendChild(btn);
 
   // Create panel
   var panel = document.createElement('div');
   panel.id = 'fsa-widget-panel';
-  var html = '<div class="fsa-header">' + CONFIG.orgName + '<small>FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) Services</small></div>';
+  var html = '<div class="fsa-header">' + CONFIG.orgName + '<small>FYSORA FASHN (Fashion Stitches Africa) Services</small></div>';
   html += '<div class="fsa-body">';
   CONFIG.features.forEach(function(f) {
     var feat = FEATURES[f];

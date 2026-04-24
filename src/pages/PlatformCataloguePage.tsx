@@ -200,7 +200,7 @@ const PlatformCataloguePage = () => {
                           <ShieldCheck size={18} className="text-primary" /> Guest Access Policy
                         </DialogTitle>
                         <DialogDescription>
-                          FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) lets anyone preview the curated platform catalogue without creating an account.
+                          FYSORA FASHN (Fashion Stitches Africa) lets anyone preview the curated platform catalogue without creating an account.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-3 text-sm">

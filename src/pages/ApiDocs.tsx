@@ -100,7 +100,7 @@ const ApiDocs = () => {
             {/* Hero */}
             <div className="mb-10">
               <h1 className="font-heading font-bold text-3xl mb-3">
-                FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) Widget API
+                FYSORA FASHN (Fashion Stitches Africa) Widget API
               </h1>
               <p className="text-muted-foreground text-lg leading-relaxed">
                 Integrate AI-powered fashion tools — measurements, virtual try-on, appointment booking, and catalogue browsing — into any website with a single script tag.
@@ -113,7 +113,7 @@ const ApiDocs = () => {
                 <Zap size={20} className="text-primary" /> Quick Start
               </h2>
               <p className="text-muted-foreground mb-4">
-                Add the FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) widget to your website in under 2 minutes.
+                Add the FYSORA FASHN (Fashion Stitches Africa) widget to your website in under 2 minutes.
               </p>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -327,7 +327,7 @@ export function FSAWidget({ widgetKey }: { widgetKey: string }) {
   "orgSlug": "my-fashion-house",
   "features": ["measurements", "tryon", "appointments", "catalogue"],
   "theme": { "primaryColor": "#D4A853", "borderRadius": "12px", "position": "bottom-right" },
-  "branding": "Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)"
+  "branding": "Powered by FYSORA FASHN (Fashion Stitches Africa)"
 }`} />
                 </div>
 

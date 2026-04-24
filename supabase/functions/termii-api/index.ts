@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
           pin_time_to_live: pin_time_to_live || 5,
           pin_length: pin_length || 6,
           pin_placeholder: pin_placeholder || "< 1234 >",
-          message_text: message_text || "Your FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) OTP is < 1234 >. Valid for 5 minutes.",
+          message_text: message_text || "Your FYSORA FASHN (Fashion Stitches Africa) OTP is < 1234 >. Valid for 5 minutes.",
           pin_type: pin_type || "NUMERIC",
         };
         break;
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
       // ── Sender ID ──
       case "request_sender_id":
         endpoint = "/sender-id/request";
-        body = { api_key: apiKey, sender_id, usecase: usecase || "Transactional alerts", company: company || "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)" };
+        body = { api_key: apiKey, sender_id, usecase: usecase || "Transactional alerts", company: company || "FYSORA FASHN (Fashion Stitches Africa)" };
         break;
 
       case "list_sender_ids":

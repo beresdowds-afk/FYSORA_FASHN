@@ -25,10 +25,10 @@ export const DISCLAIMER_TYPES = {
 export const DISCLAIMER_TEXTS = {
   intermediary_caveat: {
     title: "Platform Intermediary Disclaimer",
-    short: "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) operates as a neutral technology platform connecting Organizations, Tailors, and Customers.",
+    short: "FYSORA FASHN (Fashion Stitches Africa) operates as a neutral technology platform connecting Organizations, Tailors, and Customers.",
     full: `IMPORTANT NOTICE — PLATFORM ROLE & LIABILITY LIMITATION
 
-FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) ("FSA", "the Platform") operates solely as a neutral technology intermediary that connects Organizations, Tailors, and Customers. By using this platform, you expressly acknowledge and agree to the following:
+FYSORA FASHN (Fashion Stitches Africa) ("FSA", "the Platform") operates solely as a neutral technology intermediary that connects Organizations, Tailors, and Customers. By using this platform, you expressly acknowledge and agree to the following:
 
 1. NO QUALITY GUARANTEE: FSA does not guarantee, warrant, or endorse the quality, accuracy, timeliness, or suitability of any services provided by Organizations or Tailors registered on the platform. All work is performed by independent third parties, not by FSA.
 
@@ -51,12 +51,12 @@ By continuing, you acknowledge that you have read, understood, and agree to thes
   quality_disclaimer: {
     title: "Quality & Service Disclaimer",
     short: "All tailoring services are provided by independent third parties. FSA does not guarantee workmanship quality.",
-    full: "FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) does not manufacture, design, or produce any garments. All fashion and tailoring services advertised on this platform are provided exclusively by independent Organizations and Tailors who have registered on the platform. FSA bears no responsibility for the quality, fit, materials used, delivery timelines, or customer satisfaction with respect to any order fulfilled through this platform.",
+    full: "FYSORA FASHN (Fashion Stitches Africa) does not manufacture, design, or produce any garments. All fashion and tailoring services advertised on this platform are provided exclusively by independent Organizations and Tailors who have registered on the platform. FSA bears no responsibility for the quality, fit, materials used, delivery timelines, or customer satisfaction with respect to any order fulfilled through this platform.",
   },
   tailor_contract_terms: {
     title: "Subcontract Agreement Terms",
     short: "Subcontract arrangements are between Organizations and Tailors. FSA facilitates but does not guarantee payment or performance.",
-    full: "Any subcontract agreement between an Organization and a Tailor facilitated through FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) is a direct agreement between those two parties. FSA's role is limited to providing the technology infrastructure for contract management, order delegation, and payment processing. FSA charges an agency fee for facilitating these transactions but assumes no liability for either party's performance, payment, or compliance with the subcontract terms.",
+    full: "Any subcontract agreement between an Organization and a Tailor facilitated through FYSORA FASHN (Fashion Stitches Africa) is a direct agreement between those two parties. FSA's role is limited to providing the technology infrastructure for contract management, order delegation, and payment processing. FSA charges an agency fee for facilitating these transactions but assumes no liability for either party's performance, payment, or compliance with the subcontract terms.",
   },
 };
 

@@ -55,7 +55,7 @@ const buildTourFeatures = (orgName: string): TourFeature[] => [
     title: `Welcome to ${orgName}`,
     subtitle: "Your personal fashion experience",
     description: `Install this app to get the full ${orgName} experience — browse styles, book appointments, track orders, and more, all from your home screen.`,
-    narration: `Welcome! You're about to install the ${orgName} customer app, powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa). This app gives you direct access to ${orgName}'s full catalogue, booking system, and all premium platform features. Let me walk you through everything you'll get.`,
+    narration: `Welcome! You're about to install the ${orgName} customer app, powered by FYSORA FASHN (Fashion Stitches Africa). This app gives you direct access to ${orgName}'s full catalogue, booking system, and all premium platform features. Let me walk you through everything you'll get.`,
     icon: Heart,
     tier: "basic",
     color: "#f43f5e",
@@ -364,7 +364,7 @@ const OrgCustomerInstall = () => {
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#0d0d0d]/90 backdrop-blur-md border-b border-white/10">
         <div className="text-center py-1.5 text-[11px] font-medium tracking-wide" style={{ background: `${brandColor}15`, color: accentColor }}>
-          ✨ Powered by FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)
+          ✨ Powered by FYSORA FASHN (Fashion Stitches Africa)
         </div>
         <div className="container mx-auto flex items-center justify-between h-14 px-4">
           <Link to={`/site/${slug}`} className="flex items-center gap-3">

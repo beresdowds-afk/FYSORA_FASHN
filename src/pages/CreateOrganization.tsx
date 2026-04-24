@@ -151,7 +151,7 @@ const CreateOrganization = () => {
 
           <h1 className="font-heading font-bold text-2xl mb-1">Create Your Organization</h1>
           <p className="text-muted-foreground text-sm mb-6">
-            Set up your fashion business on FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)
+            Set up your fashion business on FYSORA FASHN (Fashion Stitches Africa)
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -254,7 +254,7 @@ const CreateOrganization = () => {
                 onCheckedChange={(c) => setOrgTermsAccepted(!!c)}
               />
               <label htmlFor="org-terms" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                I understand that FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) is a neutral intermediary and does not guarantee the quality, integrity, or performance of any Organization, Tailor, or Customer on the platform. All parties operate independently.
+                I understand that FYSORA FASHN (Fashion Stitches Africa) is a neutral intermediary and does not guarantee the quality, integrity, or performance of any Organization, Tailor, or Customer on the platform. All parties operate independently.
               </label>
             </div>
 

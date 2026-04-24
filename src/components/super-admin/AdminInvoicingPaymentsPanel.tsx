@@ -181,7 +181,7 @@ const AdminInvoicingPaymentsPanel = () => {
 
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
-    doc.text("FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa)", 20, y);
+    doc.text("FYSORA FASHN (Fashion Stitches Africa)", 20, y);
     y += 8;
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");

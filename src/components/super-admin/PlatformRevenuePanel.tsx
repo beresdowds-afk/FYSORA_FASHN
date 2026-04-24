@@ -260,7 +260,7 @@ const PlatformRevenuePanel = () => {
       <div>
         <h1 className="font-heading font-bold text-2xl">Platform Revenue</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          All revenue streams for FYSORA FASHN (FYSORA FASHN (Fashion Stitches Africa) Africa) across organizations.
+          All revenue streams for FYSORA FASHN (Fashion Stitches Africa) across organizations.
         </p>
       </div>
 
