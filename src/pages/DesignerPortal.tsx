@@ -260,24 +260,13 @@ const DesignerPortal = () => {
 
           {/* Content */}
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-            {!subscriptionActive && (
-              <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex-1">
-                  <p className="font-heading font-semibold text-sm">Designer subscription not active</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Activate your $15/month plan to unlock website hosting, featured slots, AI measurements, and virtual try-on.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="hero"
-                  onClick={handleSubscribe}
-                  disabled={subscribing}
-                >
-                  {subscribing ? "Starting..." : "Activate $15/mo"}
-                </Button>
-              </div>
-            )}
+            <TrialBanner
+              audience="Designer"
+              suppress={subscriptionActive}
+              onUpgrade={handleSubscribe}
+              upgradeLabel={subscribing ? "Starting..." : "Activate $15/mo"}
+              hideWhenExpired={false}
+            />
             {activeTab === "overview" && (
               <OverviewTab
                 orders={orders}
