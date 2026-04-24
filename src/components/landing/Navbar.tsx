@@ -34,7 +34,7 @@ const Navbar = () => {
                 <span className="text-gradient-gold"> {settings.platform_short_name.split(" ").slice(1).join(" ")}</span>
               </>
             ) : (
-              <>Fashion<span className="text-gradient-gold"> Stitches</span></>
+              <>FYSORA<span className="text-gradient-gold"> FASHN</span></>
             )}
           </span>
         </a>
