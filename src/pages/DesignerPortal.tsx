@@ -151,6 +151,23 @@ const DesignerPortal = () => {
         setOrders(orderData || []);
       }
       setLoading(false);
+
+      // Auto-claim promotional designer slot (first 30 designers) if no
+      // active subscription. The RPC is idempotent and safe to call repeatedly.
+      const sub = subRes.data as any;
+      const isActive = sub?.status === "active" && sub.current_period_end && new Date(sub.current_period_end) > new Date();
+      if (!isActive) {
+        const { data: claim } = await supabase.rpc("claim_promotional_grant", { _grant_type: "designer", _org_id: null });
+        if ((claim as any)?.granted && !(claim as any)?.already_claimed) {
+          // Trigger the activation flow on the server so a customer_subscriptions row is written.
+          await supabase.functions.invoke("initialize-designer-subscription", {
+            body: { callback_url: `${window.location.origin}/designer-portal` },
+          }).catch(() => null);
+          const { data: refreshed } = await supabase.from("customer_subscriptions")
+            .select("*").eq("user_id", user.id).eq("plan_name", "designer_monthly").maybeSingle();
+          if (refreshed) setSubscription(refreshed);
+        }
+      }
     };
     load();
   }, [user]);
