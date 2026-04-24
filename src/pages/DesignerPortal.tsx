@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +107,10 @@ const DesignerPortal = () => {
   const [delegations, setDelegations] = useState<any[]>([]);
   const [earnings, setEarnings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [personalOrgId, setPersonalOrgId] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [subscribing, setSubscribing] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth?role=designer");
@@ -115,17 +119,24 @@ const DesignerPortal = () => {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const [profileRes, contractsRes, delegationsRes, earningsRes] = await Promise.all([
+      // Ensure designer has a personal org (idempotent SECURITY DEFINER RPC).
+      const { data: orgIdData } = await supabase.rpc("ensure_designer_personal_org");
+      const orgId = (orgIdData as string) || null;
+      setPersonalOrgId(orgId);
+
+      const [profileRes, contractsRes, delegationsRes, earningsRes, subRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("tailor_contracts").select("*, organizations(name, slug, logo_url, currency)").eq("tailor_id", user.id).order("created_at", { ascending: false }),
         supabase.from("order_delegations").select("*, orders(title, order_number, status, total_amount, currency, due_date, customer_id)").eq("tailor_id", user.id).order("created_at", { ascending: false }),
         supabase.from("contract_payments").select("*").eq("tailor_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("customer_subscriptions").select("*").eq("user_id", user.id).eq("plan_name", "designer_monthly").maybeSingle(),
       ]);
 
       setProfile(profileRes.data);
       setContracts(contractsRes.data || []);
       setDelegations(delegationsRes.data || []);
       setEarnings(earningsRes.data || []);
+      setSubscription(subRes.data);
 
       const orgIds = (contractsRes.data || []).map((c: any) => c.org_id);
       if (orgIds.length > 0) {
@@ -142,6 +153,58 @@ const DesignerPortal = () => {
     };
     load();
   }, [user]);
+
+  // Active subscription = status 'active' AND not yet expired.
+  const subscriptionActive = useMemo(() => {
+    if (!subscription) return false;
+    if (subscription.status !== "active") return false;
+    if (!subscription.current_period_end) return true;
+    return new Date(subscription.current_period_end) > new Date();
+  }, [subscription]);
+
+  const handleSubscribe = async () => {
+    setSubscribing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("initialize-designer-subscription", {
+        body: { callback_url: `${window.location.origin}/designer-portal?subscription=success` },
+      });
+      if (error || !data?.checkout_url) {
+        toast({
+          title: "Couldn't start subscription",
+          description: error?.message || data?.error || "Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      window.location.href = data.checkout_url;
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  // After returning from gateway, verify the payment.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const subParam = params.get("subscription");
+    const ref = params.get("reference") || params.get("trxref") || params.get("tx_ref");
+    if (subParam !== "success" || !ref || !user) return;
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("verify-designer-subscription", {
+        body: { reference: ref },
+      });
+      if (error || (data?.status !== "success" && data?.status !== "already_paid")) {
+        toast({ title: "Payment not yet confirmed", description: "We'll keep checking. You'll see the badge update once it clears.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Subscription activated!", description: "Your designer features are now unlocked." });
+      // Refresh sub state
+      const { data: refreshed } = await supabase.from("customer_subscriptions")
+        .select("*").eq("user_id", user.id).eq("plan_name", "designer_monthly").maybeSingle();
+      setSubscription(refreshed);
+      // Clean URL
+      window.history.replaceState({}, "", "/designer-portal");
+    })();
+  }, [user, toast]);
 
   const handleSignOut = async () => {
     await signOut();
