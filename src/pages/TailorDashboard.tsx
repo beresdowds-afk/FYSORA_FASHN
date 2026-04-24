@@ -139,6 +139,9 @@ const TailorDashboard = () => {
         setOrders(orderData || []);
       }
       setLoading(false);
+
+      // Auto-claim promotional tailor slot (first 100 tailors). Idempotent.
+      supabase.rpc("claim_promotional_grant", { _grant_type: "tailor", _org_id: null }).catch(() => null);
     };
     load();
   }, [user]);
