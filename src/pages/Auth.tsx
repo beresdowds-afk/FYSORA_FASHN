@@ -256,8 +256,15 @@ const Auth = () => {
         toast({ description: "After verifying your email, sign in and create your organization." });
       }
     } else {
-      // Sign in — check memberships for managers/admins with multiple orgs
-      const userId = (await supabase.auth.getUser()).data.user?.id || "";
+      // Sign in — fast path: query memberships in parallel and route quickly.
+      // Use the session we already have rather than another network call to /auth/v1/user.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id || "";
+
+      if (!userId) {
+        navigate(isPortal ? "/portal" : "/dashboard");
+        return;
+      }
 
       const { data: memberships } = await supabase
         .from("org_members")
@@ -271,7 +278,7 @@ const Auth = () => {
         role: m.role,
       }));
 
-      // If user is only a tailor, go to tailor dashboard; if only designer, go to designer portal
+      // Only tailor/designer roles
       const onlyTailorOrDesigner = activeMemberships.length > 0 && activeMemberships.every((m: any) => m.role === "tailor" || m.role === "designer");
       if (onlyTailorOrDesigner) {
         const hasDesigner = activeMemberships.some((m: any) => m.role === "designer");
@@ -279,22 +286,20 @@ const Auth = () => {
         return;
       }
 
-      // If manager/admin belongs to multiple orgs, show picker
+      // Multiple admin/manager orgs → picker
       const adminOrManagerOrgs = activeMemberships.filter(
         (m: any) => m.role === "org_admin" || m.role === "manager"
       );
-
       if (adminOrManagerOrgs.length > 1) {
         setManagerOrgs(adminOrManagerOrgs);
         setShowOrgPicker(true);
         return;
       }
 
-      // Single org or no org — set current and navigate
+      // Navigate immediately; persist current_org_id in background (don't block UX).
       if (activeMemberships.length > 0) {
-        await supabase.from("profiles").update({ current_org_id: activeMemberships[0].org_id }).eq("id", userId);
+        void supabase.from("profiles").update({ current_org_id: activeMemberships[0].org_id }).eq("id", userId);
       }
-
       navigate(isPortal ? "/portal" : "/dashboard");
     }
   };
