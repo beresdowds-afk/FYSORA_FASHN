@@ -475,6 +475,7 @@ const PlatformCataloguePage = () => {
           </div>
         )}
       </div>
+      <TourCtaBubble />
     </div>
   );
 
