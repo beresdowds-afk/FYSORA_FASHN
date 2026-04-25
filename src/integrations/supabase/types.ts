@@ -6710,6 +6710,246 @@ export type Database = {
         }
         Relationships: []
       }
+      sentinel_mcp_addons: {
+        Row: {
+          addon_key: string
+          available_to_roles: string[]
+          category: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          mcp_tool_name: string | null
+          metadata: Json
+          monthly_price_usd: number
+          name: string
+          per_request_price_usd: number | null
+          updated_at: string
+        }
+        Insert: {
+          addon_key: string
+          available_to_roles?: string[]
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          mcp_tool_name?: string | null
+          metadata?: Json
+          monthly_price_usd?: number
+          name: string
+          per_request_price_usd?: number | null
+          updated_at?: string
+        }
+        Update: {
+          addon_key?: string
+          available_to_roles?: string[]
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          mcp_tool_name?: string | null
+          metadata?: Json
+          monthly_price_usd?: number
+          name?: string
+          per_request_price_usd?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sentinel_mcp_platform_subscription: {
+        Row: {
+          billing_tier: string
+          cascades_to_users: boolean
+          client_name: string
+          contact_email: string
+          id: number
+          is_active: boolean
+          notes: string | null
+          subscribed_at: string
+          updated_at: string
+        }
+        Insert: {
+          billing_tier?: string
+          cascades_to_users?: boolean
+          client_name?: string
+          contact_email?: string
+          id?: number
+          is_active?: boolean
+          notes?: string | null
+          subscribed_at?: string
+          updated_at?: string
+        }
+        Update: {
+          billing_tier?: string
+          cascades_to_users?: boolean
+          client_name?: string
+          contact_email?: string
+          id?: number
+          is_active?: boolean
+          notes?: string | null
+          subscribed_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sentinel_mcp_user_subscriptions: {
+        Row: {
+          addon_id: string
+          amount_usd: number
+          billing_cycle: string
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string
+          id: string
+          last_invoice_id: string | null
+          metadata: Json
+          org_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          addon_id: string
+          amount_usd?: number
+          billing_cycle?: string
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          id?: string
+          last_invoice_id?: string | null
+          metadata?: Json
+          org_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          addon_id?: string
+          amount_usd?: number
+          billing_cycle?: string
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          id?: string
+          last_invoice_id?: string | null
+          metadata?: Json
+          org_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentinel_mcp_user_subscriptions_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "sentinel_mcp_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sentinel_mcp_user_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sentinel_mcp_user_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sentinel_mcp_user_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seo_optimization_requests: {
+        Row: {
+          amount_usd: number
+          billing_status: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          keywords: string[] | null
+          mcp_event_id: string | null
+          mcp_response: Json | null
+          notes: string | null
+          org_id: string | null
+          requester_id: string
+          routed_to: string
+          scope: string
+          status: string
+          target_url: string
+          updated_at: string
+        }
+        Insert: {
+          amount_usd?: number
+          billing_status?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          keywords?: string[] | null
+          mcp_event_id?: string | null
+          mcp_response?: Json | null
+          notes?: string | null
+          org_id?: string | null
+          requester_id: string
+          routed_to?: string
+          scope?: string
+          status?: string
+          target_url: string
+          updated_at?: string
+        }
+        Update: {
+          amount_usd?: number
+          billing_status?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          keywords?: string[] | null
+          mcp_event_id?: string | null
+          mcp_response?: Json | null
+          notes?: string | null
+          org_id?: string | null
+          requester_id?: string
+          routed_to?: string
+          scope?: string
+          status?: string
+          target_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_optimization_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_optimization_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seo_optimization_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_tracking_events: {
         Row: {
           carrier_status_code: string | null
