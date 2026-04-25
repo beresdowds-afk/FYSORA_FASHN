@@ -755,6 +755,29 @@ async function handleAdminAction(
       const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
       if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
 
+      // Load existing activation row to honor backoff schedule
+      const { data: existing } = await adminClient
+        .from("sentinel_shield_activation")
+        .select("*")
+        .eq("id", 1)
+        .maybeSingle();
+
+      const force = (body as any).force === true;
+      const prevAttempts = (existing as any)?.attempt_count ?? 0;
+      const maxAttempts = (existing as any)?.max_attempts ?? 6;
+      const nextRetryAt = (existing as any)?.next_retry_at
+        ? new Date((existing as any).next_retry_at)
+        : null;
+
+      if (!force && nextRetryAt && nextRetryAt.getTime() > Date.now()) {
+        return jsonResponse({
+          status: (existing as any)?.status ?? "requested",
+          activation: existing,
+          backoff: true,
+          message: `Next retry scheduled at ${nextRetryAt.toISOString()}`,
+        });
+      }
+
       // Resolve Sentinel MCP server URL: platform_settings → first configured org → env
       let serverUrl: string | null = null;
       const { data: platformRow } = await adminClient
@@ -807,13 +830,16 @@ async function handleAdminAction(
             cascades_to_users: false,
             requested_by: userId,
             requested_at: new Date().toISOString(),
+            attempt: prevAttempts + 1,
           },
         },
       };
 
       let providerResponse: unknown = null;
-      let providerStatus: "active" | "requested" | "failed" = "requested";
+      let providerStatus: "active" | "requested" | "failed" | "retrying" = "requested";
       let lastError: string | null = null;
+      let httpStatus: number | null = null;
+      let isRetryable = false;
 
       if (serverUrl) {
         try {
@@ -824,29 +850,51 @@ async function handleAdminAction(
           if (mcpAuthKey?.key_value) {
             headers["Authorization"] = `Bearer ${mcpAuthKey.key_value}`;
           }
+          // 15s timeout treated as retryable
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 15_000);
           const res = await fetch(serverUrl, {
             method: "POST",
             headers,
             body: JSON.stringify(requestPayload),
+            signal: ctrl.signal,
           });
+          clearTimeout(t);
+          httpStatus = res.status;
           const ct = res.headers.get("content-type") ?? "";
           providerResponse = ct.includes("text/event-stream")
             ? { stream: true, body: await res.text() }
             : await res.json().catch(() => ({}));
           if (!res.ok) {
-            providerStatus = "failed";
+            isRetryable = res.status >= 500 && res.status <= 599;
+            providerStatus = isRetryable ? "retrying" : "failed";
             lastError = `MCP server returned ${res.status}`;
           } else {
             // Best-effort: treat any 2xx as activated for the free tier
             providerStatus = "active";
           }
         } catch (e) {
-          providerStatus = "failed";
+          // Network/timeout errors are retryable
+          isRetryable = true;
+          providerStatus = "retrying";
           lastError = e instanceof Error ? e.message : "MCP server unreachable";
         }
       } else {
         providerStatus = "requested";
         lastError = "No Sentinel MCP server URL configured; activation queued.";
+      }
+
+      const newAttempt = prevAttempts + 1;
+      // Exponential backoff: 30s, 1m, 2m, 4m, 8m, 16m (capped)
+      const backoffSeconds = Math.min(30 * Math.pow(2, newAttempt - 1), 30 * 60);
+      let nextRetry: string | null = null;
+      if (providerStatus === "retrying") {
+        if (newAttempt >= maxAttempts) {
+          providerStatus = "failed";
+          lastError = `${lastError ?? "retry exhausted"} (max ${maxAttempts} attempts reached)`;
+        } else {
+          nextRetry = new Date(Date.now() + backoffSeconds * 1000).toISOString();
+        }
       }
 
       const nowIso = new Date().toISOString();
@@ -863,6 +911,9 @@ async function handleAdminAction(
             request_payload: requestPayload,
             provider_response: providerResponse as any,
             last_error: lastError,
+            attempt_count: providerStatus === "active" ? 0 : newAttempt,
+            last_attempt_at: nowIso,
+            next_retry_at: nextRetry,
           },
           { onConflict: "id" }
         )
@@ -874,6 +925,8 @@ async function handleAdminAction(
         status: providerStatus,
         activation: row,
         server_url_used: serverUrl,
+        http_status: httpStatus,
+        retry_in_seconds: nextRetry ? backoffSeconds : null,
       });
     }
 
