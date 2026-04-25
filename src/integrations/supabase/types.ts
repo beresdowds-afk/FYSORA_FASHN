@@ -6874,41 +6874,56 @@ export type Database = {
       sentinel_shield_activation: {
         Row: {
           activated_at: string | null
+          attempt_count: number
           client_email: string
           created_at: string
           id: number
+          last_attempt_at: string | null
           last_error: string | null
+          max_attempts: number
+          next_retry_at: string | null
           plan_key: string
           provider_response: Json | null
           request_payload: Json | null
           requested_at: string | null
           status: string
+          stuck_after_minutes: number
           updated_at: string
         }
         Insert: {
           activated_at?: string | null
+          attempt_count?: number
           client_email?: string
           created_at?: string
           id?: number
+          last_attempt_at?: string | null
           last_error?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
           plan_key?: string
           provider_response?: Json | null
           request_payload?: Json | null
           requested_at?: string | null
           status?: string
+          stuck_after_minutes?: number
           updated_at?: string
         }
         Update: {
           activated_at?: string | null
+          attempt_count?: number
           client_email?: string
           created_at?: string
           id?: number
+          last_attempt_at?: string | null
           last_error?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
           plan_key?: string
           provider_response?: Json | null
           request_payload?: Json | null
           requested_at?: string | null
           status?: string
+          stuck_after_minutes?: number
           updated_at?: string
         }
         Relationships: []
@@ -6943,7 +6958,7 @@ export type Database = {
           mcp_response?: Json | null
           notes?: string | null
           org_id?: string | null
-          requester_id: string
+          requester_id?: string
           routed_to?: string
           scope?: string
           status?: string
