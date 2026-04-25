@@ -11,8 +11,12 @@ export function useVoiceNarration() {
   }, []);
 
   const speak = useCallback(
-    (text: string) => {
-      if (!isSupported || !voiceEnabled) return;
+    (text: string, onEnd?: () => void) => {
+      if (!isSupported || !voiceEnabled) {
+        // Still fire onEnd so callers (auto-advance) keep flowing when muted
+        if (onEnd) setTimeout(onEnd, 50);
+        return;
+      }
 
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
@@ -36,8 +40,14 @@ export function useVoiceNarration() {
       }
 
       utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        if (onEnd) onEnd();
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        if (onEnd) onEnd();
+      };
 
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
