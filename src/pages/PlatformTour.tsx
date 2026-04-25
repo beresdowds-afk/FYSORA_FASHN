@@ -6,13 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useVoiceNarration } from "@/hooks/useVoiceNarration";
 import { tourRoleList, isTourRole, type TourRole } from "@/config/roleTourTracks";
 import { usePlatformTourTracks } from "@/hooks/usePlatformTourTracks";
+import { useTourProgress } from "@/hooks/useTourProgress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Sparkles, ShoppingBag, Building2, Ruler, Package, Scissors,
   MessageSquare, Crown, ChevronRight, ChevronLeft,
-  Volume2, VolumeX, X, Play, Pause, Eye,
+  Volume2, VolumeX, X, Play, Pause, Eye, RotateCcw,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -44,6 +45,7 @@ const PlatformTour = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [tourComplete, setTourComplete] = useState(false);
   const [autoPlay, setAutoPlay] = useState(true);
+  const [resumed, setResumed] = useState(false);
   const advanceTimer = useRef<number | null>(null);
 
   const steps = useMemo(() => track?.steps ?? [], [track]);
@@ -52,6 +54,9 @@ const PlatformTour = () => {
   const progress = totalSteps ? ((currentStep + 1) / totalSteps) * 100 : 0;
   const StepIcon = step ? (ICON_MAP[step.icon] || Sparkles) : Sparkles;
 
+  const { resumeIndex, completed: savedCompleted, hydrated: progressHydrated, save: saveProgress, reset: resetProgress } =
+    useTourProgress(role);
+
   const clearAdvanceTimer = useCallback(() => {
     if (advanceTimer.current) {
       window.clearTimeout(advanceTimer.current);
@@ -59,11 +64,32 @@ const PlatformTour = () => {
     }
   }, []);
 
-  // Reset on role change
+  // Reset on role change (resume hydration runs separately below)
   useEffect(() => {
     setCurrentStep(0);
     setTourComplete(false);
+    setResumed(false);
+    // Pause auto-play until the user confirms resume vs restart
+    setAutoPlay(false);
   }, [role]);
+
+  // Resume from saved progress once it has hydrated
+  useEffect(() => {
+    if (!role || !progressHydrated || resumed || totalSteps === 0) return;
+    if (savedCompleted) {
+      // If the user already finished this role's tour, jump straight to the
+      // completion screen so they can re-watch or pick another role.
+      setTourComplete(true);
+      setResumed(true);
+      return;
+    }
+    if (resumeIndex !== null && resumeIndex > 0 && resumeIndex < totalSteps) {
+      setCurrentStep(Math.min(resumeIndex, totalSteps - 1));
+    }
+    setResumed(true);
+    // Re-enable auto-play now that we're on the right step
+    setAutoPlay(true);
+  }, [role, progressHydrated, savedCompleted, resumeIndex, totalSteps, resumed]);
 
   // Narrate current step + auto-advance when narration ends
   useEffect(() => {
@@ -94,6 +120,12 @@ const PlatformTour = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, autoPlay, voiceEnabled, role]);
 
+  // Persist progress whenever the step or completion changes
+  useEffect(() => {
+    if (!role || !track || !resumed || totalSteps === 0) return;
+    saveProgress(currentStep, totalSteps, tourComplete);
+  }, [role, track, resumed, currentStep, totalSteps, tourComplete, saveProgress]);
+
   const goNext = useCallback(() => {
     stop();
     clearAdvanceTimer();
@@ -121,6 +153,16 @@ const PlatformTour = () => {
     clearAdvanceTimer();
     navigate(track?.ctaPath ?? "/portal");
   }, [stop, navigate, track, clearAdvanceTimer]);
+
+  const restartFromStart = useCallback(() => {
+    stop();
+    clearAdvanceTimer();
+    resetProgress();
+    setCurrentStep(0);
+    setTourComplete(false);
+    setResumed(true);
+    setAutoPlay(true);
+  }, [stop, clearAdvanceTimer, resetProgress]);
 
   // ===== Role picker (shown when no ?role=) =====
   if (!track) {
@@ -201,7 +243,10 @@ const PlatformTour = () => {
             <Button variant="default" onClick={goCta} className="gap-2">
               <Crown size={16} /> {track.ctaLabel}
             </Button>
-            <Button variant="outline" onClick={() => { setParams({}); setTourComplete(false); setCurrentStep(0); }}>
+            <Button variant="outline" onClick={restartFromStart} className="gap-2">
+              <RotateCcw size={14} /> Watch again
+            </Button>
+            <Button variant="ghost" onClick={() => { setParams({}); setTourComplete(false); setCurrentStep(0); }}>
               <ChevronLeft size={14} className="mr-2" /> Pick another role
             </Button>
           </div>
@@ -224,8 +269,22 @@ const PlatformTour = () => {
             <span className="text-xs text-muted-foreground hidden sm:inline">
               Step {currentStep + 1} of {totalSteps}
             </span>
+            {currentStep > 0 && (
+              <Badge variant="secondary" className="text-[9px] hidden md:inline-flex gap-1" title="Resumed from your last session">
+                Resumed
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={restartFromStart}
+              className="h-8 w-8 p-0"
+              title="Restart from step 1"
+            >
+              <RotateCcw size={14} />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
