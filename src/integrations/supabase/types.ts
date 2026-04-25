@@ -6155,6 +6155,90 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_tour_sync_state: {
+        Row: {
+          id: number
+          is_stale: boolean
+          last_platform_update_id: string | null
+          last_sync_attempt_at: string | null
+          last_sync_message: string | null
+          last_sync_status: string | null
+          last_sync_success_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          is_stale?: boolean
+          last_platform_update_id?: string | null
+          last_sync_attempt_at?: string | null
+          last_sync_message?: string | null
+          last_sync_status?: string | null
+          last_sync_success_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          is_stale?: boolean
+          last_platform_update_id?: string | null
+          last_sync_attempt_at?: string | null
+          last_sync_message?: string | null
+          last_sync_status?: string | null
+          last_sync_success_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_tour_tracks: {
+        Row: {
+          accent: string
+          created_at: string
+          cta_label: string
+          cta_path: string
+          generated_at: string
+          generated_by: string
+          icon: string
+          id: string
+          label: string
+          role: string
+          source_version: string | null
+          steps: Json
+          tagline: string
+          updated_at: string
+        }
+        Insert: {
+          accent: string
+          created_at?: string
+          cta_label: string
+          cta_path: string
+          generated_at?: string
+          generated_by?: string
+          icon: string
+          id?: string
+          label: string
+          role: string
+          source_version?: string | null
+          steps?: Json
+          tagline: string
+          updated_at?: string
+        }
+        Update: {
+          accent?: string
+          created_at?: string
+          cta_label?: string
+          cta_path?: string
+          generated_at?: string
+          generated_by?: string
+          icon?: string
+          id?: string
+          label?: string
+          role?: string
+          source_version?: string | null
+          steps?: Json
+          tagline?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_updates: {
         Row: {
           audience: string
