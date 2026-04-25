@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  verifyHmacSha256,
+  persistWebhookEvent,
+  pickHeaders,
+} from "../_shared/webhook-verify.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,15 +17,52 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const payload = await req.json();
-    console.log("WhatChimp webhook received:", JSON.stringify(payload));
+    // Read raw body once for signature verification, then parse.
+    const rawBody = await req.text();
+
+    const signature =
+      req.headers.get("x-whatchimp-signature") ||
+      req.headers.get("x-hub-signature-256") ||
+      req.headers.get("x-signature");
+    const secret = Deno.env.get("WHATCHIMP_WEBHOOK_SECRET");
+
+    const verification = await verifyHmacSha256(rawBody, signature, secret);
+
+    let payload: any = {};
+    try { payload = JSON.parse(rawBody); } catch { payload = { raw: rawBody }; }
+
+    const eventType = payload.event || payload.type || "unknown";
+
+    await persistWebhookEvent({
+      provider: "whatchimp",
+      event_type: eventType,
+      signature_verified: verification.verified,
+      signature_reason: verification.reason,
+      external_id: payload.message_id || payload.id || null,
+      message_sid: payload.message_id || null,
+      from_number: payload.from || payload.sender || null,
+      to_number: payload.to || payload.recipient || null,
+      status: payload.status || null,
+      payload,
+      headers: pickHeaders(req, [
+        "x-whatchimp-signature", "x-hub-signature-256", "x-signature",
+        "user-agent", "content-type",
+      ]),
+      processing_notes: verification.verified ? null : verification.reason,
+    });
+
+    // Strict mode: reject when the secret IS configured but signature is bad.
+    if (!verification.verified && secret) {
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-
-    const eventType = payload.event || payload.type || "unknown";
 
     // Handle inbound WhatsApp messages
     if (eventType === "message.received" || eventType === "inbound") {
@@ -121,10 +163,10 @@ Deno.serve(async (req) => {
       JSON.stringify({ received: true }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error("whatchimp-webhook error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: err?.message || "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

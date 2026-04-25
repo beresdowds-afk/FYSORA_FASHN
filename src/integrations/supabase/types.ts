@@ -8336,6 +8336,66 @@ export type Database = {
           },
         ]
       }
+      webhook_event_log: {
+        Row: {
+          call_sid: string | null
+          created_at: string
+          event_type: string
+          external_id: string | null
+          from_number: string | null
+          headers: Json
+          id: string
+          message_sid: string | null
+          org_id: string | null
+          payload: Json
+          processing_notes: string | null
+          provider: string
+          received_at: string
+          signature_reason: string | null
+          signature_verified: boolean
+          status: string | null
+          to_number: string | null
+        }
+        Insert: {
+          call_sid?: string | null
+          created_at?: string
+          event_type: string
+          external_id?: string | null
+          from_number?: string | null
+          headers?: Json
+          id?: string
+          message_sid?: string | null
+          org_id?: string | null
+          payload?: Json
+          processing_notes?: string | null
+          provider: string
+          received_at?: string
+          signature_reason?: string | null
+          signature_verified?: boolean
+          status?: string | null
+          to_number?: string | null
+        }
+        Update: {
+          call_sid?: string | null
+          created_at?: string
+          event_type?: string
+          external_id?: string | null
+          from_number?: string | null
+          headers?: Json
+          id?: string
+          message_sid?: string | null
+          org_id?: string | null
+          payload?: Json
+          processing_notes?: string | null
+          provider?: string
+          received_at?: string
+          signature_reason?: string | null
+          signature_verified?: boolean
+          status?: string | null
+          to_number?: string | null
+        }
+        Relationships: []
+      }
       website_builder_requests: {
         Row: {
           assigned_admin_id: string | null

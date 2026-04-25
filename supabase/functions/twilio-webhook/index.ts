@@ -1,4 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  verifyTwilioSignature,
+  persistWebhookEvent,
+  pickHeaders,
+  externalRequestUrl,
+} from "../_shared/webhook-verify.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,6 +52,26 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const route = url.searchParams.get("route") || "";
 
+    // Routes that are CALLBACKS from Twilio must verify the signature.
+    // `initiate-call` is the user-facing route (auth handled separately).
+    const TWILIO_CALLBACK_ROUTES = new Set([
+      "voice-inbound",
+      "voice-status",
+      "voice-ivr",
+      "voice-recording-status",
+      "message-status",
+      "", // default = inbound message
+    ]);
+
+    if (TWILIO_CALLBACK_ROUTES.has(route)) {
+      const verification = await verifyAndLogTwilioCallback(req, route);
+      if (!verification.allow) {
+        return verification.response!;
+      }
+      // Replace req with the cloned one whose body we can re-read
+      req = verification.req;
+    }
+
     // Voice routes
     if (route === "voice-inbound") return await handleInboundCall(req, supabaseAdmin);
     if (route === "voice-status") return await handleCallStatusCallback(req, supabaseAdmin);
@@ -61,6 +87,61 @@ Deno.serve(async (req) => {
     return twimlResponse("Error processing request");
   }
 });
+
+/**
+ * Verifies the X-Twilio-Signature header and writes a webhook_event_log row.
+ * In production an invalid signature returns 403 and is NOT processed.
+ * If TWILIO_AUTH_TOKEN is missing (dev), the request is allowed but logged
+ * as unverified so admins can spot the gap.
+ */
+async function verifyAndLogTwilioCallback(
+  req: Request,
+  route: string,
+): Promise<{ allow: boolean; req: Request; response?: Response }> {
+  const cloned = req.clone();
+  const formData = await cloned.formData();
+  const params: Record<string, string> = {};
+  formData.forEach((v, k) => { params[k] = v.toString(); });
+
+  const signature = req.headers.get("x-twilio-signature");
+  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const fullUrl = externalRequestUrl(req);
+
+  const verification = await verifyTwilioSignature(fullUrl, params, signature, authToken);
+
+  await persistWebhookEvent({
+    provider: "twilio",
+    event_type: route || "inbound_message",
+    signature_verified: verification.verified,
+    signature_reason: verification.reason,
+    call_sid: params.CallSid || null,
+    message_sid: params.MessageSid || null,
+    from_number: params.From || null,
+    to_number: params.To || null,
+    status: params.CallStatus || params.MessageStatus || null,
+    payload: params,
+    headers: pickHeaders(req, ["x-twilio-signature", "user-agent", "content-type"]),
+    processing_notes: verification.verified ? null : verification.reason,
+  });
+
+  // Strict mode: block unverified callbacks if the auth token IS configured.
+  if (!verification.verified && authToken) {
+    return {
+      allow: false,
+      req,
+      response: new Response("Invalid signature", { status: 403 }),
+    };
+  }
+
+  // Re-issue a request with the body again so downstream handlers can read it.
+  const newBody = new URLSearchParams(params).toString();
+  const replay = new Request(req.url, {
+    method: req.method,
+    headers: { ...Object.fromEntries(req.headers), "content-type": "application/x-www-form-urlencoded" },
+    body: newBody,
+  });
+  return { allow: true, req: replay };
+}
 
 // ==================== VOICE HANDLERS ====================
 

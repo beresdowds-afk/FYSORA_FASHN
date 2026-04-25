@@ -2,3 +2,14 @@ project_id = "ruplopynbimfjowhpktz"
 
 [functions.process-email-queue]
 verify_jwt = true
+
+# External provider webhooks: cannot supply JWTs. Signatures are validated
+# in code via the shared webhook-verify helper.
+[functions.twilio-webhook]
+verify_jwt = false
+
+[functions.whatchimp-webhook]
+verify_jwt = false
+
+[functions.termii-webhook]
+verify_jwt = false

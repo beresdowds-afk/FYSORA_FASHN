@@ -25,6 +25,7 @@ import FeaturedProductsAdminPanel from "@/components/super-admin/FeaturedProduct
 import PlatformSettingsPanel from "@/components/super-admin/PlatformSettingsPanel";
 import PlatformPhoneNumbersPanel from "@/components/super-admin/PlatformPhoneNumbersPanel";
 import CommsOversightPanel from "@/components/super-admin/CommsOversightPanel";
+import CommunicationsHubTestPanel from "@/components/super-admin/CommunicationsHubTestPanel";
 import VideoBillingPanel from "@/components/super-admin/VideoBillingPanel";
 import DomainManagementPanel from "@/components/super-admin/DomainManagementPanel";
 import VerificationProvidersPanel from "@/components/super-admin/VerificationProvidersPanel";
@@ -83,7 +84,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync";
+type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync";
 
 interface SidebarItem {
   id: TabId;
@@ -195,6 +196,7 @@ const SuperAdminDashboard = () => {
       label: "Communications",
       items: [
         { id: "communications", icon: MessageSquare, label: "Communications Hub" },
+        { id: "comms_hub_test", icon: Radio, label: "Comms Test Console" },
         { id: "message_center", icon: MessageSquare, label: "Message Center" },
         { id: "comms_oversight", icon: Shield, label: "Comms Oversight" },
         { id: "support_requests", icon: LifeBuoy, label: "Support Requests" },
@@ -329,6 +331,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "domain_management" && <DomainManagementPanel />}
             {activeTab === "identity_verification" && <VerificationProvidersPanel />}
             {activeTab === "communications" && <CommunicationsFullPage />}
+            {activeTab === "comms_hub_test" && <CommunicationsHubTestPanel />}
             {activeTab === "registrations" && <RegistrationsPanel orgs={orgs} />}
             {activeTab === "disputes" && <DisputesPanel orgs={orgs} />}
             {activeTab === "website_templates" && <WebsiteTemplatePicker readOnly />}
