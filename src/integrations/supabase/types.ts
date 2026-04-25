@@ -7957,6 +7957,42 @@ export type Database = {
           },
         ]
       }
+      tour_progress: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          last_seen_at: string
+          last_step_index: number
+          role: string
+          total_steps: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          last_step_index?: number
+          role: string
+          total_steps?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          last_step_index?: number
+          role?: string
+          total_steps?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_notification_preferences: {
         Row: {
           created_at: string
