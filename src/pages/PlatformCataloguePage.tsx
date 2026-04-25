@@ -22,6 +22,8 @@ import {
   Info, Check, X, ShieldCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import TourCtaBubble from "@/components/tour/TourCtaBubble";
+import { MOCK_CATALOGUE_ITEMS } from "@/data/mockCatalogueItems";
 
 const MAX_FREE_TOURS = 2;
 
@@ -84,12 +86,13 @@ const PlatformCataloguePage = () => {
         .eq("is_available", true)
         .order("name");
 
-      setItems(
-        (data || []).map((item: any) => ({
-          ...item,
-          org_name: item.organizations?.name || "Unknown",
-        }))
-      );
+      const live = (data || []).map((item: any) => ({
+        ...item,
+        org_name: item.organizations?.name || "Unknown",
+      }));
+      // Temporarily fall back to mock products when live catalogue is empty,
+      // so first-time visitors land on a populated marketplace.
+      setItems(live.length > 0 ? live : (MOCK_CATALOGUE_ITEMS as unknown as CatalogueItem[]));
       setLoading(false);
     };
     load();
