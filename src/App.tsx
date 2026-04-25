@@ -29,6 +29,7 @@ import PlatformTour from "./pages/PlatformTour";
 import PaymentsPortal from "./pages/PaymentsPortal";
 import OrgCustomerInstall from "./pages/OrgCustomerInstall";
 import NotFound from "./pages/NotFound";
+import PlatformUpdateWatcher from "@/components/platform/PlatformUpdateWatcher";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <PlatformUpdateWatcher audience="all" />
           <Routes>
             <Route path="/" element={<PlatformCataloguePage />} />
             <Route path="/welcome" element={<Index />} />
