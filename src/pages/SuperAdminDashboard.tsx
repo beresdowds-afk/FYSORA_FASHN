@@ -331,6 +331,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "domain_management" && <DomainManagementPanel />}
             {activeTab === "identity_verification" && <VerificationProvidersPanel />}
             {activeTab === "communications" && <CommunicationsFullPage />}
+            {activeTab === "comms_hub_test" && <CommunicationsHubTestPanel />}
             {activeTab === "registrations" && <RegistrationsPanel orgs={orgs} />}
             {activeTab === "disputes" && <DisputesPanel orgs={orgs} />}
             {activeTab === "website_templates" && <WebsiteTemplatePicker readOnly />}
