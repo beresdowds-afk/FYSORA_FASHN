@@ -97,13 +97,13 @@ export const platformTourSteps: PlatformTourStep[] = [
   {
     id: "subscribe",
     title: "Unlock Full Access",
-    subtitle: "Premium for just $10/year",
+    subtitle: "Go Premium",
     description:
       "Subscribe to the Premium plan to unlock all features — AI measurements, virtual try-on, priority support, and unrestricted catalogue access.",
     narration:
-      "Ready to unlock everything? For just ten dollars a year, the Premium plan gives you full unrestricted access to all platform features — AI measurements, virtual try-on, video consultations, priority tracking, and much more. Subscribe today and experience the best of African fashion!",
+      "Ready to unlock everything? The Premium plan gives you full unrestricted access to all platform features — AI measurements, virtual try-on, video consultations, priority tracking, and much more. Subscribe today and experience the best of African fashion!",
     icon: "Crown",
     visual: "subscribe",
-    highlights: ["$10/year", "All Features Unlocked", "Identity Verified Access"],
+    highlights: ["Premium Plan", "All Features Unlocked", "Identity Verified Access"],
   },
 ];
