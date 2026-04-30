@@ -985,6 +985,27 @@ async function activatePlatformAgent(
   const agentKey = String(body.agent_key || "");
   if (!agentKey) return jsonResponse({ error: "Missing agent_key" }, 400);
 
+  // Idempotency check
+  const idemKey = (body as any).idempotency_key as string | undefined;
+  if (idemKey) {
+    const { data: existingByKey } = await adminClient
+      .from("sentinel_platform_agents")
+      .select("*")
+      .eq("idempotency_key", idemKey)
+      .maybeSingle();
+    if (
+      existingByKey &&
+      (existingByKey as any).idempotency_key_expires_at &&
+      new Date((existingByKey as any).idempotency_key_expires_at).getTime() > Date.now()
+    ) {
+      return jsonResponse({
+        status: (existingByKey as any).status,
+        agent: existingByKey,
+        idempotent_replay: true,
+      });
+    }
+  }
+
   const { data: agent, error: agentErr } = await adminClient
     .from("sentinel_platform_agents")
     .select("*")
@@ -1126,6 +1147,10 @@ async function activatePlatformAgent(
       attempt_count: providerStatus === "active" ? 0 : newAttempt,
       last_attempt_at: nowIso,
       next_retry_at: nextRetry,
+      idempotency_key: idemKey ?? null,
+      idempotency_key_expires_at: idemKey
+        ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        : null,
     })
     .eq("agent_key", agentKey)
     .select()
