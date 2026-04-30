@@ -6710,6 +6710,33 @@ export type Database = {
         }
         Relationships: []
       }
+      sentinel_alert_settings: {
+        Row: {
+          agent_failure_alert_enabled: boolean
+          agent_stuck_after_minutes: number
+          id: number
+          notify_emails: string[]
+          shield_stuck_after_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          agent_failure_alert_enabled?: boolean
+          agent_stuck_after_minutes?: number
+          id?: number
+          notify_emails?: string[]
+          shield_stuck_after_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_failure_alert_enabled?: boolean
+          agent_stuck_after_minutes?: number
+          id?: number
+          notify_emails?: string[]
+          shield_stuck_after_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sentinel_mcp_addons: {
         Row: {
           addon_key: string
@@ -6882,6 +6909,8 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          idempotency_key: string | null
+          idempotency_key_expires_at: string | null
           last_attempt_at: string | null
           last_error: string | null
           max_attempts: number
@@ -6909,6 +6938,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          idempotency_key?: string | null
+          idempotency_key_expires_at?: string | null
           last_attempt_at?: string | null
           last_error?: string | null
           max_attempts?: number
@@ -6936,6 +6967,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          idempotency_key?: string | null
+          idempotency_key_expires_at?: string | null
           last_attempt_at?: string | null
           last_error?: string | null
           max_attempts?: number
@@ -6962,6 +6995,8 @@ export type Database = {
           client_email: string
           created_at: string
           id: number
+          idempotency_key: string | null
+          idempotency_key_expires_at: string | null
           last_attempt_at: string | null
           last_error: string | null
           max_attempts: number
@@ -6980,6 +7015,8 @@ export type Database = {
           client_email?: string
           created_at?: string
           id?: number
+          idempotency_key?: string | null
+          idempotency_key_expires_at?: string | null
           last_attempt_at?: string | null
           last_error?: string | null
           max_attempts?: number
@@ -6998,6 +7035,8 @@ export type Database = {
           client_email?: string
           created_at?: string
           id?: number
+          idempotency_key?: string | null
+          idempotency_key_expires_at?: string | null
           last_attempt_at?: string | null
           last_error?: string | null
           max_attempts?: number
@@ -7011,6 +7050,216 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sentinel_storage_entitlements: {
+        Row: {
+          base_monthly_usd: number
+          created_at: string
+          current_object_count: number
+          current_period_end: string
+          current_period_start: string
+          current_usage_bytes: number
+          id: string
+          included_gb: number
+          last_error: string | null
+          last_usage_calc_at: string | null
+          metadata: Json
+          org_id: string | null
+          overage_per_gb_usd: number
+          owner_type: string
+          provider_buckets: Json
+          provisioned_at: string | null
+          provisioning_response: Json | null
+          revoked_at: string | null
+          status: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          base_monthly_usd?: number
+          created_at?: string
+          current_object_count?: number
+          current_period_end?: string
+          current_period_start?: string
+          current_usage_bytes?: number
+          id?: string
+          included_gb?: number
+          last_error?: string | null
+          last_usage_calc_at?: string | null
+          metadata?: Json
+          org_id?: string | null
+          overage_per_gb_usd?: number
+          owner_type: string
+          provider_buckets?: Json
+          provisioned_at?: string | null
+          provisioning_response?: Json | null
+          revoked_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          base_monthly_usd?: number
+          created_at?: string
+          current_object_count?: number
+          current_period_end?: string
+          current_period_start?: string
+          current_usage_bytes?: number
+          id?: string
+          included_gb?: number
+          last_error?: string | null
+          last_usage_calc_at?: string | null
+          metadata?: Json
+          org_id?: string | null
+          overage_per_gb_usd?: number
+          owner_type?: string
+          provider_buckets?: Json
+          provisioned_at?: string | null
+          provisioning_response?: Json | null
+          revoked_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentinel_storage_entitlements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sentinel_storage_entitlements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sentinel_storage_entitlements_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sentinel_storage_entitlements_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "sentinel_mcp_user_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sentinel_storage_objects: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          entitlement_id: string
+          id: string
+          is_public: boolean
+          metadata: Json
+          original_filename: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          entitlement_id: string
+          id?: string
+          is_public?: boolean
+          metadata?: Json
+          original_filename: string
+          size_bytes?: number
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          entitlement_id?: string
+          id?: string
+          is_public?: boolean
+          metadata?: Json
+          original_filename?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentinel_storage_objects_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "sentinel_storage_entitlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sentinel_storage_usage_ledger: {
+        Row: {
+          avg_bytes: number
+          base_charge_usd: number
+          created_at: string
+          entitlement_id: string
+          id: string
+          included_gb: number
+          overage_charge_usd: number
+          overage_gb: number
+          peak_bytes: number
+          period_end: string
+          period_start: string
+          status: string
+          total_usd: number
+          updated_at: string
+        }
+        Insert: {
+          avg_bytes?: number
+          base_charge_usd?: number
+          created_at?: string
+          entitlement_id: string
+          id?: string
+          included_gb: number
+          overage_charge_usd?: number
+          overage_gb?: number
+          peak_bytes?: number
+          period_end: string
+          period_start: string
+          status?: string
+          total_usd?: number
+          updated_at?: string
+        }
+        Update: {
+          avg_bytes?: number
+          base_charge_usd?: number
+          created_at?: string
+          entitlement_id?: string
+          id?: string
+          included_gb?: number
+          overage_charge_usd?: number
+          overage_gb?: number
+          peak_bytes?: number
+          period_end?: string
+          period_start?: string
+          status?: string
+          total_usd?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentinel_storage_usage_ledger_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "sentinel_storage_entitlements"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       seo_optimization_requests: {
         Row: {

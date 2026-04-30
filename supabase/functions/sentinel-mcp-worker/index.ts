@@ -755,6 +755,27 @@ async function handleAdminAction(
       const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
       if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
 
+      // Idempotency: dedupe duplicate clicks / webhook retries within 24h
+      const idemKey = (body as any).idempotency_key as string | undefined;
+      if (idemKey) {
+        const { data: existingByKey } = await adminClient
+          .from("sentinel_shield_activation")
+          .select("*")
+          .eq("idempotency_key", idemKey)
+          .maybeSingle();
+        if (
+          existingByKey &&
+          (existingByKey as any).idempotency_key_expires_at &&
+          new Date((existingByKey as any).idempotency_key_expires_at).getTime() > Date.now()
+        ) {
+          return jsonResponse({
+            status: (existingByKey as any).status,
+            activation: existingByKey,
+            idempotent_replay: true,
+          });
+        }
+      }
+
       // Load existing activation row to honor backoff schedule
       const { data: existing } = await adminClient
         .from("sentinel_shield_activation")
@@ -914,6 +935,10 @@ async function handleAdminAction(
             attempt_count: providerStatus === "active" ? 0 : newAttempt,
             last_attempt_at: nowIso,
             next_retry_at: nextRetry,
+            idempotency_key: idemKey ?? null,
+            idempotency_key_expires_at: idemKey
+              ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+              : null,
           },
           { onConflict: "id" }
         )
@@ -944,6 +969,15 @@ async function handleAdminAction(
       return jsonResponse({ agents: data ?? [] });
     }
 
+    case "provision-storage":
+      return await provisionStorage(body, userId, adminClient);
+
+    case "revoke-storage":
+      return await revokeStorage(body, userId, adminClient);
+
+    case "compute-storage-usage":
+      return await computeStorageUsage(body, userId, adminClient);
+
     default:
       return jsonResponse({ error: `Unknown action: ${action}` }, 400);
   }
@@ -959,6 +993,27 @@ async function activatePlatformAgent(
 
   const agentKey = String(body.agent_key || "");
   if (!agentKey) return jsonResponse({ error: "Missing agent_key" }, 400);
+
+  // Idempotency check
+  const idemKey = (body as any).idempotency_key as string | undefined;
+  if (idemKey) {
+    const { data: existingByKey } = await adminClient
+      .from("sentinel_platform_agents")
+      .select("*")
+      .eq("idempotency_key", idemKey)
+      .maybeSingle();
+    if (
+      existingByKey &&
+      (existingByKey as any).idempotency_key_expires_at &&
+      new Date((existingByKey as any).idempotency_key_expires_at).getTime() > Date.now()
+    ) {
+      return jsonResponse({
+        status: (existingByKey as any).status,
+        agent: existingByKey,
+        idempotent_replay: true,
+      });
+    }
+  }
 
   const { data: agent, error: agentErr } = await adminClient
     .from("sentinel_platform_agents")
@@ -1101,6 +1156,10 @@ async function activatePlatformAgent(
       attempt_count: providerStatus === "active" ? 0 : newAttempt,
       last_attempt_at: nowIso,
       next_retry_at: nextRetry,
+      idempotency_key: idemKey ?? null,
+      idempotency_key_expires_at: idemKey
+        ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        : null,
     })
     .eq("agent_key", agentKey)
     .select()
@@ -1157,5 +1216,259 @@ function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+// ===== Multi-Cloud Storage Provisioning =====
+async function verifyStorageOwner(
+  userId: string,
+  ent: any,
+  client: ReturnType<typeof createClient>,
+): Promise<boolean> {
+  if (await verifySuperAdmin(userId, client)) return true;
+  if (ent.owner_type === "organization") {
+    return await verifyAdminAccess(userId, ent.org_id, client);
+  }
+  return ent.user_id === userId;
+}
+
+async function callMcpTool(
+  serverUrl: string | null,
+  toolName: string,
+  args: Record<string, unknown>,
+  client: ReturnType<typeof createClient>,
+) {
+  if (!serverUrl) {
+    return { ok: false, status: 0, response: null, error: "No Sentinel MCP URL configured" };
+  }
+  const { data: authKey } = await client
+    .from("platform_api_keys")
+    .select("key_value")
+    .eq("key_name", "sentinel_mcp_auth_key")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+  };
+  if (authKey?.key_value) headers["Authorization"] = `Bearer ${authKey.key_value}`;
+
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15_000);
+    const res = await fetch(serverUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "tools/call",
+        params: { name: toolName, arguments: args },
+      }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    const ct = res.headers.get("content-type") ?? "";
+    const response = ct.includes("text/event-stream")
+      ? { stream: true, body: await res.text() }
+      : await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, response, error: res.ok ? null : `MCP returned ${res.status}` };
+  } catch (e) {
+    return { ok: false, status: 0, response: null, error: e instanceof Error ? e.message : "MCP unreachable" };
+  }
+}
+
+async function resolveSentinelUrl(client: ReturnType<typeof createClient>): Promise<string | null> {
+  const { data: row } = await client
+    .from("platform_settings")
+    .select("sentinel_mcp_url")
+    .limit(1)
+    .maybeSingle();
+  if ((row as any)?.sentinel_mcp_url) return (row as any).sentinel_mcp_url;
+  return Deno.env.get("SENTINEL_MCP_URL") || null;
+}
+
+async function provisionStorage(
+  body: any,
+  userId: string,
+  adminClient: ReturnType<typeof createClient>,
+) {
+  const entitlementId = String(body.entitlement_id || "");
+  if (!entitlementId) return jsonResponse({ error: "entitlement_id required" }, 400);
+
+  const { data: ent } = await adminClient
+    .from("sentinel_storage_entitlements")
+    .select("*")
+    .eq("id", entitlementId)
+    .maybeSingle();
+  if (!ent) return jsonResponse({ error: "Entitlement not found" }, 404);
+
+  // Authorization: only org_admin/manager OR designer themselves OR super_admin
+  if (!(await verifyStorageOwner(userId, ent, adminClient))) {
+    return jsonResponse(
+      { error: "Only org_admin/manager or the owning designer may provision Multi-Cloud Storage." },
+      403,
+    );
+  }
+
+  if ((ent as any).status === "active") {
+    return jsonResponse({ status: "already_active", entitlement: ent });
+  }
+
+  const serverUrl = await resolveSentinelUrl(adminClient);
+  const result = await callMcpTool(
+    serverUrl,
+    "sentinel_storage_provision",
+    {
+      entitlement_id: entitlementId,
+      owner_type: (ent as any).owner_type,
+      org_id: (ent as any).org_id,
+      user_id: (ent as any).user_id,
+      included_gb: (ent as any).included_gb,
+      providers: ["aws_s3", "gcp_gcs", "cloudflare_r2"],
+    },
+    adminClient,
+  );
+
+  const newStatus = result.ok ? "active" : "failed";
+  const { data: updated } = await adminClient
+    .from("sentinel_storage_entitlements")
+    .update({
+      status: newStatus,
+      provisioned_at: result.ok ? new Date().toISOString() : null,
+      provisioning_response: result.response as any,
+      provider_buckets: result.ok
+        ? {
+            aws_s3: `sentinel-${entitlementId}-s3`,
+            gcp_gcs: `sentinel-${entitlementId}-gcs`,
+            cloudflare_r2: `sentinel-${entitlementId}-r2`,
+          }
+        : (ent as any).provider_buckets,
+      last_error: result.error,
+    })
+    .eq("id", entitlementId)
+    .select()
+    .single();
+
+  return jsonResponse({ status: newStatus, entitlement: updated, provider_response: result.response });
+}
+
+async function revokeStorage(
+  body: any,
+  userId: string,
+  adminClient: ReturnType<typeof createClient>,
+) {
+  const entitlementId = String(body.entitlement_id || "");
+  if (!entitlementId) return jsonResponse({ error: "entitlement_id required" }, 400);
+
+  const { data: ent } = await adminClient
+    .from("sentinel_storage_entitlements")
+    .select("*")
+    .eq("id", entitlementId)
+    .maybeSingle();
+  if (!ent) return jsonResponse({ error: "Entitlement not found" }, 404);
+
+  if (!(await verifyStorageOwner(userId, ent, adminClient))) {
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
+
+  const serverUrl = await resolveSentinelUrl(adminClient);
+  const result = await callMcpTool(
+    serverUrl,
+    "sentinel_storage_revoke",
+    { entitlement_id: entitlementId },
+    adminClient,
+  );
+
+  const { data: updated } = await adminClient
+    .from("sentinel_storage_entitlements")
+    .update({
+      status: "revoked",
+      revoked_at: new Date().toISOString(),
+      provisioning_response: result.response as any,
+      last_error: result.error,
+    })
+    .eq("id", entitlementId)
+    .select()
+    .single();
+
+  return jsonResponse({ status: "revoked", entitlement: updated });
+}
+
+async function computeStorageUsage(
+  body: any,
+  userId: string,
+  adminClient: ReturnType<typeof createClient>,
+) {
+  const entitlementId = String(body.entitlement_id || "");
+  if (!entitlementId) return jsonResponse({ error: "entitlement_id required" }, 400);
+
+  const { data: ent } = await adminClient
+    .from("sentinel_storage_entitlements")
+    .select("*")
+    .eq("id", entitlementId)
+    .maybeSingle();
+  if (!ent) return jsonResponse({ error: "Entitlement not found" }, 404);
+
+  if (!(await verifyStorageOwner(userId, ent, adminClient))) {
+    return jsonResponse({ error: "Forbidden" }, 403);
+  }
+
+  // Aggregate object sizes for the current period
+  const { data: objects } = await adminClient
+    .from("sentinel_storage_objects")
+    .select("size_bytes")
+    .eq("entitlement_id", entitlementId);
+
+  const totalBytes = (objects ?? []).reduce(
+    (sum: number, o: any) => sum + Number(o.size_bytes ?? 0),
+    0,
+  );
+  const totalGb = totalBytes / (1024 * 1024 * 1024);
+  const includedGb = Number((ent as any).included_gb);
+  const overageGb = Math.max(0, totalGb - includedGb);
+  const overageRate = Number((ent as any).overage_per_gb_usd);
+  const baseUsd = Number((ent as any).base_monthly_usd);
+  const overageUsd = overageGb * overageRate;
+
+  await adminClient
+    .from("sentinel_storage_entitlements")
+    .update({
+      current_usage_bytes: totalBytes,
+      current_object_count: (objects ?? []).length,
+      last_usage_calc_at: new Date().toISOString(),
+    })
+    .eq("id", entitlementId);
+
+  // Upsert open ledger row for current period
+  await adminClient
+    .from("sentinel_storage_usage_ledger")
+    .upsert(
+      {
+        entitlement_id: entitlementId,
+        period_start: (ent as any).current_period_start,
+        period_end: (ent as any).current_period_end,
+        peak_bytes: totalBytes,
+        avg_bytes: totalBytes,
+        included_gb: includedGb,
+        overage_gb: Number(overageGb.toFixed(4)),
+        base_charge_usd: baseUsd,
+        overage_charge_usd: Number(overageUsd.toFixed(4)),
+        total_usd: Number((baseUsd + overageUsd).toFixed(4)),
+        status: "open",
+      },
+      { onConflict: "entitlement_id,period_start" },
+    );
+
+  return jsonResponse({
+    entitlement_id: entitlementId,
+    total_bytes: totalBytes,
+    total_gb: Number(totalGb.toFixed(4)),
+    included_gb: includedGb,
+    overage_gb: Number(overageGb.toFixed(4)),
+    base_usd: baseUsd,
+    overage_usd: Number(overageUsd.toFixed(4)),
+    total_usd: Number((baseUsd + overageUsd).toFixed(4)),
   });
 }

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Mail, ShieldOff, Users, Shield, Loader2, AlertTriangle, Clock, Bot, HeartHandshake, Cloud } from "lucide-react";
+import { Sparkles, Mail, ShieldOff, Users, Shield, Loader2, AlertTriangle, Clock, Bot, HeartHandshake, Cloud, Settings } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
@@ -43,6 +45,14 @@ interface PlatformAgent {
   attempt_count: number;
   max_attempts: number;
   next_retry_at: string | null;
+  last_attempt_at?: string | null;
+  stuck_after_minutes?: number | null;
+}
+
+interface AlertSettings {
+  agent_stuck_after_minutes: number;
+  shield_stuck_after_minutes: number;
+  agent_failure_alert_enabled: boolean;
 }
 
 const AGENT_ICON: Record<string, React.ElementType> = {
@@ -57,20 +67,28 @@ const SentinelMcpSubscriptionPanel = () => {
   const [activating, setActivating] = useState(false);
   const [agents, setAgents] = useState<PlatformAgent[]>([]);
   const [activatingAgent, setActivatingAgent] = useState<string | null>(null);
+  const [alertSettings, setAlertSettings] = useState<AlertSettings>({
+    agent_stuck_after_minutes: 30,
+    shield_stuck_after_minutes: 30,
+    agent_failure_alert_enabled: true,
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const loadAll = async () => {
-    const [{ data }, { count: subCount }, { count: seoCount }, { data: shieldRow }, { data: agentRows }] =
+    const [{ data }, { count: subCount }, { count: seoCount }, { data: shieldRow }, { data: agentRows }, { data: settingsRow }] =
       await Promise.all([
         supabase.from("sentinel_mcp_platform_subscription" as any).select("*").eq("id", 1).maybeSingle(),
         supabase.from("sentinel_mcp_user_subscriptions" as any).select("*", { count: "exact", head: true }),
         supabase.from("seo_optimization_requests" as any).select("*", { count: "exact", head: true }),
         supabase.from("sentinel_shield_activation" as any).select("*").eq("id", 1).maybeSingle(),
         supabase.from("sentinel_platform_agents" as any).select("*").order("agent_name"),
+        supabase.from("sentinel_alert_settings" as any).select("*").eq("id", 1).maybeSingle(),
       ]);
     setSub(data as unknown as PlatformSub);
     setStats({ totalSubs: subCount ?? 0, totalSeoRequests: seoCount ?? 0 });
     setShield(shieldRow as unknown as ShieldActivation);
     setAgents((agentRows as unknown as PlatformAgent[]) ?? []);
+    if (settingsRow) setAlertSettings(settingsRow as unknown as AlertSettings);
   };
 
   useEffect(() => {
@@ -80,8 +98,10 @@ const SentinelMcpSubscriptionPanel = () => {
   const requestShield = async () => {
     setActivating(true);
     try {
+      // Idempotency key prevents duplicate billing on double-clicks / webhook retries
+      const idemKey = `shield-${Date.now()}-${crypto.randomUUID()}`;
       const { data, error } = await supabase.functions.invoke("sentinel-mcp-worker", {
-        body: { action: "activate-shield", force: true },
+        body: { action: "activate-shield", force: true, idempotency_key: idemKey },
       });
       if (error) throw error;
       const status = (data as any)?.status;
@@ -103,8 +123,9 @@ const SentinelMcpSubscriptionPanel = () => {
   const activateAgent = async (agentKey: string) => {
     setActivatingAgent(agentKey);
     try {
+      const idemKey = `agent-${agentKey}-${Date.now()}-${crypto.randomUUID()}`;
       const { data, error } = await supabase.functions.invoke("sentinel-mcp-worker", {
-        body: { action: "activate-agent", agent_key: agentKey, force: true },
+        body: { action: "activate-agent", agent_key: agentKey, force: true, idempotency_key: idemKey },
       });
       if (error) throw error;
       const status = (data as any)?.status;
@@ -164,6 +185,56 @@ const SentinelMcpSubscriptionPanel = () => {
     const id = setInterval(loadAll, 30_000);
     return () => clearInterval(id);
   }, [shield?.status]);
+
+  // Per-agent alerts (failed / retrying / stuck) using configurable timeout
+  const agentAlerts = useMemo(() => {
+    const stuckMins = alertSettings.agent_stuck_after_minutes ?? 30;
+    return agents
+      .map((a) => {
+        const lastAttempt = a.last_attempt_at ? new Date(a.last_attempt_at) : null;
+        const ageMins = lastAttempt ? (Date.now() - lastAttempt.getTime()) / 60000 : null;
+        if (a.status === "failed") {
+          return { agent: a, kind: "destructive" as const, title: `${a.agent_name} activation failed`, body: a.last_error ?? "Unknown error." };
+        }
+        if (a.status === "retrying") {
+          return { agent: a, kind: "default" as const, title: `${a.agent_name} retrying`, body: `Attempt ${a.attempt_count}/${a.max_attempts}. Next retry at ${a.next_retry_at ? new Date(a.next_retry_at).toLocaleTimeString() : "—"}.` };
+        }
+        if ((a.status === "requested" || a.status === "not_requested") && ageMins !== null && ageMins > stuckMins) {
+          return { agent: a, kind: "destructive" as const, title: `${a.agent_name} engagement stuck`, body: `No response for ${Math.round(ageMins)}m (threshold ${stuckMins}m).` };
+        }
+        return null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+  }, [agents, alertSettings.agent_stuck_after_minutes]);
+
+  // Auto-poll while any agent is in a non-terminal state
+  useEffect(() => {
+    const needsPoll = agents.some((a) => ["retrying", "requested"].includes(a.status));
+    if (!needsPoll) return;
+    const id = setInterval(loadAll, 30_000);
+    return () => clearInterval(id);
+  }, [agents]);
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const { error } = await supabase
+        .from("sentinel_alert_settings" as any)
+        .update({
+          agent_stuck_after_minutes: alertSettings.agent_stuck_after_minutes,
+          shield_stuck_after_minutes: alertSettings.shield_stuck_after_minutes,
+          agent_failure_alert_enabled: alertSettings.agent_failure_alert_enabled,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+      if (error) throw error;
+      toast.success("Alert thresholds saved.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to save settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -282,6 +353,22 @@ const SentinelMcpSubscriptionPanel = () => {
           </p>
         </div>
 
+        {alertSettings.agent_failure_alert_enabled && agentAlerts.length > 0 && (
+          <div className="space-y-2">
+            {agentAlerts.map((a) => (
+              <Alert key={a.agent.agent_key} variant={a.kind}>
+                {a.kind === "destructive" ? (
+                  <AlertTriangle className="h-4 w-4" />
+                ) : (
+                  <Clock className="h-4 w-4" />
+                )}
+                <AlertTitle>{a.title}</AlertTitle>
+                <AlertDescription>{a.body}</AlertDescription>
+              </Alert>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {agents.map((agent) => {
             const Icon = AGENT_ICON[agent.agent_key] ?? Bot;
@@ -356,6 +443,55 @@ const SentinelMcpSubscriptionPanel = () => {
           independently from the FYSORA platform plan.
         </AlertDescription>
       </Alert>
+
+      <Card className="p-5 space-y-3">
+        <h3 className="font-semibold flex items-center gap-2">
+          <Settings size={18} className="text-primary" /> Alert Thresholds
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Configure how long an activation can sit without a response before raising a
+          critical "stuck" alert.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Agent stuck threshold (minutes)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={1440}
+              value={alertSettings.agent_stuck_after_minutes}
+              onChange={(e) =>
+                setAlertSettings((s) => ({
+                  ...s,
+                  agent_stuck_after_minutes: Math.max(1, Number(e.target.value) || 30),
+                }))
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">SHIELD stuck threshold (minutes)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={1440}
+              value={alertSettings.shield_stuck_after_minutes}
+              onChange={(e) =>
+                setAlertSettings((s) => ({
+                  ...s,
+                  shield_stuck_after_minutes: Math.max(1, Number(e.target.value) || 30),
+                }))
+              }
+            />
+          </div>
+        </div>
+        <Button size="sm" onClick={saveSettings} disabled={savingSettings}>
+          {savingSettings ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving…</>
+          ) : (
+            "Save thresholds"
+          )}
+        </Button>
+      </Card>
 
       <SentinelAddonsMarketplace title="Available Sentinel MCP Add-Ons (User Pricing)" />
     </div>
