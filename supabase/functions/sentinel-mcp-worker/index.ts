@@ -930,6 +930,20 @@ async function handleAdminAction(
       });
     }
 
+    case "activate-agent":
+      return await activatePlatformAgent(body, userId, adminClient);
+
+    case "list-platform-agents": {
+      const isSuperAdmin = await verifySuperAdmin(userId, adminClient);
+      if (!isSuperAdmin) return jsonResponse({ error: "Super admin access required" }, 403);
+      const { data, error } = await adminClient
+        .from("sentinel_platform_agents")
+        .select("*")
+        .order("agent_name", { ascending: true });
+      if (error) return jsonResponse({ error: error.message }, 500);
+      return jsonResponse({ agents: data ?? [] });
+    }
+
     default:
       return jsonResponse({ error: `Unknown action: ${action}` }, 400);
   }
