@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import SentinelAddonsMarketplace from "@/components/sentinel/SentinelAddonsMarketplace";
+import SentinelIncidentTimeline from "@/components/super-admin/SentinelIncidentTimeline";
 
 interface PlatformSub {
   client_name: string;
@@ -494,6 +495,8 @@ const SentinelMcpSubscriptionPanel = () => {
       </Card>
 
       <SentinelAddonsMarketplace title="Available Sentinel MCP Add-Ons (User Pricing)" />
+
+      <SentinelIncidentTimeline />
     </div>
   );
 };
