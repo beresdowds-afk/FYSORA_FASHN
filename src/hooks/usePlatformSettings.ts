@@ -19,6 +19,8 @@ export interface PlatformSettings {
   meta_keywords: string;
   copyright_text: string;
   sentinel_mcp_url: string;
+  hero_backdrop_url: string;
+  hero_backdrop_type: "image" | "video";
   updated_at: string;
 }
 
@@ -40,6 +42,8 @@ const DEFAULTS: PlatformSettings = {
   meta_keywords: "",
   copyright_text: "© 2024 FYSORA FASHN (Fashion Stitches Africa). All rights reserved.",
   sentinel_mcp_url: "",
+  hero_backdrop_url: "",
+  hero_backdrop_type: "image",
   updated_at: "",
 };
 
