@@ -2756,6 +2756,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_published: boolean
+          media_type: string
+          media_url: string | null
           metadata: Json | null
           name: string
           org_id: string
@@ -2777,6 +2779,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_published?: boolean
+          media_type?: string
+          media_url?: string | null
           metadata?: Json | null
           name: string
           org_id: string
@@ -2798,6 +2802,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_published?: boolean
+          media_type?: string
+          media_url?: string | null
           metadata?: Json | null
           name?: string
           org_id?: string
@@ -6098,6 +6104,8 @@ export type Database = {
           created_at: string
           description: string | null
           favicon_url: string | null
+          hero_backdrop_type: string
+          hero_backdrop_url: string | null
           id: string
           logo_url: string | null
           meta_keywords: string | null
@@ -6119,6 +6127,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           favicon_url?: string | null
+          hero_backdrop_type?: string
+          hero_backdrop_url?: string | null
           id?: string
           logo_url?: string | null
           meta_keywords?: string | null
@@ -6140,6 +6150,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           favicon_url?: string | null
+          hero_backdrop_type?: string
+          hero_backdrop_url?: string | null
           id?: string
           logo_url?: string | null
           meta_keywords?: string | null
@@ -8033,6 +8045,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_published: boolean
+          media_type: string
+          media_url: string | null
           metadata: Json | null
           name: string
           org_id: string | null
@@ -8054,6 +8068,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_published?: boolean
+          media_type?: string
+          media_url?: string | null
           metadata?: Json | null
           name: string
           org_id?: string | null
@@ -8075,6 +8091,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_published?: boolean
+          media_type?: string
+          media_url?: string | null
           metadata?: Json | null
           name?: string
           org_id?: string | null
