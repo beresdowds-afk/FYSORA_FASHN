@@ -189,9 +189,20 @@ const GarmentCatalogPanel = ({ orgId, role }: GarmentCatalogPanelProps) => {
           <p className="text-sm text-muted-foreground py-8 text-center">No garments uploaded yet. Add your first garment to enable virtual try-on.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {garments.map(g => (
+            {garments.map((g: any) => {
+              const isVideoMedia = g.media_type === "video" && g.media_url;
+              return (
               <div key={g.id} className="rounded-lg border border-border overflow-hidden">
-                {g.image_url ? (
+                {isVideoMedia ? (
+                  <video
+                    src={g.media_url}
+                    className="w-full h-40 object-cover"
+                    muted
+                    loop
+                    autoPlay
+                    playsInline
+                  />
+                ) : g.image_url ? (
                   <div className="relative group">
                     <img src={g.image_url} alt={g.name} className="w-full h-40 object-cover" />
                     {/* AI overlay buttons */}
@@ -245,10 +256,12 @@ const GarmentCatalogPanel = ({ orgId, role }: GarmentCatalogPanelProps) => {
                     )}
                   </div>
                 ) : (
-                  <div className="w-full h-40 bg-muted/30 flex flex-col items-center justify-center cursor-pointer"
-                    onClick={() => { fileRef.current?.setAttribute("data-garment-id", g.id); fileRef.current?.click(); }}>
-                    <Upload size={24} className="text-muted-foreground mb-1" />
-                    <span className="text-xs text-muted-foreground">Upload image</span>
+                  <div className="p-2">
+                    <MediaDropzone
+                      aspect="video"
+                      label="Drop image or short video"
+                      onUpload={(file, type) => handleMediaUpload(g.id, file, type)}
+                    />
                   </div>
                 )}
                 <div className="p-3 space-y-2">
@@ -292,7 +305,8 @@ const GarmentCatalogPanel = ({ orgId, role }: GarmentCatalogPanelProps) => {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => {
