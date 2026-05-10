@@ -247,8 +247,6 @@ const PlatformCataloguePage = () => {
           </div>
 
           {/* Search (read-only filtering allowed) */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          </div>
           {guestBlockedAction && (
             <Alert className="mb-4 border-primary/30 bg-primary/5">
               <Lock className="h-4 w-4" />
@@ -265,7 +263,7 @@ const PlatformCataloguePage = () => {
               </AlertDescription>
             </Alert>
           )}
-          <div className="hidden">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Search products or fashion houses..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
