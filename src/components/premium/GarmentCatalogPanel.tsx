@@ -11,6 +11,8 @@ import { Plus, Upload, ShirtIcon, Globe, Camera, Trash2, RefreshCw, Download, Sp
 import { useGarmentCatalog, GarmentItem } from "@/hooks/useGarmentCatalog";
 import { useGarmentAI } from "@/hooks/useGarmentAI";
 import { useToast } from "@/hooks/use-toast";
+import MediaDropzone from "@/components/shared/MediaDropzone";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GarmentCatalogPanelProps {
   orgId: string;
@@ -57,6 +59,29 @@ const GarmentCatalogPanel = ({ orgId, role }: GarmentCatalogPanelProps) => {
     if (error) toast({ title: "Upload failed", variant: "destructive" });
     else toast({ title: "Image uploaded" });
     setUploading(false);
+  };
+
+  const handleMediaUpload = async (garmentId: string, file: File, type: "image" | "video") => {
+    if (type === "image") {
+      const { error, url } = await uploadGarmentImage(file, garmentId);
+      if (error) {
+        toast({ title: "Upload failed", variant: "destructive" });
+        return null;
+      }
+      await updateGarment(garmentId, { media_url: url || undefined, media_type: "image" } as any);
+      toast({ title: "Image uploaded" });
+      return url;
+    }
+    const path = `${orgId}/${garmentId}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage.from("garment-images").upload(path, file, { upsert: true });
+    if (uploadError) {
+      toast({ title: "Video upload failed", variant: "destructive" });
+      return null;
+    }
+    const { data } = supabase.storage.from("garment-images").getPublicUrl(path);
+    await updateGarment(garmentId, { media_url: data.publicUrl, media_type: "video" } as any);
+    toast({ title: "Video uploaded" });
+    return data.publicUrl;
   };
 
   const handleSync = async (garment: GarmentItem) => {
