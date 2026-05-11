@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Image, Type, Palette, Building2, Loader2, Sparkles, Eye } from "lucide-react";
+import { Upload, Image, Type, Palette, Building2, Loader2, Sparkles, Eye, BookOpen } from "lucide-react";
 import BrandingLivePreview from "./BrandingLivePreview";
 
 interface OrgBrandingPanelProps {
@@ -16,6 +16,7 @@ interface OrgBrandingPanelProps {
     favicon_url?: string | null;
     vision_statement?: string | null;
     mission_statement?: string | null;
+    our_story?: string | null;
   };
   canEdit: boolean;
   onSettingsChange: (updates: Record<string, any>) => void;
@@ -274,6 +275,24 @@ const OrgBrandingPanel = ({ org, websiteSettings, canEdit, onSettingsChange, onO
             />
           </div>
         </div>
+      </div>
+
+      {/* Our Story (optional) */}
+      <div className="rounded-xl bg-card border border-border p-6 space-y-4">
+        <h3 className="font-heading font-semibold text-base flex items-center gap-2"><BookOpen size={16} /> Our Story <span className="text-xs font-normal text-muted-foreground">(optional)</span></h3>
+        <p className="text-xs text-muted-foreground">
+          When filled, an "OUR STORY" button appears on the landing page. Visitors click it to open a card with this narrative. Leave blank to hide.
+        </p>
+        <textarea
+          value={websiteSettings.our_story || ""}
+          disabled={!canEdit}
+          onChange={(e) => onSettingsChange({ our_story: e.target.value })}
+          rows={6}
+          maxLength={2000}
+          placeholder="Share the founding story, heritage, craft, or journey behind your brand..."
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none"
+        />
+        <p className="text-[11px] text-muted-foreground text-right">{(websiteSettings.our_story || "").length}/2000</p>
       </div>
 
       {/* Company Details */}
