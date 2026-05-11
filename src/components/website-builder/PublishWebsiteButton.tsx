@@ -58,6 +58,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       const palette = (ws.color_palette || {}) as Record<string, string>;
       const visionStatement = ws.vision_statement || "";
       const missionStatement = ws.mission_statement || "";
+      const ourStory = (ws.our_story || "").trim();
       const instagram = ws.instagram_url || "";
       const facebook = ws.facebook_url || "";
       const whatsapp = ws.whatsapp_number || phone;
@@ -112,6 +113,15 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
 
       const whatsappLink = whatsapp ? `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}` : "";
 
+      const escapeHtml = (s: string) => s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+      const ourStoryHtml = ourStory
+        ? escapeHtml(ourStory).split(/\n+/).map((p) => `<p>${p}</p>`).join("")
+        : "";
+
       const fontUrl = `https://fonts.googleapis.com/css2?family=${fontHeading.replace(/ /g, "+")}:wght@400;600;700;900&family=${fontBody.replace(/ /g, "+")}:wght@300;400;500;600&display=swap`;
 
       // ── Generate files ─────────────────────────────────────────
@@ -159,9 +169,21 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       <div class="hero-actions">
         <a href="${platformUrl}" class="btn btn-primary" target="_blank">Place an Order</a>
         <a href="#catalogue" class="btn btn-outline">View Catalogue</a>
+        ${ourStory ? `<button type="button" class="btn btn-outline" id="ourStoryBtn" aria-haspopup="dialog" aria-controls="ourStoryModal">OUR STORY</button>` : ""}
       </div>
     </div>
   </section>
+
+  ${ourStory ? `
+  <div class="story-modal" id="ourStoryModal" role="dialog" aria-modal="true" aria-labelledby="ourStoryTitle" hidden>
+    <div class="story-backdrop" data-close-story></div>
+    <div class="story-card" role="document">
+      <button type="button" class="story-close" aria-label="Close" data-close-story>×</button>
+      <span class="section-tag">Our Story</span>
+      <h2 id="ourStoryTitle" class="section-title">${escapeHtml(orgName)}</h2>
+      <div class="story-body">${ourStoryHtml}</div>
+    </div>
+  </div>` : ""}
 
   <section class="section catalogue" id="catalogue">
     <div class="container">
@@ -288,7 +310,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
 
       const stylesCss = generateStyles(brandColor, accentColor, bgColor, textColor, surfaceColor, fontHeading, fontBody);
 
-      const appJs = `const navbar=document.getElementById('navbar');window.addEventListener('scroll',()=>{navbar.classList.toggle('scrolled',window.scrollY>50)});const navToggle=document.getElementById('navToggle'),navLinks=document.getElementById('navLinks');navToggle.addEventListener('click',()=>{navLinks.classList.toggle('open')});navLinks.querySelectorAll('a').forEach(l=>{l.addEventListener('click',()=>{navLinks.classList.remove('open')})});document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});const observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';observer.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -50px 0px'});document.querySelectorAll('.section').forEach(s=>{s.style.opacity='0';s.style.transform='translateY(30px)';s.style.transition='opacity 0.6s ease, transform 0.6s ease';observer.observe(s)});if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(r=>{console.log('SW registered:',r.scope);const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){console.log('FSA update received:',e.data);if(e.data.action==='reload')location.reload()}};bc.postMessage({type:'FSA_UPDATE',action:'website_loaded',orgId:'${org.id}',timestamp:Date.now()})}).catch(e=>console.warn('SW registration failed:',e))}console.log('${slug} website loaded — powered by FYSORA FASHN (Fashion Stitches Africa)');`;
+      const appJs = `const navbar=document.getElementById('navbar');window.addEventListener('scroll',()=>{navbar.classList.toggle('scrolled',window.scrollY>50)});const navToggle=document.getElementById('navToggle'),navLinks=document.getElementById('navLinks');navToggle.addEventListener('click',()=>{navLinks.classList.toggle('open')});navLinks.querySelectorAll('a').forEach(l=>{l.addEventListener('click',()=>{navLinks.classList.remove('open')})});document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});const observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';observer.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -50px 0px'});document.querySelectorAll('.section').forEach(s=>{s.style.opacity='0';s.style.transform='translateY(30px)';s.style.transition='opacity 0.6s ease, transform 0.6s ease';observer.observe(s)});const storyBtn=document.getElementById('ourStoryBtn'),storyModal=document.getElementById('ourStoryModal');if(storyBtn&&storyModal){const openStory=()=>{storyModal.hidden=false;document.body.style.overflow='hidden'};const closeStory=()=>{storyModal.hidden=true;document.body.style.overflow=''};storyBtn.addEventListener('click',openStory);storyModal.querySelectorAll('[data-close-story]').forEach(el=>el.addEventListener('click',closeStory));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!storyModal.hidden)closeStory()})}if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(r=>{console.log('SW registered:',r.scope);const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){console.log('FSA update received:',e.data);if(e.data.action==='reload')location.reload()}};bc.postMessage({type:'FSA_UPDATE',action:'website_loaded',orgId:'${org.id}',timestamp:Date.now()})}).catch(e=>console.warn('SW registration failed:',e))}console.log('${slug} website loaded — powered by FYSORA FASHN (Fashion Stitches Africa)');`;
 
       // Service Worker for bidirectional sync between website and apps
       const swJs = `const CACHE_NAME='fsa-${slug}-v${Date.now()}';const ASSETS=['/','/index.html','/styles.css','/app.js'];self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).then(r=>{if(r.ok&&e.request.method==='GET'){const rc=r.clone();caches.open(CACHE_NAME).then(c=>c.put(e.request,rc))}return r}).catch(()=>caches.match(e.request)))});self.addEventListener('message',e=>{if(e.data&&e.data.type==='FSA_UPDATE'){self.clients.matchAll().then(clients=>{clients.forEach(c=>c.postMessage(e.data))})}});const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){self.clients.matchAll().then(clients=>{clients.forEach(c=>c.postMessage(e.data))})}};`;
