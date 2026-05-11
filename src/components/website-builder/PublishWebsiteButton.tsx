@@ -31,15 +31,17 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       }
 
       // Fetch org details, website settings, catalogue, and officers in parallel
-      const [orgResult, wsResult, catResult] = await Promise.all([
+      const [orgResult, wsResult, catResult, officersResult] = await Promise.all([
         supabase.from("organizations").select("name, slug, description, email, phone, address, logo_url").eq("id", org.id).single(),
         supabase.from("org_websites").select("*").eq("org_id", org.id).single(),
         supabase.from("org_catalogue_items").select("id, name, description, price, currency, image_url, category, tags").eq("org_id", org.id).order("sort_order"),
+        supabase.from("org_company_officers").select("id, full_name, title, photo_url, is_public, display_order").eq("org_id", org.id).eq("is_public", true).order("display_order"),
       ]);
 
       const orgData = orgResult.data as any || {};
       const ws = wsResult.data as any || {};
       const catalogue = (catResult.data || []) as any[];
+      const officers = (officersResult.data || []) as any[];
 
       const orgName = orgData.name || org.name;
       const slug = orgData.slug || org.slug;
@@ -106,10 +108,8 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
         linkedin && `<a href="${linkedin}" target="_blank" title="LinkedIn">💼</a>`,
       ].filter(Boolean).join("\n            ");
 
-      // About section with vision/mission
-      let aboutExtra = "";
-      if (visionStatement) aboutExtra += `<div class="vm-block"><h4>Our Vision</h4><p>${visionStatement}</p></div>`;
-      if (missionStatement) aboutExtra += `<div class="vm-block"><h4>Our Mission</h4><p>${missionStatement}</p></div>`;
+      // Vision/Mission moved into the Our Story modal — keep About section lean
+      const aboutExtra = "";
 
       const whatsappLink = whatsapp ? `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}` : "";
 
@@ -121,6 +121,34 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       const ourStoryHtml = ourStory
         ? escapeHtml(ourStory).split(/\n+/).map((p) => `<p>${p}</p>`).join("")
         : "";
+
+      const initials = (name: string) =>
+        escapeHtml((name || "").split(" ").map(n => n[0] || "").join("").slice(0, 2).toUpperCase());
+      const officersHtml = officers.length
+        ? `<div class="story-team">
+            <div class="story-divider"><span class="section-tag">Our Team</span></div>
+            <div class="story-team-grid">
+              ${officers.map(o => `
+                <div class="story-team-member">
+                  <div class="story-team-avatar">
+                    ${o.photo_url ? `<img src="${o.photo_url}" alt="${escapeHtml(o.full_name)}" loading="lazy">` : `<span>${initials(o.full_name)}</span>`}
+                  </div>
+                  <p class="story-team-name">${escapeHtml(o.full_name || "")}</p>
+                  <p class="story-team-title">${escapeHtml(o.title || "")}</p>
+                </div>`).join("")}
+            </div>
+          </div>`
+        : "";
+      const visionMissionHtml =
+        (visionStatement || missionStatement)
+          ? `<div class="story-vm">
+              ${visionStatement ? `<div class="story-vm-card"><span class="story-vm-tag">Our Vision</span><p>${escapeHtml(visionStatement)}</p></div>` : ""}
+              ${missionStatement ? `<div class="story-vm-card alt"><span class="story-vm-tag alt">Our Mission</span><p>${escapeHtml(missionStatement)}</p></div>` : ""}
+            </div>`
+          : "";
+      const storyLogoHtml = logoUrl
+        ? `<img src="${logoUrl}" alt="${escapeHtml(orgName)}" class="story-logo">`
+        : `<div class="story-logo placeholder">${escapeHtml(orgName.charAt(0))}</div>`;
 
       const fontUrl = `https://fonts.googleapis.com/css2?family=${fontHeading.replace(/ /g, "+")}:wght@400;600;700;900&family=${fontBody.replace(/ /g, "+")}:wght@300;400;500;600&display=swap`;
 
@@ -179,9 +207,14 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
     <div class="story-backdrop" data-close-story></div>
     <div class="story-card" role="document">
       <button type="button" class="story-close" aria-label="Close" data-close-story>×</button>
-      <span class="section-tag">Our Story</span>
-      <h2 id="ourStoryTitle" class="section-title">${escapeHtml(orgName)}</h2>
+      <div class="story-header">
+        ${storyLogoHtml}
+        <span class="section-tag">Our Story</span>
+        <h2 id="ourStoryTitle" class="section-title">${escapeHtml(orgName)}</h2>
+      </div>
       <div class="story-body">${ourStoryHtml}</div>
+      ${visionMissionHtml}
+      ${officersHtml}
     </div>
   </div>` : ""}
 
