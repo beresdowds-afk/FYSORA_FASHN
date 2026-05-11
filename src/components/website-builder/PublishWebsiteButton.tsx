@@ -58,6 +58,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       const palette = (ws.color_palette || {}) as Record<string, string>;
       const visionStatement = ws.vision_statement || "";
       const missionStatement = ws.mission_statement || "";
+      const ourStory = (ws.our_story || "").trim();
       const instagram = ws.instagram_url || "";
       const facebook = ws.facebook_url || "";
       const whatsapp = ws.whatsapp_number || phone;
@@ -112,6 +113,15 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
 
       const whatsappLink = whatsapp ? `https://wa.me/${whatsapp.replace(/[^0-9]/g, "")}` : "";
 
+      const escapeHtml = (s: string) => s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+      const ourStoryHtml = ourStory
+        ? escapeHtml(ourStory).split(/\n+/).map((p) => `<p>${p}</p>`).join("")
+        : "";
+
       const fontUrl = `https://fonts.googleapis.com/css2?family=${fontHeading.replace(/ /g, "+")}:wght@400;600;700;900&family=${fontBody.replace(/ /g, "+")}:wght@300;400;500;600&display=swap`;
 
       // ── Generate files ─────────────────────────────────────────
@@ -159,9 +169,21 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       <div class="hero-actions">
         <a href="${platformUrl}" class="btn btn-primary" target="_blank">Place an Order</a>
         <a href="#catalogue" class="btn btn-outline">View Catalogue</a>
+        ${ourStory ? `<button type="button" class="btn btn-outline" id="ourStoryBtn" aria-haspopup="dialog" aria-controls="ourStoryModal">OUR STORY</button>` : ""}
       </div>
     </div>
   </section>
+
+  ${ourStory ? `
+  <div class="story-modal" id="ourStoryModal" role="dialog" aria-modal="true" aria-labelledby="ourStoryTitle" hidden>
+    <div class="story-backdrop" data-close-story></div>
+    <div class="story-card" role="document">
+      <button type="button" class="story-close" aria-label="Close" data-close-story>×</button>
+      <span class="section-tag">Our Story</span>
+      <h2 id="ourStoryTitle" class="section-title">${escapeHtml(orgName)}</h2>
+      <div class="story-body">${ourStoryHtml}</div>
+    </div>
+  </div>` : ""}
 
   <section class="section catalogue" id="catalogue">
     <div class="container">
@@ -288,7 +310,7 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
 
       const stylesCss = generateStyles(brandColor, accentColor, bgColor, textColor, surfaceColor, fontHeading, fontBody);
 
-      const appJs = `const navbar=document.getElementById('navbar');window.addEventListener('scroll',()=>{navbar.classList.toggle('scrolled',window.scrollY>50)});const navToggle=document.getElementById('navToggle'),navLinks=document.getElementById('navLinks');navToggle.addEventListener('click',()=>{navLinks.classList.toggle('open')});navLinks.querySelectorAll('a').forEach(l=>{l.addEventListener('click',()=>{navLinks.classList.remove('open')})});document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});const observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';observer.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -50px 0px'});document.querySelectorAll('.section').forEach(s=>{s.style.opacity='0';s.style.transform='translateY(30px)';s.style.transition='opacity 0.6s ease, transform 0.6s ease';observer.observe(s)});if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(r=>{console.log('SW registered:',r.scope);const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){console.log('FSA update received:',e.data);if(e.data.action==='reload')location.reload()}};bc.postMessage({type:'FSA_UPDATE',action:'website_loaded',orgId:'${org.id}',timestamp:Date.now()})}).catch(e=>console.warn('SW registration failed:',e))}console.log('${slug} website loaded — powered by FYSORA FASHN (Fashion Stitches Africa)');`;
+      const appJs = `const navbar=document.getElementById('navbar');window.addEventListener('scroll',()=>{navbar.classList.toggle('scrolled',window.scrollY>50)});const navToggle=document.getElementById('navToggle'),navLinks=document.getElementById('navLinks');navToggle.addEventListener('click',()=>{navLinks.classList.toggle('open')});navLinks.querySelectorAll('a').forEach(l=>{l.addEventListener('click',()=>{navLinks.classList.remove('open')})});document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){e.preventDefault();const t=document.querySelector(this.getAttribute('href'));if(t)t.scrollIntoView({behavior:'smooth',block:'start'})})});const observer=new IntersectionObserver(e=>{e.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';observer.unobserve(e.target)}})},{threshold:0.1,rootMargin:'0px 0px -50px 0px'});document.querySelectorAll('.section').forEach(s=>{s.style.opacity='0';s.style.transform='translateY(30px)';s.style.transition='opacity 0.6s ease, transform 0.6s ease';observer.observe(s)});const storyBtn=document.getElementById('ourStoryBtn'),storyModal=document.getElementById('ourStoryModal');if(storyBtn&&storyModal){const openStory=()=>{storyModal.hidden=false;document.body.style.overflow='hidden'};const closeStory=()=>{storyModal.hidden=true;document.body.style.overflow=''};storyBtn.addEventListener('click',openStory);storyModal.querySelectorAll('[data-close-story]').forEach(el=>el.addEventListener('click',closeStory));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!storyModal.hidden)closeStory()})}if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').then(r=>{console.log('SW registered:',r.scope);const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){console.log('FSA update received:',e.data);if(e.data.action==='reload')location.reload()}};bc.postMessage({type:'FSA_UPDATE',action:'website_loaded',orgId:'${org.id}',timestamp:Date.now()})}).catch(e=>console.warn('SW registration failed:',e))}console.log('${slug} website loaded — powered by FYSORA FASHN (Fashion Stitches Africa)');`;
 
       // Service Worker for bidirectional sync between website and apps
       const swJs = `const CACHE_NAME='fsa-${slug}-v${Date.now()}';const ASSETS=['/','/index.html','/styles.css','/app.js'];self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).then(r=>{if(r.ok&&e.request.method==='GET'){const rc=r.clone();caches.open(CACHE_NAME).then(c=>c.put(e.request,rc))}return r}).catch(()=>caches.match(e.request)))});self.addEventListener('message',e=>{if(e.data&&e.data.type==='FSA_UPDATE'){self.clients.matchAll().then(clients=>{clients.forEach(c=>c.postMessage(e.data))})}});const bc=new BroadcastChannel('fsa_sync');bc.onmessage=e=>{if(e.data&&e.data.type==='FSA_UPDATE'){self.clients.matchAll().then(clients=>{clients.forEach(c=>c.postMessage(e.data))})}};`;
@@ -420,6 +442,8 @@ function generateStyles(
 .footer{background:var(--bg-card);border-top:1px solid var(--border);padding:60px 0 32px}.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:48px;margin-bottom:48px}.footer-logo{width:48px;height:48px;border-radius:12px;margin-bottom:16px}.footer-brand p{color:var(--text-muted);font-size:.9rem;max-width:300px}.social-links{display:flex;gap:12px;margin-top:16px}.social-links a{font-size:1.2rem;text-decoration:none;transition:transform .3s}.social-links a:hover{transform:scale(1.2)}.footer-links h4{font-size:.85rem;letter-spacing:2px;text-transform:uppercase;color:var(--primary);margin-bottom:20px}.footer-links ul{list-style:none;display:flex;flex-direction:column;gap:12px}.footer-links a{color:var(--text-muted);text-decoration:none;font-size:.9rem;transition:color .3s}.footer-links a:hover{color:var(--primary)}.footer-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;border-top:1px solid var(--border);font-size:.8rem;color:var(--text-muted)}.powered-by a{color:var(--primary);text-decoration:none}
 
 .comm-bar{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:12px;z-index:999}.comm-btn{width:52px;height:52px;border-radius:50%;background:var(--bg-card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.3rem;text-decoration:none;transition:all .3s;box-shadow:var(--shadow-sm)}.comm-btn:hover{background:var(--primary);transform:scale(1.1);border-color:var(--primary)}
+
+.story-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}.story-modal[hidden]{display:none}.story-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px)}.story-card{position:relative;z-index:2;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;max-width:680px;width:100%;max-height:85vh;overflow-y:auto;padding:48px 40px;box-shadow:0 30px 80px rgba(0,0,0,.5);animation:storyIn .35s ease}.story-close{position:absolute;top:14px;right:18px;background:transparent;border:none;color:var(--text);font-size:1.6rem;cursor:pointer;line-height:1;padding:6px 10px;border-radius:8px}.story-close:hover{background:var(--border)}.story-body{margin-top:18px;color:var(--text-muted);font-size:1rem;line-height:1.8}.story-body p{margin-bottom:14px}@keyframes storyIn{from{opacity:0;transform:translateY(20px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 @media(max-width:768px){.nav-toggle{display:flex}.nav-links{position:fixed;top:0;right:-100%;width:280px;height:100vh;background:var(--bg-card);flex-direction:column;padding:80px 32px 32px;gap:24px;transition:right .4s;border-left:1px solid var(--border)}.nav-links.open{right:0}.about-grid,.contact-grid,.footer-grid{grid-template-columns:1fr}.footer-bottom{flex-direction:column;gap:8px;text-align:center}}`;
 }

@@ -38,6 +38,7 @@ interface OrgWebsiteData {
   favicon_url?: string | null;
   vision_statement?: string | null;
   mission_statement?: string | null;
+  our_story?: string | null;
   template_id?: string | null;
 }
 
@@ -597,6 +598,8 @@ const HomePage = ({ org, website, brandColor, accentColor, fontHeading, officers
   const td = template.design;
   const textMuted = { color: td.textSecondary };
   const borderStyle = isLight ? "border-black/[0.08]" : "border-white/[0.08]";
+  const [storyOpen, setStoryOpen] = useState(false);
+  const hasStory = !!(website.our_story && website.our_story.trim());
 
   return (
     <div>
@@ -675,12 +678,74 @@ const HomePage = ({ org, website, brandColor, accentColor, fontHeading, officers
               >
                 {template.copy.ctaSecondary}
               </button>
+              {hasStory && (
+                <button
+                  onClick={() => setStoryOpen(true)}
+                  className="px-10 py-4 rounded-none font-medium text-xs uppercase tracking-[0.2em] border transition-all hover:opacity-90 inline-flex items-center gap-2"
+                  style={{
+                    borderColor: accentColor,
+                    color: website.hero_image_url ? "#ffffff" : accentColor,
+                    background: website.hero_image_url ? `${accentColor}33` : "transparent",
+                  }}
+                >
+                  <BookOpen size={14} /> Our Story
+                </button>
+              )}
             </div>
 
             {org.address && <GoogleMapsLink address={org.address} isLight={!website.hero_image_url && isLight} />}
           </motion.div>
         </div>
       </section>
+
+      {/* ─── Our Story Card (modal) ─── */}
+      {hasStory && (
+        <AnimatePresence>
+          {storyOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+              onClick={() => setStoryOpen(false)}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Our story — ${org.name}`}
+            >
+              <motion.div
+                initial={{ y: 30, opacity: 0, scale: 0.98 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 20, opacity: 0, scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 220, damping: 24 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto"
+                style={{ background: td.bgSurface, color: td.textPrimary, borderRadius: 8 }}
+              >
+                <button
+                  onClick={() => setStoryOpen(false)}
+                  aria-label="Close"
+                  className="absolute top-4 right-4 p-2 rounded-full hover:opacity-70"
+                  style={{ color: td.textPrimary }}
+                >
+                  <X size={18} />
+                </button>
+                <div className="p-10 md:p-14">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-px w-10" style={{ background: accentColor }} />
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.25em]" style={{ color: accentColor }}>Our Story</span>
+                  </div>
+                  <h2 className="text-3xl md:text-4xl mb-6" style={{ fontFamily: `'${fontHeading}'`, fontWeight: td.headingWeight }}>
+                    {org.name}
+                  </h2>
+                  <div className="text-base md:text-lg leading-relaxed whitespace-pre-line" style={{ color: td.textSecondary }}>
+                    {website.our_story}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
 
       {/* ─── Services Strip ─── */}
       <section className={`${td.sectionPadding} border-t ${borderStyle}`}>
