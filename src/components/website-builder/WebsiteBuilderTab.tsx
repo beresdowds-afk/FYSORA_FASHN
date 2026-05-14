@@ -1015,6 +1015,74 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       {/* ── General Settings ─────────────────────────────────── */}
       {activeSection === "general" && (
         <div className="space-y-6">
+          {/* Public-facing website URL — promotes a custom domain or linked site */}
+          <div className="rounded-xl bg-card border border-border p-6 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-heading font-semibold text-base">Public-Facing Website</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  When set, every link to {org.name} across FYSORA FASHN — Browse, Catalogue, Tailor pages — opens this URL instead of the native /site/{org.slug} page.
+                  Use this to promote your custom domain or linked external website as the official storefront.
+                </p>
+              </div>
+              <Globe size={18} className="text-primary shrink-0 mt-1" />
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={(settings as any).public_website_url || ""}
+                onChange={(e) => setSettings({ ...settings, public_website_url: e.target.value } as any)}
+                disabled={!canEdit}
+                placeholder="https://yourdomain.com"
+                className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              />
+              {domainSuggestion && domainSuggestion !== ((settings as any).public_website_url || "") && canEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSettings({ ...settings, public_website_url: domainSuggestion } as any)}
+                  title={`Use approved custom domain: ${domainSuggestion}`}
+                >
+                  Use {domainSuggestion.replace(/^https?:\/\//, "")}
+                </Button>
+              )}
+              {settings.mode === "custom_integration" && settings.webhook_url && settings.webhook_url !== ((settings as any).public_website_url || "") && canEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSettings({ ...settings, public_website_url: settings.webhook_url } as any)}
+                  title="Use your linked external website URL"
+                >
+                  Use linked URL
+                </Button>
+              )}
+              {((settings as any).public_website_url || "") && canEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSettings({ ...settings, public_website_url: "" } as any)}
+                  title="Clear — fall back to the native /site page"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+            {((settings as any).public_website_url || "").trim() ? (
+              <div className="text-[11px] text-muted-foreground">
+                Visitors will be sent to <a href={resolvedPublicUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">{resolvedPublicUrl}</a>.
+                Native page remains reachable at <code>{nativeWebsiteUrl}</code>.
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Leave blank to keep using the native FYSORA FASHN page at <code>{nativeWebsiteUrl}</code>.
+              </p>
+            )}
+            {canEdit && (
+              <Button variant="hero" size="sm" onClick={handleSaveSettings} disabled={saving}>
+                {saving ? "Saving..." : "Save Public URL"}
+              </Button>
+            )}
+          </div>
+
           {/* Mode selector */}
           <div className="rounded-xl bg-card border border-border p-6">
             <h3 className="font-heading font-semibold text-base mb-4">Website Mode</h3>
