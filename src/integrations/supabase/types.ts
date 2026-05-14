@@ -5176,6 +5176,7 @@ export type Database = {
           mode: string
           org_id: string
           our_story: string | null
+          public_website_url: string | null
           tagline: string | null
           theme: string
           tiktok_url: string | null
@@ -5207,6 +5208,7 @@ export type Database = {
           mode?: string
           org_id: string
           our_story?: string | null
+          public_website_url?: string | null
           tagline?: string | null
           theme?: string
           tiktok_url?: string | null
@@ -5238,6 +5240,7 @@ export type Database = {
           mode?: string
           org_id?: string
           our_story?: string | null
+          public_website_url?: string | null
           tagline?: string | null
           theme?: string
           tiktok_url?: string | null
