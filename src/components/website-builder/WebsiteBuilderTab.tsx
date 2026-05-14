@@ -19,6 +19,7 @@ import { usePaymentFlow } from "@/hooks/usePaymentFlow";
 import type { AppRole } from "@/hooks/useOrganization";
 import { useOrgSync } from "@/hooks/useOrgSync";
 import { getTierFeatures, getTierLimits, checkFeatureAccess, calculateUpgradeCost, isActiveStatus } from "./tierConfig";
+import { resolvePublicSiteUrl, isExternalSiteUrl } from "@/lib/publicSiteUrl";
 
 
 interface WebsiteSettings {
@@ -42,6 +43,7 @@ interface WebsiteSettings {
   linkedin_url: string;
   tiktok_url: string;
   youtube_url: string;
+  public_website_url: string;
 }
 
 interface CatalogueItem {
@@ -110,6 +112,7 @@ const defaultSettings = (orgId: string): WebsiteSettings => ({
   linkedin_url: "",
   tiktok_url: "",
   youtube_url: "",
+  public_website_url: "",
 });
 
 // ── Tier Banner with Usage ────────────────────────────────────────────────────
@@ -753,7 +756,14 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
   });
 
   const canEdit = role === "org_admin" || role === "manager" || role === "super_admin";
-  const websiteUrl = `${window.location.origin}/site/${org.slug}`;
+  const nativeWebsiteUrl = `${window.location.origin}/site/${org.slug}`;
+  const publicUrlRaw = ((settings as any).public_website_url || "").trim();
+  const resolvedPublicUrl = publicUrlRaw
+    ? resolvePublicSiteUrl(org.slug, publicUrlRaw)
+    : nativeWebsiteUrl;
+  const isExternalPublic = isExternalSiteUrl(resolvedPublicUrl);
+  // Suggested URL: approved external domain → custom_integration webhook_url
+  const [domainSuggestion, setDomainSuggestion] = useState<string>("");
 
   const hasActivePlan = (subscription && isActiveStatus(subscription.status))
     || (proRequest && proRequest.payment_status === "paid");
@@ -809,6 +819,22 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
     setLoading(false);
   };
 
+  // Pull suggested URL from approved/provisioned external domain_requests
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("domain_requests")
+        .select("domain_name, domain_type, status")
+        .eq("org_id", org.id)
+        .eq("domain_type", "external")
+        .in("status", ["approved", "provisioned", "active"])
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const row = (data && data[0]) as any;
+      if (row?.domain_name) setDomainSuggestion(`https://${row.domain_name.replace(/^https?:\/\//i, "")}`);
+    })();
+  }, [org.id]);
+
   useEffect(() => { load(); }, [org.id]);
 
   const handleSaveSettings = async () => {
@@ -846,6 +872,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       vision_statement: (settings as any).vision_statement || null,
       mission_statement: (settings as any).mission_statement || null,
       our_story: (settings as any).our_story || null,
+      public_website_url: ((settings as any).public_website_url || "").trim() || null,
     };
 
     // Save org details if changed
@@ -892,7 +919,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
         {hasActivePlan && (
           <div className="flex gap-2 flex-wrap">
             <PublishWebsiteButton org={org} disabled={!canEdit} />
-            <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+            <a href={resolvedPublicUrl} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm">
                 <Eye size={14} className="mr-1.5" /> Preview
               </Button>
@@ -900,7 +927,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { navigator.clipboard.writeText(websiteUrl); toast({ title: "Link copied!" }); }}
+              onClick={() => { navigator.clipboard.writeText(resolvedPublicUrl); toast({ title: "Link copied!" }); }}
             >
               <Copy size={14} className="mr-1.5" /> Copy Link
             </Button>
@@ -923,10 +950,19 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
         <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 mb-6 flex items-center gap-3">
           <Globe size={18} className="text-primary shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground">Your public website URL</p>
-            <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline flex items-center gap-1 truncate">
-              {websiteUrl} <ExternalLink size={12} />
+            <p className="text-xs text-muted-foreground">
+              Your public website URL
+              {isExternalPublic && <span className="ml-2 text-[10px] uppercase tracking-wider text-accent font-semibold">External</span>}
+            </p>
+            <a href={resolvedPublicUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline flex items-center gap-1 truncate">
+              {resolvedPublicUrl} <ExternalLink size={12} />
             </a>
+            {isExternalPublic && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                FYSORA FASHN routes all visitor links for {org.name} to this public-facing website.
+                Native page still available at <code className="text-[10px]">{nativeWebsiteUrl}</code>.
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <div className={`w-2 h-2 rounded-full ${settings.is_enabled ? "bg-green-500" : "bg-muted-foreground"}`} />
