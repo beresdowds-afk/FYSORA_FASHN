@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -10,24 +10,31 @@ interface PublishWebsiteButtonProps {
   disabled?: boolean;
 }
 
+export interface PublishWebsiteButtonHandle {
+  /** Programmatically run the publish flow. Returns true on success. */
+  publish: (opts?: { silent?: boolean }) => Promise<boolean>;
+}
+
 /**
  * Generates the full website HTML/CSS/JS from the org's current data
  * and pushes it to GitHub via the github-repo-push edge function.
  */
-const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
+const PublishWebsiteButton = forwardRef<PublishWebsiteButtonHandle, PublishWebsiteButtonProps>(
+  ({ org, disabled }, ref) => {
   const { toast } = useToast();
   const [publishing, setPublishing] = useState(false);
   const [lastPublished, setLastPublished] = useState<string | null>(null);
   const { broadcastSync } = useOrgSync(org.id);
 
-  const handlePublish = async () => {
+  const handlePublish = async (opts?: { silent?: boolean }): Promise<boolean> => {
+    const silent = !!opts?.silent;
     setPublishing(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({ title: "Please log in first", variant: "destructive" });
-        return;
+        if (!silent) toast({ title: "Please log in first", variant: "destructive" });
+        return false;
       }
 
       // Fetch org details, website settings, catalogue, and officers in parallel
@@ -382,21 +389,32 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
 
       setLastPublished(new Date().toLocaleTimeString());
       broadcastSync("website_published");
-      toast({
-        title: "Website published! 🎉",
-        description: "Your changes have been pushed to GitHub and synced to all connected apps.",
-      });
+      if (!silent) {
+        toast({
+          title: "Website published! 🎉",
+          description: "Your changes have been pushed to GitHub and synced to all connected apps.",
+        });
+      } else {
+        toast({
+          title: "Custom-domain site updated",
+          description: "Latest Our Story changes have been pushed to your public website.",
+        });
+      }
+      return true;
     } catch (err: any) {
       console.error("Publish error:", err);
       toast({
-        title: "Publish failed",
+        title: silent ? "Auto-sync to custom site failed" : "Publish failed",
         description: err.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
+      return false;
     } finally {
       setPublishing(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({ publish: handlePublish }), [org.id]);
 
   return (
     <div className="flex items-center gap-2">
@@ -427,7 +445,8 @@ const PublishWebsiteButton = ({ org, disabled }: PublishWebsiteButtonProps) => {
       )}
     </div>
   );
-};
+});
+PublishWebsiteButton.displayName = "PublishWebsiteButton";
 
 // ── CSS Generator ────────────────────────────────────────────────────────────
 function generateStyles(
