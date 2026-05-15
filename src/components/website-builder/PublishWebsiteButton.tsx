@@ -421,7 +421,7 @@ const PublishWebsiteButton = forwardRef<PublishWebsiteButtonHandle, PublishWebsi
       <Button
         variant="hero"
         size="sm"
-        onClick={handlePublish}
+        onClick={() => { void handlePublish(); }}
         disabled={disabled || publishing}
         className="gap-1.5"
       >
