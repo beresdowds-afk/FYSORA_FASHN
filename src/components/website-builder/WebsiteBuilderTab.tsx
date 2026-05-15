@@ -748,6 +748,10 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
   const [editingItem, setEditingItem] = useState<CatalogueItem | null>(null);
   const [addingItem, setAddingItem] = useState(false);
 
+  // Imperative handle to PublishWebsiteButton — used to silently auto-push
+  // saved changes to the configured public custom-domain site.
+  const publishRef = useRef<PublishWebsiteButtonHandle | null>(null);
+
   // Bidirectional sync — auto-reload dashboard data when apps/websites push changes
   const { broadcastSync } = useOrgSync(org.id, (action) => {
     console.log(`[Dashboard] Sync event received: ${action}, reloading data...`);
@@ -926,7 +930,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
         </div>
         {hasActivePlan && (
           <div className="flex gap-2 flex-wrap">
-            <PublishWebsiteButton org={org} disabled={!canEdit} />
+            <PublishWebsiteButton ref={publishRef} org={org} disabled={!canEdit} />
             <a href={resolvedPublicUrl} target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm">
                 <Eye size={14} className="mr-1.5" /> Preview
