@@ -29,6 +29,7 @@ import CommunicationsHubTestPanel from "@/components/super-admin/CommunicationsH
 import SentinelMcpSubscriptionPanel from "@/components/super-admin/SentinelMcpSubscriptionPanel";
 import VideoBillingPanel from "@/components/super-admin/VideoBillingPanel";
 import DomainManagementPanel from "@/components/super-admin/DomainManagementPanel";
+import TenantSitesPanel from "@/components/super-admin/TenantSitesPanel";
 import VerificationProvidersPanel from "@/components/super-admin/VerificationProvidersPanel";
 import CommunicationsFullPage from "@/components/communications/CommunicationsFullPage";
 import CarrierSettingsPanel from "@/components/logistics/CarrierSettingsPanel";
@@ -86,7 +87,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync" | "sentinel_mcp";
+type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "tenant_sites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync" | "sentinel_mcp";
 
 interface SidebarItem {
   id: TabId;
@@ -209,6 +210,7 @@ const SuperAdminDashboard = () => {
       items: [
         { id: "websites", icon: Crown, label: "Website Requests" },
         { id: "website_templates", icon: Palette, label: "Website Templates" },
+        { id: "tenant_sites", icon: Globe, label: "Tenant Sites Portal" },
         { id: "domain_management", icon: Globe, label: "Domain Mgmt" },
         { id: "video_billing", icon: Video, label: "Video Billing" },
         { id: "keys", icon: Shield, label: "Keys & Secrets" },
@@ -315,6 +317,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "regional_management" && isSuperAdmin && <RegionalManagementPanel />}
             {activeTab === "featured" && <FeaturedProductsAdminPanel />}
             {activeTab === "websites" && <WebsiteRequestsDashboard />}
+            {activeTab === "tenant_sites" && <TenantSitesPanel />}
             {activeTab === "unified_pricing" && isSuperAdmin && <UnifiedPricingPanel />}
             {activeTab === "pricing" && isSuperAdmin && <WebsitePricingPanel />}
             {activeTab === "keys" && <KeysSecretsPanel />}
