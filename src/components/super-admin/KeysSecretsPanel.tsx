@@ -55,6 +55,7 @@ const PROVIDERS = [
   { value: "youverify", label: "YouVerify (KYC)" },
   { value: "identitypass", label: "IdentityPass (KYC)" },
   { value: "persona", label: "Persona (KYC)" },
+  { value: "github", label: "GitHub (Non-Native Site)" },
   { value: "other", label: "Other" },
 ];
 
@@ -69,6 +70,7 @@ const KEY_NAMES: Record<string, string[]> = {
   youverify: ["api_key"],
   identitypass: ["api_key"],
   persona: ["api_key"],
+  github: ["fine_grained_token", "repo_owner"],
   other: ["api_key"],
 };
 

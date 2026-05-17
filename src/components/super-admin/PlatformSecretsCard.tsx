@@ -54,6 +54,7 @@ const FSA_PROVIDERS = [
   { value: "identitypass", label: "IdentityPass (KYC Budget)", icon: "🆔" },
   { value: "persona", label: "Persona (KYC Global)", icon: "🌐" },
   { value: "sentinel_mcp", label: "Sentinel MCP", icon: "🛡️" },
+  { value: "github", label: "GitHub (Tenant Sites)", icon: "🐙" },
   { value: "other", label: "Other", icon: "🔑" },
 ];
 
@@ -95,6 +96,10 @@ const FSA_KEY_NAMES: Record<string, { value: string; label: string }[]> = {
     { value: "tenant_key", label: "Tenant Key" },
     { value: "api_key", label: "API Key" },
     { value: "server_url", label: "Server URL" },
+  ],
+  github: [
+    { value: "fine_grained_token", label: "Fine-Grained Token (PAT)" },
+    { value: "repo_owner", label: "Default Repo Owner (user/org)" },
   ],
   other: [{ value: "api_key", label: "API Key" }],
 };

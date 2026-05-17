@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -168,7 +169,103 @@ async function getInstallationToken(appJwt: string, installationId: string): Pro
   return data.token;
 }
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
+/**
+ * Resolve per-org GitHub fine-grained token from org_api_keys.
+ * Falls back to platform_api_keys (provider='github', key_name='fine_grained_token'),
+ * then to env (GITHUB_APP_* or GITHUB_PAT).
+ */
+async function resolveOrgGithubToken(orgId?: string | null): Promise<{
+  token?: string;
+  owner_override?: string;
+  source: string;
+} | null> {
+  if (!orgId) return null;
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  try {
+    const sb = createClient(url, key);
+    const { data } = await sb
+      .from("org_api_keys")
+      .select("key_name, key_value, is_active")
+      .eq("org_id", orgId)
+      .eq("provider", "github")
+      .eq("is_active", true);
+    if (!data || data.length === 0) return null;
+    const tokenRow = data.find((r: any) => r.key_name === "fine_grained_token");
+    const ownerRow = data.find((r: any) => r.key_name === "repo_owner");
+    if (!tokenRow?.key_value) return null;
+    return {
+      token: tokenRow.key_value,
+      owner_override: ownerRow?.key_value,
+      source: "org_api_keys",
+    };
+  } catch (e) {
+    console.warn("resolveOrgGithubToken failed:", e);
+    return null;
+  }
+}
+
+async function resolvePlatformGithubToken(): Promise<string | null> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  try {
+    const sb = createClient(url, key);
+    const { data } = await sb
+      .from("platform_api_keys")
+      .select("key_value")
+      .eq("provider", "github")
+      .eq("key_name", "fine_grained_token")
+      .eq("is_active", true)
+      .maybeSingle();
+    return (data as any)?.key_value || null;
+  } catch {
+    return null;
+  }
+}
+
+async function getAuthHeaders(orgId?: string | null): Promise<{
+  headers: Record<string, string>;
+  ownerOverride?: string;
+  source: string;
+}> {
+  // 1. Tenant-scoped fine-grained token (org_admin manages it themselves)
+  const orgKey = await resolveOrgGithubToken(orgId);
+  if (orgKey?.token) {
+    console.log(`Using per-org GitHub fine-grained token for org ${orgId}`);
+    return {
+      headers: {
+        Authorization: `Bearer ${orgKey.token}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      ownerOverride: orgKey.owner_override,
+      source: "org_token",
+    };
+  }
+
+  // 2. Platform-level fine-grained token in platform_api_keys
+  const platformToken = await resolvePlatformGithubToken();
+  if (platformToken) {
+    console.log("Using platform GitHub fine-grained token from platform_api_keys");
+    return {
+      headers: {
+        Authorization: `Bearer ${platformToken}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      source: "platform_token",
+    };
+  }
+
+  // 3. GitHub App / PAT env fallback
+  return { headers: await getEnvAuthHeaders(), source: "env" };
+}
+
+async function getEnvAuthHeaders(): Promise<Record<string, string>> {
   const appId = Deno.env.get("GITHUB_APP_ID");
   const privateKey = Deno.env.get("GITHUB_APP_PRIVATE_KEY");
   const installationId = Deno.env.get("GITHUB_APP_INSTALLATION_ID");
@@ -209,8 +306,11 @@ serve(async (req) => {
   }
 
   try {
-    const headers = await getAuthHeaders();
-    const { action, org_name, repo_name, website_content, description } = await req.json();
+    const body = await req.json();
+    const { action, org_name, repo_name, website_content, description, org_id } = body;
+    const auth = await getAuthHeaders(org_id);
+    const headers = auth.headers;
+    const ownerOverride = auth.ownerOverride;
 
     const sanitizedRepo = (repo_name || org_name || "website")
       .toLowerCase()
@@ -219,6 +319,25 @@ serve(async (req) => {
       .replace(/^-|-$/g, "");
 
     if (action === "create-repo") {
+      // If tenant supplies an owner override (their own user/org), create there
+      if (ownerOverride) {
+        const check = await fetch(`https://api.github.com/repos/${ownerOverride}/${sanitizedRepo}`, { headers });
+        if (check.status === 200) {
+          return new Response(JSON.stringify({ success: true, repo_url: `https://github.com/${ownerOverride}/${sanitizedRepo}`, message: "Repository already exists under tenant account" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const create = await fetch(`https://api.github.com/user/repos`, {
+          method: "POST", headers,
+          body: JSON.stringify({ name: sanitizedRepo, description: description || `Tenant website for ${org_name}`, private: false, auto_init: true }),
+        });
+        if (create.ok) {
+          const repo = await create.json();
+          return new Response(JSON.stringify({ success: true, repo_url: repo.html_url, repo_full_name: repo.full_name, owner: repo.owner?.login }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
       // Check if repo exists under personal account
       const checkPersonal = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${sanitizedRepo}`, { headers });
       if (checkPersonal.status === 200) {
@@ -277,9 +396,17 @@ serve(async (req) => {
     if (action === "push-files") {
       // Determine which account owns the repo
       let repoOwner = GITHUB_USER;
-      const checkOwner = await fetch(`https://api.github.com/repos/${GITHUB_ORG}/${sanitizedRepo}`, { headers });
-      if (checkOwner.status === 200) {
-        repoOwner = GITHUB_ORG;
+      if (ownerOverride) {
+        const checkTenant = await fetch(`https://api.github.com/repos/${ownerOverride}/${sanitizedRepo}`, { headers });
+        if (checkTenant.status === 200) {
+          repoOwner = ownerOverride;
+        }
+      }
+      if (repoOwner === GITHUB_USER) {
+        const checkOwner = await fetch(`https://api.github.com/repos/${GITHUB_ORG}/${sanitizedRepo}`, { headers });
+        if (checkOwner.status === 200) {
+          repoOwner = GITHUB_ORG;
+        }
       }
 
       const files = website_content || [];

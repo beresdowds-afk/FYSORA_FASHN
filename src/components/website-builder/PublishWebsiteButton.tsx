@@ -369,6 +369,7 @@ const PublishWebsiteButton = forwardRef<PublishWebsiteButtonHandle, PublishWebsi
           },
           body: JSON.stringify({
             action: "push-files",
+            org_id: org.id,
             org_name: orgName,
             repo_name: slug,
             website_content: [
