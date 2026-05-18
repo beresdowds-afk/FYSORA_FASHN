@@ -5882,6 +5882,60 @@ export type Database = {
           },
         ]
       }
+      platform_dns_records: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          is_managed: boolean
+          last_checked_at: string | null
+          name: string
+          notes: string | null
+          priority: number | null
+          provider_hint: string | null
+          purpose: string | null
+          record_type: string
+          ttl: number
+          updated_at: string
+          value: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          is_managed?: boolean
+          last_checked_at?: string | null
+          name?: string
+          notes?: string | null
+          priority?: number | null
+          provider_hint?: string | null
+          purpose?: string | null
+          record_type: string
+          ttl?: number
+          updated_at?: string
+          value: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          is_managed?: boolean
+          last_checked_at?: string | null
+          name?: string
+          notes?: string | null
+          priority?: number | null
+          provider_hint?: string | null
+          purpose?: string | null
+          record_type?: string
+          ttl?: number
+          updated_at?: string
+          value?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       platform_feature_flags: {
         Row: {
           api_provider: string | null
