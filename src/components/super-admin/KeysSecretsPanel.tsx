@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Key, Plus, Trash2, Eye, EyeOff, Save, X } from "lucide-react";
 import PlatformSecretsCard from "./PlatformSecretsCard";
 import SecretsManagementCard from "./SecretsManagementCard";
+import PlatformDnsRecordsPanel from "./PlatformDnsRecordsPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -160,6 +161,9 @@ const KeysSecretsPanel = () => {
 
       {/* Secrets Audit / Deployment Readiness */}
       <SecretsManagementCard />
+
+      {/* Platform DNS Records (A / TXT / CNAME / MX …) for FYSORA FASHN domains */}
+      <PlatformDnsRecordsPanel />
 
       <div className="flex items-center justify-between">
         <div>

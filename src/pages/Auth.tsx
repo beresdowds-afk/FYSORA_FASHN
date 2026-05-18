@@ -93,6 +93,9 @@ const Auth = () => {
   const [verifying, setVerifying] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<"idle" | "valid" | "invalid">("idle");
 
+  // Optional referral code (customer / tailor / designer / organization)
+  const [referralCode, setReferralCode] = useState("");
+
   // Manager org selection
   const [showOrgPicker, setShowOrgPicker] = useState(false);
   const [managerOrgs, setManagerOrgs] = useState<{ org_id: string; org_name: string; role: string }[]>([]);
@@ -244,6 +247,13 @@ const Auth = () => {
             identity_verified: true,
             identity_verified_at: new Date().toISOString(),
           } as any).eq("id", userData.user.id);
+
+          // Persist optional referral code (best-effort; column is optional)
+          if (referralCode.trim()) {
+            await supabase.from("profiles")
+              .update({ referral_code: referralCode.trim().toUpperCase() } as any)
+              .eq("id", userData.user.id);
+          }
         }
       }
 
@@ -516,6 +526,19 @@ const Auth = () => {
             {mode === "signup" && (
               <div className="space-y-3">
                 <DisclaimerBanner compact />
+                <div className="space-y-2">
+                  <Label htmlFor="referral" className="text-xs flex items-center gap-2">
+                    Referral code <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="referral"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    placeholder="e.g. FYS-ADAEZE"
+                    maxLength={32}
+                    autoComplete="off"
+                  />
+                </div>
                 <div className="flex items-start gap-2">
                   <Checkbox
                     id="terms"

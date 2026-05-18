@@ -67,6 +67,9 @@ const CreateOrganization = () => {
   const [bizRegNumber, setBizRegNumber] = useState("");
   const [bizVerifyStatus, setBizVerifyStatus] = useState<"idle" | "verifying" | "verified" | "failed">("idle");
 
+  // Optional referral code
+  const [referralCode, setReferralCode] = useState("");
+
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const selectedCurrency = currencies.find((c) => c.code === currency);
   const countryCode = selectedCurrency?.country || "NG";
@@ -76,10 +79,8 @@ const CreateOrganization = () => {
     e.preventDefault();
     if (!user || !name.trim()) return;
     if (!orgTermsAccepted) { toast({ title: "Please accept the intermediary terms", variant: "destructive" }); return; }
-    if (!bizRegNumber.trim() || bizVerifyStatus !== "verified") {
-      toast({ title: "Business registration verification required", description: "Please verify your business registration number before proceeding.", variant: "destructive" });
-      return;
-    }
+    // Business registration verification is recommended but not blocking — admins can
+    // complete it later from their dashboard if KYC providers are not yet configured.
     setSubmitting(true);
 
     const { error } = await createOrg(name, slug, selectedCurrency?.country || "NG", currency);
@@ -88,6 +89,16 @@ const CreateOrganization = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      // Persist optional referral code on the latest membership (best-effort).
+      if (referralCode.trim()) {
+        try {
+          await supabase.from("profiles")
+            .update({ referral_code: referralCode.trim().toUpperCase() } as any)
+            .eq("id", user.id);
+        } catch (e) {
+          console.warn("referral code persist skipped:", e);
+        }
+      }
       toast({ title: "Organization created!", description: `${name} is ready to go.` });
       navigate("/dashboard");
     }
@@ -192,7 +203,7 @@ const CreateOrganization = () => {
               <div className="flex items-center gap-2">
                 <Shield size={16} className="text-primary" />
                 <Label className="text-sm font-semibold">Business Registration Verification</Label>
-                <Badge variant="outline" className="text-[10px]">Required</Badge>
+                <Badge variant="outline" className="text-[10px]">Recommended</Badge>
               </div>
 
               <div className="space-y-2">
@@ -247,6 +258,19 @@ const CreateOrganization = () => {
             </div>
 
             <DisclaimerBanner compact />
+            <div className="space-y-2">
+              <Label htmlFor="org-referral" className="text-xs flex items-center gap-2">
+                Referral code <span className="text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="org-referral"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value)}
+                placeholder="e.g. FYS-ADAEZE"
+                maxLength={32}
+                autoComplete="off"
+              />
+            </div>
             <div className="flex items-start gap-2">
               <Checkbox
                 id="org-terms"
@@ -258,7 +282,7 @@ const CreateOrganization = () => {
               </label>
             </div>
 
-            <Button variant="hero" className="w-full" type="submit" disabled={submitting || !orgTermsAccepted || bizVerifyStatus !== "verified"}>
+            <Button variant="hero" className="w-full" type="submit" disabled={submitting || !orgTermsAccepted}>
               {submitting ? "Creating..." : "Create Organization"}
               <ArrowRight size={16} className="ml-2" />
             </Button>

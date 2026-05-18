@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
 
     // 2. Find best provider for this verification
     const activeProviders = (providers || []) as ProviderConfig[];
+    console.log(`[verify-identity] type=${type} country=${country} entity=${entity_type} active_providers=${activeProviders.length}`);
     const selectedProvider = activeProviders.find(p => 
       p.supported_countries.includes(country) &&
       p.supported_id_types.includes(type) &&
@@ -114,12 +115,13 @@ Deno.serve(async (req) => {
         error_message: result.valid ? null : result.message,
       });
 
-      // Increment monthly usage
+      // Increment monthly usage safely
       await serviceClient.from("verification_provider_config")
-        .update({ monthly_used: (selectedProvider as any).monthly_used + 1 })
+        .update({ monthly_used: ((selectedProvider as any).monthly_used || 0) + 1 })
         .eq("provider", selectedProvider.provider);
 
     } else {
+      console.log(`[verify-identity] no provider matched — using local format validation`);
       // Fallback to local validation
       result = localValidation(type, cleanNumber, entity_type);
       
@@ -408,9 +410,10 @@ function localValidation(type: string, number: string, entity_type: string) {
   const isValid = patterns.pattern.test(number);
   let checksumValid = true;
 
-  if ((type === "nin" || type === "bvn") && isValid) {
-    checksumValid = luhnCheck(number);
-  }
+  // NIN and BVN are NOT Luhn-protected (Luhn is a credit-card checksum).
+  // Format check (11 digits) is the strongest local validation we can do
+  // without a live provider call. Real validation happens via Smile ID /
+  // YouVerify / IdentityPass when their keys are configured.
   if (type === "sa_id" && isValid) {
     const month = parseInt(number.substring(2, 4));
     const day = parseInt(number.substring(4, 6));
@@ -422,8 +425,8 @@ function localValidation(type: string, number: string, entity_type: string) {
     valid,
     confidence: valid ? 70 : 0,
     message: valid
-      ? "Identity verified (format validation)"
-      : `Invalid ${patterns.description}. Please check and try again.`,
+      ? "Format validated locally (no external KYC provider active)"
+      : `Invalid ${patterns.description}. Please check the number and try again.`,
     provider: "local",
   };
 }
