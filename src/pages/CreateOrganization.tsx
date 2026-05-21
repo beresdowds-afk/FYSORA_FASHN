@@ -99,7 +99,29 @@ const CreateOrganization = () => {
           console.warn("referral code persist skipped:", e);
         }
       }
-      toast({ title: "Organization created!", description: `${name} is ready to go.` });
+      // Mark the organization + the org-admin profile as pending business registration review.
+      try {
+        const { data: newOrg } = await supabase
+          .from("organizations")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (newOrg?.id) {
+          await supabase.from("organizations").update({
+            business_reg_type: bizRegType || null,
+            business_reg_number: bizRegNumber.trim() || null,
+            business_reg_verification_status: "pending",
+            verification_submitted_at: new Date().toISOString(),
+          } as any).eq("id", newOrg.id);
+        }
+        await supabase.from("profiles").update({ access_status: "pending" } as any).eq("id", user.id);
+      } catch (e) {
+        console.warn("pending-state mark skipped:", e);
+      }
+      toast({
+        title: "Account created — pending review",
+        description: "We received your business registration. Access will unlock once it is approved.",
+      });
       navigate("/dashboard");
     }
   };
