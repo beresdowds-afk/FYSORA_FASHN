@@ -99,7 +99,29 @@ const CreateOrganization = () => {
           console.warn("referral code persist skipped:", e);
         }
       }
-      toast({ title: "Organization created!", description: `${name} is ready to go.` });
+      // Mark the organization + the org-admin profile as pending business registration review.
+      try {
+        const { data: newOrg } = await supabase
+          .from("organizations")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (newOrg?.id) {
+          await supabase.from("organizations").update({
+            business_reg_type: bizRegType || null,
+            business_reg_number: bizRegNumber.trim() || null,
+            business_reg_verification_status: "pending",
+            verification_submitted_at: new Date().toISOString(),
+          } as any).eq("id", newOrg.id);
+        }
+        await supabase.from("profiles").update({ access_status: "pending" } as any).eq("id", user.id);
+      } catch (e) {
+        console.warn("pending-state mark skipped:", e);
+      }
+      toast({
+        title: "Account created — pending review",
+        description: "We received your business registration. Access will unlock once it is approved.",
+      });
       navigate("/dashboard");
     }
   };
@@ -203,7 +225,11 @@ const CreateOrganization = () => {
               <div className="flex items-center gap-2">
                 <Shield size={16} className="text-primary" />
                 <Label className="text-sm font-semibold">Business Registration Verification</Label>
-                <Badge variant="outline" className="text-[10px]">Recommended</Badge>
+                <Badge variant="default" className="text-[10px]">Required</Badge>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Your account will be created immediately, but dashboard access stays in <b>Pending review</b> until our team
+                  approves your business registration. You can finish verification later from the pending screen.
+                </p>
               </div>
 
               <div className="space-y-2">

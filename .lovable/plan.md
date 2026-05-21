@@ -1,81 +1,70 @@
 # Plan
 
-Four related changes to the Super Admin dashboard and registration flows.
+Five related changes across registration gating, KYC provider config, deployment resilience, and DNS automation.
 
-## 1. Platform DNS Records Manager (Keys & Secrets page)
+## 1. Business Registration → "Required" with pending-account gating
 
-Add a new `PlatformDnsRecordsPanel` rendered inside `KeysSecretsPanel.tsx` (Super Admin → Keys & Secrets). It manages DNS records for FYSORA FASHN's own domains (e.g. `fs-africa.org.ng`, `fashionstitchesafrica.lovable.app`), distinct from `DomainManagementPanel` which manages tenant domain purchases.
+Goal: Don't block signup, but freeze access until BizReg verification completes.
 
-Features:
-- Table grouped by domain showing Type (A/AAAA/CNAME/MX/TXT/SRV/CAA/NS), Name, Value, TTL, Priority, Purpose, Status (verified/pending).
-- Add / Edit / Delete record dialogs with type-aware validation.
-- "Verify now" button that performs a live DNS lookup via a new edge function `dns-lookup` (using Deno `Deno.resolveDns`) and stamps `verified_at`.
-- "Copy as zone file" export.
-- Provider hint field (Namecheap / Cloudflare) using existing `NAMECHEAP_API_KEY` for optional auto-sync (read-only first iteration).
+- `src/pages/CreateOrganization.tsx`: re-label the BizReg field "Required", keep submit enabled even when verification is pending; on submit, create the auth user + organization row but mark them pending.
+- New columns on `organizations`: `verification_status` (`pending` | `verified` | `rejected`, default `pending`), `verification_submitted_at`, `verification_notes`. Migration adds these.
+- New column on `profiles`: `access_status` (`pending` | `active` | `suspended`, default `active`) — only set to `pending` for designers/org-admins whose org is unverified.
+- New `AccessGate` wrapper in `src/components/shared/AccessGate.tsx` rendered inside `Dashboard.tsx` and `DesignerPortal.tsx`. If `access_status='pending'` or org `verification_status='pending'`, render a "Verification pending" screen with status, submitted documents, and a "Re-run verification" button. Customers and tailors are unaffected.
+- Super admin gets a new "Pending Verifications" panel in `SuperAdminDashboard` to approve/reject (sets `verification_status` + cascades `access_status='active'`).
+- Email notification on submit + on approval, via existing `send-email` function.
 
-New table `platform_dns_records`:
-- `domain`, `record_type`, `name`, `value`, `ttl` (default 3600), `priority`, `purpose`, `is_managed`, `verified_at`, `last_checked_at`, `notes`.
-- RLS: super_admin / super_assistant full access.
+## 2. KYC Provider activation UI + "Run identity test"
 
-## 2. Configure TXT records for official emails
+- Extend `KeysSecretsPanel.tsx` with a new `IdentityProvidersPanel` (or extend existing `VerificationProvidersPanel` if present). For each of `smile_id`, `youverify`, `identitypass`:
+  - Inputs for `api_key`, `api_secret`/`partner_id` (provider-specific), `environment` (sandbox/live).
+  - Toggle `is_active`.
+  - "Run identity test" button → calls a new edge function `test-identity-provider` which performs a low-cost ping (Smile ID: `/v1/products`; YouVerify: GET `/v2/api/identity/health`; IdentityPass: `/api/v2/biometrics/merchant/data/verification/passport`-style ping with sandbox data). Returns latency, HTTP status, and pass/fail. Logs to a new `verification_provider_test_log` table.
+  - On successful test, allow flipping `is_active=true`.
+- Secrets stored via `org_api_keys` (platform-level: `org_id IS NULL`) with provider names. No raw keys in client code.
 
-Seed `platform_dns_records` with the records required so `hello@fs-africa.org.ng` and `fysorafashn@fs-africa.org.ng` deliver and pass authentication:
+## 3. Retry-with-backoff for GitHub pushes & site/PWA sync
 
-- **MX** `@ → <mail host>` (placeholder, admin sets host).
-- **SPF** TXT `@` → `v=spf1 include:_spf.resend.com include:_spf.google.com ~all` (Resend is already the configured email provider).
-- **DKIM** TXT `resend._domainkey` → value pulled from Resend domain settings (admin pastes).
-- **DMARC** TXT `_dmarc` → `v=DMARC1; p=quarantine; rua=mailto:hello@fs-africa.org.ng; ruf=mailto:fysorafashn@fs-africa.org.ng; fo=1`.
-- **Mailbox aliases** documented (TXT `_mailboxes` informational): `hello@`, `fysorafashn@`.
+- New table `deployment_jobs`: `id`, `org_id`, `kind` (`github_push` | `pwa_sync` | `site_publish`), `payload jsonb`, `status` (`queued|running|succeeded|failed|dead`), `attempt`, `max_attempts` (default 6), `next_attempt_at`, `last_error`, `created_at`, `updated_at`.
+- New edge function `deployment-worker`: pulls due jobs, executes (invokes `github-repo-push` / publish flow), on failure schedules retry with exponential backoff (`30s × 2^attempt`, capped at 1h), marks `dead` after `max_attempts`.
+- pg_cron job invokes worker every minute (`supabase--insert` for cron schedule).
+- Refactor `PublishWebsiteButton.tsx` and `useOrgSync.ts` to enqueue into `deployment_jobs` instead of calling the function inline.
+- New `DeploymentJobsPanel.tsx` rendered in `TenantSitesPanel` (super admin) and in `WebsiteBuilderTab` (tenant) showing per-job status, attempt count, next retry, last error, with "Retry now" and "Cancel" buttons. Realtime via `postgres_changes`.
+- Toast + in-app notification when a job moves to `failed` after final attempt.
 
-A "Verify mailboxes" action triggers `dns-lookup` for SPF/DKIM/DMARC and flips status to verified.
+## 4. Resend DKIM auto-sync
 
-Update `platform_settings.contact_email` default to `hello@fs-africa.org.ng` and add `secondary_contact_email = fysorafashn@fs-africa.org.ng`.
+- New edge function `resend-dkim-sync`: calls Resend API `GET /domains/{id}` for each domain registered in `platform_dns_records` (or a new `email_domains_managed` table), reads DKIM record values, compares against `platform_dns_records` rows with `purpose='dkim'`, updates the `value` column when changed, stamps `last_synced_at`, and marks `verified_at=null` to force re-verification.
+- Schedule via pg_cron every 6 hours; also expose a "Sync from Resend now" button in `PlatformDnsRecordsPanel`.
+- Requires `RESEND_API_KEY` (already implied by existing email setup; add via `secrets--add_secret` if missing).
+- Audit row inserted into a new `dns_record_audit` table on each change.
 
-## 3. Make referral codes optional for all registrations
+## 5. Worldwide DNS propagation checker
 
-Touch points:
-- `src/pages/Auth.tsx` (customer/tailor/designer signup).
-- `src/pages/CreateOrganization.tsx` (organization signup).
-- Any registration payment edge functions that currently require `referral_code`.
-
-Changes:
-- Field label becomes "Referral code (optional)".
-- Remove required validation; allow empty submit.
-- If provided, validate against `referral_codes` table; on invalid, show non-blocking warning instead of rejecting.
-- Persist `referral_code = null` when blank so reward logic skips silently.
-- Backend: in registration/payment functions, treat missing code as a no-op (no reward grant, no error).
-
-No schema change needed (column already nullable); a migration only if a `NOT NULL` exists — verified during implementation.
-
-## 4. Fix NIN / BVN verification failures
-
-Root cause analysis from `supabase/functions/verify-identity/index.ts` and `verification_provider_config`:
-
-- All four providers (`smile_id`, `youverify`, `identitypass`, `persona`) are currently `is_active = false`, so every request falls through to `localValidation`.
-- Local validation requires `entity_id` to persist results; UI callers (`Auth.tsx`, `CreateOrganization.tsx`, `IdentityVerificationGate.tsx`) call the function **before** the auth user / org row exists, so even when the pattern matches, the response is `valid: true` but no row is updated → UI treats it as "failed" because the subsequent re-read of `profiles.identity_verified` is still false.
-- For `bvn`, the local regex is correct (`^\d{11}$`) but the masking step uppercases the number which is fine; however the function then increments `monthly_used` on a possibly `undefined` field — no impact here but worth noting.
-
-Fixes:
-- In `verify-identity`: when no provider is active, still return `valid` based on local pattern AND, when `entity_id` is provided post-signup, persist verification. When `entity_id` is null (pre-signup), return a `pending_persist: true` flag.
-- Add a post-signup hook in `Auth.tsx` and `CreateOrganization.tsx` that re-invokes `verify-identity` with the newly-created `entity_id` so the verification row and `identity_verified` flag are written.
-- Activate at least one provider by default. Add a "Provider self-test" button in `VerificationProvidersPanel` so the super admin can flip `is_active = true` once API keys are present. Until then, surface a banner explaining local-only mode.
-- Improve error messaging: surface the actual `result.message` to the UI instead of a generic "Verification failed".
-- Add edge function logging of the chosen branch (provider vs local) for easier future debugging.
+- Extend `dns-lookup` edge function to optionally use multiple public resolvers (Google `8.8.8.8`, Cloudflare `1.1.1.1`, Quad9 `9.9.9.9`, OpenDNS `208.67.222.222`) via DoH (`https://dns.google/resolve`, `https://cloudflare-dns.com/dns-query`, etc.) since Deno's `resolveDns` uses only the system resolver.
+- New table `dns_propagation_checks`: `record_id`, `resolver`, `checked_at`, `found_values jsonb`, `matched bool`, `latency_ms`.
+- Periodic pg_cron job (every 15 min) calls a new `dns-propagation-sweep` function that iterates all non-archived `platform_dns_records` and runs the multi-resolver check.
+- `PlatformDnsRecordsPanel` gets a "Propagation" expandable row per record showing each resolver's last check status with timestamp, latency, and a small world-map dot grid (4 resolvers across regions). "Check now" button triggers an on-demand sweep for the selected record.
+- Visual: green check / amber pending / red mismatch per resolver, with the most recent `checked_at` formatted as relative time.
 
 ## Technical details
 
 New files:
-- `src/components/super-admin/PlatformDnsRecordsPanel.tsx`
-- `supabase/functions/dns-lookup/index.ts`
-- `supabase/migrations/<ts>_platform_dns_records.sql`
+- `src/components/shared/AccessGate.tsx`
+- `src/components/super-admin/PendingVerificationsPanel.tsx`
+- `src/components/super-admin/IdentityProvidersPanel.tsx` (or extend existing)
+- `src/components/super-admin/DeploymentJobsPanel.tsx`
+- `supabase/functions/test-identity-provider/index.ts`
+- `supabase/functions/deployment-worker/index.ts`
+- `supabase/functions/resend-dkim-sync/index.ts`
+- `supabase/functions/dns-propagation-sweep/index.ts`
+- Migrations for: `organizations.verification_status`, `profiles.access_status`, `deployment_jobs`, `dns_record_audit`, `dns_propagation_checks`, `verification_provider_test_log`.
 
 Edited files:
-- `src/components/super-admin/KeysSecretsPanel.tsx` (mount new panel)
-- `src/pages/Auth.tsx`, `src/pages/CreateOrganization.tsx` (referral optional + post-signup verify re-call + better error display)
-- `src/components/shared/IdentityVerificationGate.tsx` (error surfacing)
-- `supabase/functions/verify-identity/index.ts` (logging, pending_persist flag, safer counters)
-- `supabase/functions/initialize-registration-payment/index.ts` (referral optional)
-- `src/hooks/usePlatformSettings.ts` (add `secondary_contact_email`)
+- `src/pages/CreateOrganization.tsx`, `src/pages/Dashboard.tsx`, `src/pages/DesignerPortal.tsx`
+- `src/components/super-admin/KeysSecretsPanel.tsx`, `src/components/super-admin/PlatformDnsRecordsPanel.tsx`, `src/pages/SuperAdminDashboard.tsx`
+- `src/components/website-builder/PublishWebsiteButton.tsx`, `src/components/website-builder/WebsiteBuilderTab.tsx`, `src/hooks/useOrgSync.ts`
+- `supabase/functions/dns-lookup/index.ts` (multi-resolver support)
 
-Data seeds (via insert tool, not migration):
-- Initial DNS records for `fs-africa.org.ng` (SPF, DMARC, DKIM placeholder, MX placeholder).
+Cron seeds (via insert tool, not migration): `deployment-worker` every 1 min, `resend-dkim-sync` every 6 h, `dns-propagation-sweep` every 15 min.
+
+RLS: all new tables restricted to `super_admin`/`super_assistant` for global views, plus `is_org_admin` for org-scoped reads (`deployment_jobs`).

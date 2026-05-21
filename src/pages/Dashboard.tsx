@@ -28,6 +28,7 @@ import { useUserGlobalRole } from "@/hooks/useOrganization";
 import RevenueAnalysisCard from "@/components/dashboard/RevenueAnalysisCard";
 import WebsiteBuilderTab from "@/components/website-builder/WebsiteBuilderTab";
 import PremiumFeaturesTab from "@/components/premium/PremiumFeaturesTab";
+import AccessGate from "@/components/shared/AccessGate";
 import WalletManagementTab from "@/components/wallet/WalletManagementTab";
 import LogisticsTab from "@/components/logistics/LogisticsTab";
 
@@ -167,7 +168,7 @@ const Dashboard = () => {
   if (!currentOrg) return null;
 
   return (
-    <SidebarProvider>
+    <AccessGate><SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <TourGuide {...tour} />
         <div className="hidden md:block">
@@ -270,7 +271,7 @@ const Dashboard = () => {
           </main>
         </div>
       </div>
-    </SidebarProvider>
+    </SidebarProvider></AccessGate>
   );
 };
 

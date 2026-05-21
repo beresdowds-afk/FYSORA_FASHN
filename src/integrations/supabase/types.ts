@@ -2002,6 +2002,76 @@ export type Database = {
           },
         ]
       }
+      deployment_jobs: {
+        Row: {
+          attempt: number
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          last_error: string | null
+          last_run_at: string | null
+          max_attempts: number
+          next_attempt_at: string
+          org_id: string | null
+          payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          last_error?: string | null
+          last_run_at?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          org_id?: string | null
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          org_id?: string | null
+          payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deployment_jobs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_jobs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployment_jobs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disclaimer_acknowledgments: {
         Row: {
           acknowledged_at: string
@@ -2175,6 +2245,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      dns_propagation_checks: {
+        Row: {
+          checked_at: string
+          error: string | null
+          found_values: Json
+          id: string
+          latency_ms: number | null
+          matched: boolean
+          record_id: string | null
+          resolver: string
+          resolver_label: string | null
+        }
+        Insert: {
+          checked_at?: string
+          error?: string | null
+          found_values?: Json
+          id?: string
+          latency_ms?: number | null
+          matched?: boolean
+          record_id?: string | null
+          resolver: string
+          resolver_label?: string | null
+        }
+        Update: {
+          checked_at?: string
+          error?: string | null
+          found_values?: Json
+          id?: string
+          latency_ms?: number | null
+          matched?: boolean
+          record_id?: string | null
+          resolver?: string
+          resolver_label?: string | null
+        }
+        Relationships: []
+      }
+      dns_record_audit: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          name: string
+          new_value: string | null
+          old_value: string | null
+          record_id: string | null
+          record_type: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          name: string
+          new_value?: string | null
+          old_value?: string | null
+          record_id?: string | null
+          record_type: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          name?: string
+          new_value?: string | null
+          old_value?: string | null
+          record_id?: string | null
+          record_type?: string
+          source?: string
+        }
+        Relationships: []
       }
       domain_requests: {
         Row: {
@@ -5305,6 +5447,8 @@ export type Database = {
           slug: string
           specialties: string[] | null
           updated_at: string
+          verification_notes: string | null
+          verification_submitted_at: string | null
         }
         Insert: {
           address?: string | null
@@ -5335,6 +5479,8 @@ export type Database = {
           slug: string
           specialties?: string[] | null
           updated_at?: string
+          verification_notes?: string | null
+          verification_submitted_at?: string | null
         }
         Update: {
           address?: string | null
@@ -5365,6 +5511,8 @@ export type Database = {
           slug?: string
           specialties?: string[] | null
           updated_at?: string
+          verification_notes?: string | null
+          verification_submitted_at?: string | null
         }
         Relationships: []
       }
@@ -6455,6 +6603,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_status: string
           avatar_url: string | null
           bio: string | null
           business_name: string | null
@@ -6487,6 +6636,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          access_status?: string
           avatar_url?: string | null
           bio?: string | null
           business_name?: string | null
@@ -6519,6 +6669,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          access_status?: string
           avatar_url?: string | null
           bio?: string | null
           business_name?: string | null
@@ -8903,6 +9054,42 @@ export type Database = {
           supported_entity_types?: string[] | null
           supported_id_types?: string[] | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      verification_provider_test_log: {
+        Row: {
+          created_at: string
+          environment: string | null
+          id: string
+          latency_ms: number | null
+          message: string | null
+          provider: string
+          status_code: number | null
+          success: boolean
+          tested_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          environment?: string | null
+          id?: string
+          latency_ms?: number | null
+          message?: string | null
+          provider: string
+          status_code?: number | null
+          success: boolean
+          tested_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          environment?: string | null
+          id?: string
+          latency_ms?: number | null
+          message?: string | null
+          provider?: string
+          status_code?: number | null
+          success?: boolean
+          tested_by?: string | null
         }
         Relationships: []
       }
