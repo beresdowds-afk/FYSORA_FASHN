@@ -115,53 +115,52 @@ Deno.serve(async (req) => {
       const pricing = planPrices[plan] || planPrices.pro;
       const planLabel = plan === "lite" ? "Lite" : plan === "pro" ? "Pro" : "Pro-Lite";
 
-      // Lite: auto-activate subscription + create admin tracking request
-      if (plan === "lite") {
-        const trialEnd = new Date();
-        trialEnd.setMonth(trialEnd.getMonth() + 6);
+      // All plans (Lite, Pro, Pro-Lite): auto-activate the paid subscription
+      // immediately so the org has full access to its plan's website builder
+      // features the moment payment clears. No admin approval is required to
+      // unlock the builder UI — admin involvement (for Pro/Pro-Lite setup) is
+      // tracked separately via the website_builder_requests row.
+      const nowIso = new Date().toISOString();
+      const trialEnd = new Date();
+      trialEnd.setMonth(trialEnd.getMonth() + (plan === "lite" ? 6 : 12));
 
-        await serviceClient.from("website_builder_subscriptions").upsert({
-          org_id,
-          plan: "lite",
-          status: "trial",
-          trial_start: new Date().toISOString(),
-          trial_end: trialEnd.toISOString(),
-          monthly_fee: pricing.monthly,
-          platform_fee: pricing.platform,
-          payment_gateway: gateway,
-          gateway_reference: reference,
-          activated_at: new Date().toISOString(),
-        }, { onConflict: "org_id" });
+      await serviceClient.from("website_builder_subscriptions").upsert({
+        org_id,
+        plan,
+        status: "active",
+        trial_start: nowIso,
+        trial_end: trialEnd.toISOString(),
+        monthly_fee: pricing.monthly,
+        platform_fee: pricing.platform,
+        payment_gateway: gateway,
+        gateway_reference: reference,
+        activated_at: nowIso,
+      }, { onConflict: "org_id" });
 
-        await serviceClient.from("website_builder_requests").upsert({
-          org_id,
-          plan: "lite",
-          status: "pending",
-          one_time_fee: 0,
+      await serviceClient.from("website_builder_requests").upsert({
+        org_id,
+        plan,
+        status: plan === "lite" ? "completed" : "in_progress",
+        one_time_fee: plan === "lite" ? 0 : pricing.total - pricing.monthly,
+        platform_fee: pricing.platform,
+        monthly_maintenance: pricing.monthly,
+        payment_gateway: gateway,
+        gateway_reference: reference,
+        payment_status: "paid",
+        paid_at: nowIso,
+      }, { onConflict: "org_id,plan" }).catch(async () => {
+        await serviceClient.from("website_builder_requests").insert({
+          org_id, plan,
+          status: plan === "lite" ? "completed" : "in_progress",
+          one_time_fee: plan === "lite" ? 0 : pricing.total - pricing.monthly,
           platform_fee: pricing.platform,
           monthly_maintenance: pricing.monthly,
           payment_gateway: gateway,
           gateway_reference: reference,
           payment_status: "paid",
-          paid_at: new Date().toISOString(),
-        }, { onConflict: "org_id,plan" }).catch(() => {
-          serviceClient.from("website_builder_requests").insert({
-            org_id, plan: "lite", status: "pending",
-            one_time_fee: 0, platform_fee: pricing.platform,
-            monthly_maintenance: pricing.monthly, payment_gateway: gateway,
-            gateway_reference: reference, payment_status: "paid",
-            paid_at: new Date().toISOString(),
-          });
+          paid_at: nowIso,
         });
-
-      } else {
-        // Pro or Pro-Lite: update payment status, requires admin approval
-        await serviceClient
-          .from("website_builder_requests")
-          .update({ payment_status: "paid", paid_at: new Date().toISOString() })
-          .eq("org_id", org_id)
-          .eq("gateway_reference", reference);
-      }
+      });
 
       // Fee ledger
       const feeType = plan === "lite" ? "website_builder_lite" : plan === "pro" ? "website_builder_pro" : "website_builder_pro_lite";
@@ -182,8 +181,10 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      // Unified post-verification: invoice + audit + notifications + approval routing
-      const requiresApproval = plan !== "lite"; // Pro and Pro-Lite need admin setup
+      // Unified post-verification: invoice + audit + notifications.
+      // All paid website-builder plans auto-activate; admin involvement for
+      // Pro/Pro-Lite setup is now post-activation only and does not gate access.
+      const requiresApproval = false;
       const result = await runPostVerificationFlow({
         serviceClient,
         orgId: org_id,
