@@ -30,29 +30,14 @@ export const useOrganizations = () => {
   const createOrg = async (name: string, slug: string, country = "NG", currency = "NGN") => {
     if (!user) return { error: new Error("Not authenticated") };
 
-    const { data: org, error: orgError } = await supabase
-      .from("organizations")
-      .insert({ name, slug, country, currency })
-      .select()
-      .single();
-
-    if (orgError) return { error: orgError };
-
-    // Add creator as org_admin
-    const { error: memberError } = await supabase
-      .from("org_members")
-      .insert({ org_id: org.id, user_id: user.id, role: "org_admin" as AppRole });
-
-    if (memberError) return { error: memberError };
-
-    // Set as current org
-    await supabase
-      .from("profiles")
-      .update({ current_org_id: org.id })
-      .eq("id", user.id);
-
+    // Use SECURITY DEFINER RPC so the row insert + read-back + membership creation
+    // happen atomically and don't trip the SELECT RLS gap on the newly created row.
+    const { data, error } = await supabase.rpc("create_organization_with_admin", {
+      _name: name, _slug: slug, _country: country, _currency: currency,
+    });
+    if (error) return { error };
     await fetchOrgs();
-    return { data: org, error: null };
+    return { data: { id: (data as any)?.id, name, slug }, error: null };
   };
 
   return { orgs, loading, createOrg, refetch: fetchOrgs };
