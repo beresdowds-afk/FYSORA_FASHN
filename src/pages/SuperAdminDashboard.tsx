@@ -31,6 +31,7 @@ import VideoBillingPanel from "@/components/super-admin/VideoBillingPanel";
 import DomainManagementPanel from "@/components/super-admin/DomainManagementPanel";
 import TenantSitesPanel from "@/components/super-admin/TenantSitesPanel";
 import VerificationProvidersPanel from "@/components/super-admin/VerificationProvidersPanel";
+import PendingVerificationsPanel from "@/components/super-admin/PendingVerificationsPanel";
 import CommunicationsFullPage from "@/components/communications/CommunicationsFullPage";
 import CarrierSettingsPanel from "@/components/logistics/CarrierSettingsPanel";
 import CustomerRegistrationsTab from "@/components/customers/CustomerRegistrationsTab";
@@ -170,6 +171,7 @@ const SuperAdminDashboard = () => {
         { id: "organizations", icon: Building2, label: "Organizations" },
         { id: "users", icon: Users, label: "Users & Roles" },
         { id: "accounts", icon: UserX, label: "Account Mgmt" },
+        { id: "pending_verifications", icon: ShieldCheck, label: "Pending Verifications" },
         { id: "registrations", icon: ClipboardList, label: "Registrations" },
         { id: "disputes", icon: Scale, label: "Disputes" },
       ],
@@ -337,6 +339,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "video_billing" && <VideoBillingPanel />}
             {activeTab === "domain_management" && <DomainManagementPanel />}
             {activeTab === "identity_verification" && <VerificationProvidersPanel />}
+            {activeTab === "pending_verifications" && <PendingVerificationsPanel />}
             {activeTab === "communications" && <CommunicationsFullPage />}
             {activeTab === "comms_hub_test" && <CommunicationsHubTestPanel />}
             {activeTab === "sentinel_mcp" && <SentinelMcpSubscriptionPanel />}
