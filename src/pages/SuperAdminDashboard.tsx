@@ -31,6 +31,7 @@ import VideoBillingPanel from "@/components/super-admin/VideoBillingPanel";
 import DomainManagementPanel from "@/components/super-admin/DomainManagementPanel";
 import TenantSitesPanel from "@/components/super-admin/TenantSitesPanel";
 import VerificationProvidersPanel from "@/components/super-admin/VerificationProvidersPanel";
+import PendingVerificationsPanel from "@/components/super-admin/PendingVerificationsPanel";
 import CommunicationsFullPage from "@/components/communications/CommunicationsFullPage";
 import CarrierSettingsPanel from "@/components/logistics/CarrierSettingsPanel";
 import CustomerRegistrationsTab from "@/components/customers/CustomerRegistrationsTab";
@@ -43,7 +44,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star, ShoppingBag, Download, Settings, LifeBuoy, Banknote, MapPin, MessageSquare, Menu, Video, ClipboardList, Scale, Truck, Palette, Radio } from "lucide-react";
+import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star, ShoppingBag, Download, Settings, LifeBuoy, Banknote, MapPin, MessageSquare, Menu, Video, ClipboardList, Scale, Truck, Palette, Radio, ShieldCheck } from "lucide-react";
 import LocationMapFooter from "@/components/shared/LocationMapFooter";
 import TourGuide from "@/components/shared/TourGuide";
 import ManualPwaUpdateButton from "@/components/platform/ManualPwaUpdateButton";
@@ -87,7 +88,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "tenant_sites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync" | "sentinel_mcp";
+type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "pending_verifications" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "tenant_sites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync" | "sentinel_mcp";
 
 interface SidebarItem {
   id: TabId;
@@ -170,6 +171,7 @@ const SuperAdminDashboard = () => {
         { id: "organizations", icon: Building2, label: "Organizations" },
         { id: "users", icon: Users, label: "Users & Roles" },
         { id: "accounts", icon: UserX, label: "Account Mgmt" },
+        { id: "pending_verifications", icon: ShieldCheck, label: "Pending Verifications" },
         { id: "registrations", icon: ClipboardList, label: "Registrations" },
         { id: "disputes", icon: Scale, label: "Disputes" },
       ],
@@ -337,6 +339,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "video_billing" && <VideoBillingPanel />}
             {activeTab === "domain_management" && <DomainManagementPanel />}
             {activeTab === "identity_verification" && <VerificationProvidersPanel />}
+            {activeTab === "pending_verifications" && <PendingVerificationsPanel />}
             {activeTab === "communications" && <CommunicationsFullPage />}
             {activeTab === "comms_hub_test" && <CommunicationsHubTestPanel />}
             {activeTab === "sentinel_mcp" && <SentinelMcpSubscriptionPanel />}

@@ -5448,6 +5448,8 @@ export type Database = {
           specialties: string[] | null
           updated_at: string
           verification_notes: string | null
+          verification_reviewed_at: string | null
+          verification_reviewed_by: string | null
           verification_submitted_at: string | null
         }
         Insert: {
@@ -5480,6 +5482,8 @@ export type Database = {
           specialties?: string[] | null
           updated_at?: string
           verification_notes?: string | null
+          verification_reviewed_at?: string | null
+          verification_reviewed_by?: string | null
           verification_submitted_at?: string | null
         }
         Update: {
@@ -5512,6 +5516,8 @@ export type Database = {
           specialties?: string[] | null
           updated_at?: string
           verification_notes?: string | null
+          verification_reviewed_at?: string | null
+          verification_reviewed_by?: string | null
           verification_submitted_at?: string | null
         }
         Relationships: []
@@ -6604,6 +6610,10 @@ export type Database = {
       profiles: {
         Row: {
           access_status: string
+          access_status_notes: string | null
+          access_status_reviewed_at: string | null
+          access_status_reviewed_by: string | null
+          access_status_submitted_at: string | null
           avatar_url: string | null
           bio: string | null
           business_name: string | null
@@ -6637,6 +6647,10 @@ export type Database = {
         }
         Insert: {
           access_status?: string
+          access_status_notes?: string | null
+          access_status_reviewed_at?: string | null
+          access_status_reviewed_by?: string | null
+          access_status_submitted_at?: string | null
           avatar_url?: string | null
           bio?: string | null
           business_name?: string | null
@@ -6670,6 +6684,10 @@ export type Database = {
         }
         Update: {
           access_status?: string
+          access_status_notes?: string | null
+          access_status_reviewed_at?: string | null
+          access_status_reviewed_by?: string | null
+          access_status_submitted_at?: string | null
           avatar_url?: string | null
           bio?: string | null
           business_name?: string | null
@@ -9726,6 +9744,25 @@ export type Database = {
       }
     }
     Views: {
+      admin_pending_verifications_v: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          name: string | null
+          notes: string | null
+          owner_user_id: string | null
+          reg_number: string | null
+          reg_type: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          role: string | null
+          status: string | null
+          submitted_at: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Relationships: []
+      }
       org_websites_public: {
         Row: {
           accent_color: string | null
@@ -9924,6 +9961,15 @@ export type Database = {
       }
     }
     Functions: {
+      admin_set_verification_status: {
+        Args: {
+          _decision: string
+          _notes?: string
+          _target_id: string
+          _target_type: string
+        }
+        Returns: Json
+      }
       assign_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined

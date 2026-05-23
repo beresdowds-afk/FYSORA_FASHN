@@ -39,9 +39,28 @@ const AccessGate = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) return <>{children}</>;
 
-  const orgPending = org && (org as any).business_reg_verification_status === "pending";
-  const profilePending = (profile as any)?.access_status === "pending";
-  const gated = (orgPending || profilePending) && !!currentOrg?.id;
+  const orgStatus = (org as any)?.business_reg_verification_status as string | undefined;
+  const profileStatus = (profile as any)?.access_status as string | undefined;
+  const gatedStatuses = new Set(["pending", "rejected", "info_requested"]);
+  const orgGated = !!orgStatus && gatedStatuses.has(orgStatus);
+  const profileGated = !!profileStatus && gatedStatuses.has(profileStatus);
+  const gated = (orgGated || profileGated) && !!currentOrg?.id;
+  const status = orgGated ? orgStatus : profileStatus;
+  const titleByStatus: Record<string, string> = {
+    pending: "Verification pending",
+    rejected: "Verification rejected",
+    info_requested: "More information needed",
+  };
+  const descByStatus: Record<string, string> = {
+    pending: "Dashboard access unlocks as soon as our team approves your business registration.",
+    rejected: "Your verification was not approved. Please review the notes below and contact support to resubmit.",
+    info_requested: "Our team needs additional information before approving your account. See the notes below.",
+  };
+  const badgeText: Record<string, string> = {
+    pending: "Pending review",
+    rejected: "Rejected",
+    info_requested: "Info requested",
+  };
 
   if (!gated) return <>{children}</>;
 
@@ -52,17 +71,17 @@ const AccessGate = ({ children }: { children: React.ReactNode }) => {
           <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
             <ShieldCheck className="text-primary" size={28} />
           </div>
-          <CardTitle className="text-2xl">Verification pending</CardTitle>
+          <CardTitle className="text-2xl">{titleByStatus[status || "pending"]}</CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            Your account for <b>{(org as any)?.name ?? currentOrg?.name ?? "your organization"}</b> has been created.
-            Dashboard access unlocks as soon as our team approves your business registration.
+            Your account for <b>{(org as any)?.name ?? currentOrg?.name ?? "your organization"}</b> has been created.{" "}
+            {descByStatus[status || "pending"]}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground flex items-center gap-2"><Clock size={14} /> Status</span>
-              <Badge variant="outline">Pending review</Badge>
+              <Badge variant={status === "rejected" ? "destructive" : "outline"}>{badgeText[status || "pending"]}</Badge>
             </div>
             {(org as any)?.verification_submitted_at && (
               <div className="flex items-center justify-between">
