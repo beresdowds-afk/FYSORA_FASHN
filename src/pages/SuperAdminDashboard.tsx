@@ -32,6 +32,7 @@ import DomainManagementPanel from "@/components/super-admin/DomainManagementPane
 import TenantSitesPanel from "@/components/super-admin/TenantSitesPanel";
 import VerificationProvidersPanel from "@/components/super-admin/VerificationProvidersPanel";
 import PendingVerificationsPanel from "@/components/super-admin/PendingVerificationsPanel";
+import MonetizationSwitchesPanel from "@/components/super-admin/MonetizationSwitchesPanel";
 import CommunicationsFullPage from "@/components/communications/CommunicationsFullPage";
 import CarrierSettingsPanel from "@/components/logistics/CarrierSettingsPanel";
 import CustomerRegistrationsTab from "@/components/customers/CustomerRegistrationsTab";
@@ -88,7 +89,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "pending_verifications" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "tenant_sites" | "pricing" | "unified_pricing" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync" | "sentinel_mcp";
+type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "pending_verifications" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "tenant_sites" | "pricing" | "unified_pricing" | "monetization_switches" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync" | "sentinel_mcp";
 
 interface SidebarItem {
   id: TabId;
@@ -154,7 +155,7 @@ const SuperAdminDashboard = () => {
 
   if (!hasAccess) return null;
 
-  const restrictedTabs = new Set(["platform_settings", "sub_rates", "unified_pricing", "pricing", "features", "regional_management"]);
+  const restrictedTabs = new Set(["platform_settings", "sub_rates", "unified_pricing", "pricing", "features", "regional_management", "monetization_switches"]);
 
   const allGroups: SidebarGroupDef[] = [
     {
@@ -192,6 +193,7 @@ const SuperAdminDashboard = () => {
       label: "Pricing & Products",
       items: [
         { id: "unified_pricing", icon: DollarSign, label: "Pricing Center" },
+        { id: "monetization_switches", icon: DollarSign, label: "Monetization Switches" },
         { id: "pricing", icon: Globe, label: "Website Pricing" },
         { id: "featured", icon: Star, label: "Featured Products" },
         { id: "rates", icon: Globe, label: "Exchange Rates" },
@@ -321,6 +323,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "websites" && <WebsiteRequestsDashboard />}
             {activeTab === "tenant_sites" && <TenantSitesPanel />}
             {activeTab === "unified_pricing" && isSuperAdmin && <UnifiedPricingPanel />}
+            {activeTab === "monetization_switches" && isSuperAdmin && <MonetizationSwitchesPanel />}
             {activeTab === "pricing" && isSuperAdmin && <WebsitePricingPanel />}
             {activeTab === "keys" && <KeysSecretsPanel />}
             {activeTab === "rates" && <ExchangeRatesPanel />}
