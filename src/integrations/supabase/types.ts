@@ -3989,6 +3989,42 @@ export type Database = {
         }
         Relationships: []
       }
+      monetization_switches: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          label: string
+          scope_key: string
+          scope_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          label: string
+          scope_key: string
+          scope_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          label?: string
+          scope_key?: string
+          scope_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       nexus_tracking: {
         Row: {
           created_at: string
@@ -10017,6 +10053,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_monetization_enabled: {
+        Args: { _feature?: string; _function?: string; _user_type?: string }
         Returns: boolean
       }
       is_org_admin: {
