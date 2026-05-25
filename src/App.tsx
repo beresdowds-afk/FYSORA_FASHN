@@ -30,6 +30,7 @@ import OrgCustomerInstall from "./pages/OrgCustomerInstall";
 import NotFound from "./pages/NotFound";
 import PlatformUpdateWatcher from "@/components/platform/PlatformUpdateWatcher";
 import TourSyncWorker from "@/components/platform/TourSyncWorker";
+import PaymentReturnHandler from "@/components/payments/PaymentReturnHandler";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
         <AuthProvider>
           <PlatformUpdateWatcher audience="all" />
           <TourSyncWorker />
+          <PaymentReturnHandler />
           <Routes>
             <Route path="/" element={<PlatformCataloguePage />} />
             <Route path="/auth" element={<Auth />} />
