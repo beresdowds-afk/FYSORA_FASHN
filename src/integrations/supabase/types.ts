@@ -10044,6 +10044,18 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_public_org_officers: {
+        Args: { _org_id: string }
+        Returns: {
+          bio: string
+          display_order: number
+          full_name: string
+          id: string
+          org_id: string
+          photo_url: string
+          title: string
+        }[]
+      }
       has_promotional_grant: {
         Args: { _grant_type: string; _user_id: string }
         Returns: boolean
