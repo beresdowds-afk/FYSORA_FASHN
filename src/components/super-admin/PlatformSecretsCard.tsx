@@ -73,6 +73,7 @@ const FSA_KEY_NAMES: Record<string, { value: string; label: string }[]> = {
     { value: "secret_key", label: "Secret Key" },
     { value: "public_key", label: "Public Key" },
     { value: "encryption_key", label: "Encryption Key" },
+    { value: "webhook_hash", label: "Webhook Hash (verif-hash)" },
   ],
   resend: [{ value: "api_key", label: "API Key" }],
   termii: [{ value: "api_key", label: "API Key" }],
