@@ -17,9 +17,8 @@ interface TestResult {
 
 async function getKey(client: ReturnType<typeof createClient>, provider: string, keyName: string): Promise<string | null> {
   const { data } = await client
-    .from("org_api_keys")
+    .from("platform_api_keys")
     .select("key_value")
-    .is("org_id", null)
     .eq("provider", provider)
     .eq("key_name", keyName)
     .eq("is_active", true)
