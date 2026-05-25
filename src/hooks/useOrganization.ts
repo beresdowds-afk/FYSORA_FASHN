@@ -53,12 +53,13 @@ export const useCurrentOrg = () => {
     const fetch = async () => {
       if (!user) { setLoading(false); return; }
 
-      // Get profile's current org
+      // Use maybeSingle() so a brand-new user (no profile row yet, or no
+      // current_org_id) doesn't leave loading stuck forever.
       const { data: profile } = await supabase
         .from("profiles")
         .select("current_org_id")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!profile?.current_org_id) { setLoading(false); return; }
 
@@ -66,17 +67,16 @@ export const useCurrentOrg = () => {
         .from("organizations")
         .select("*")
         .eq("id", profile.current_org_id)
-        .single();
+        .maybeSingle();
 
       setCurrentOrg(org);
 
-      // Get role
       const { data: member } = await supabase
         .from("org_members")
         .select("role")
         .eq("org_id", profile.current_org_id)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       setRole(member?.role ?? null);
       setLoading(false);
@@ -157,6 +157,7 @@ export const useUserGlobalRole = () => {
   const { user } = useAuth();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isSuperAssistant, setIsSuperAssistant] = useState(false);
+  const [primaryRole, setPrimaryRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -165,16 +166,21 @@ export const useUserGlobalRole = () => {
       const { data } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .in("role", ["super_admin", "super_assistant", "platform_management"]);
-      // platform_management is a privileged role that inherits Super Admin access
-      // to the Super Admin dashboard/panel while preserving existing RBAC.
-      setIsSuperAdmin((data || []).some(r => r.role === "super_admin" || r.role === "platform_management"));
-      setIsSuperAssistant((data || []).some(r => r.role === "super_assistant"));
+        .eq("user_id", user.id);
+      const rows = data || [];
+      // platform_management inherits Super Admin access.
+      setIsSuperAdmin(rows.some(r => r.role === "super_admin" || r.role === "platform_management"));
+      setIsSuperAssistant(rows.some(r => r.role === "super_assistant"));
+      // Pick the first non-privileged role as a routing hint for org-less users.
+      const priv = new Set(["super_admin", "super_assistant", "platform_management"]);
+      const primary = rows.find(r => !priv.has(r.role as string))?.role
+        ?? rows[0]?.role
+        ?? null;
+      setPrimaryRole((primary as string | null) ?? null);
       setLoading(false);
     };
     fetch();
   }, [user]);
 
-  return { isSuperAdmin, isSuperAssistant, loading };
+  return { isSuperAdmin, isSuperAssistant, primaryRole, loading };
 };

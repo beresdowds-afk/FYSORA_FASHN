@@ -71,7 +71,7 @@ const roleColors: Record<AppRole, string> = {
 const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { currentOrg, role, loading: orgLoading } = useCurrentOrg();
-  const { isSuperAdmin, isSuperAssistant } = useUserGlobalRole();
+  const { isSuperAdmin, isSuperAssistant, primaryRole, loading: globalRoleLoading } = useUserGlobalRole();
   const hasPlatformAccess = isSuperAdmin || isSuperAssistant;
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ display_name: string | null } | null>(null);
@@ -97,7 +97,7 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    if (authLoading || orgLoading || !user) return;
+    if (authLoading || orgLoading || globalRoleLoading || !user) return;
 
     // Route users with an org to their proper home where applicable.
     if (currentOrg && role === "tailor") {
@@ -105,9 +105,12 @@ const Dashboard = () => {
       return;
     }
 
-    // No current org: route based on role rather than forcing org creation.
+    // No current org: route based on the user's global role rather than forcing
+    // org creation on everyone. `role` from useCurrentOrg is null without an
+    // org, so fall back to the global user_roles role.
     if (!currentOrg && !hasPlatformAccess) {
-      switch (role) {
+      const effectiveRole = role ?? primaryRole ?? null;
+      switch (effectiveRole) {
         case "tailor":
           navigate("/tailor-dashboard");
           return;
@@ -122,11 +125,11 @@ const Dashboard = () => {
           navigate("/create-organization");
           return;
         default:
-          // Role not yet resolved — stay put; loading spinner handles it.
+          // Unknown role — render the fallback card below instead of a blank.
           return;
       }
     }
-  }, [authLoading, orgLoading, user, currentOrg, hasPlatformAccess, role, navigate]);
+  }, [authLoading, orgLoading, globalRoleLoading, user, currentOrg, hasPlatformAccess, role, primaryRole, navigate]);
 
   // Auto-claim promotional organization slot (first 5 organizations).
   // Only org admins can claim. Idempotent — safe to call on every mount.
@@ -148,7 +151,7 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  if (authLoading || orgLoading) {
+  if (authLoading || orgLoading || globalRoleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -189,7 +192,25 @@ const Dashboard = () => {
     );
   }
 
-  if (!currentOrg) return null;
+  // Fallback for signed-in users with no org and no recognized role — give them
+  // a clear destination instead of a blank screen.
+  if (!currentOrg) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="max-w-md w-full rounded-xl border border-border bg-card p-6 text-center">
+          <h2 className="font-heading font-bold text-xl mb-2">Welcome to FYSORA FASHN</h2>
+          <p className="text-sm text-muted-foreground mb-5">
+            Your account isn't linked to an organization yet. Choose where you'd like to go:
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button variant="hero" onClick={() => navigate("/portal")}>Customer Portal</Button>
+            <Button variant="heroOutline" onClick={() => navigate("/create-organization")}>Create Organization</Button>
+            <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AccessGate><SidebarProvider>

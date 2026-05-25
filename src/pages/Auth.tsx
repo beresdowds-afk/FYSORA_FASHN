@@ -291,7 +291,7 @@ const Auth = () => {
         return;
       }
 
-      // Only tailor/designer roles
+      // Only tailor/designer memberships
       const onlyTailorOrDesigner = activeMemberships.length > 0 && activeMemberships.every((m: any) => m.role === "tailor" || m.role === "designer");
       if (onlyTailorOrDesigner) {
         const hasDesigner = activeMemberships.some((m: any) => m.role === "designer");
@@ -312,8 +312,30 @@ const Auth = () => {
       // Navigate immediately; persist current_org_id in background (don't block UX).
       if (activeMemberships.length > 0) {
         void supabase.from("profiles").update({ current_org_id: activeMemberships[0].org_id }).eq("id", userId);
+        navigate(isPortal ? "/portal" : "/dashboard");
+        return;
       }
-      navigate(isPortal ? "/portal" : "/dashboard");
+
+      // No memberships: route by the user's chosen global role so customers /
+      // designers / tailors don't land on a blank /dashboard.
+      switch (prefetched?.role) {
+        case "customer":
+          navigate("/portal");
+          return;
+        case "designer":
+          navigate("/designer-portal");
+          return;
+        case "tailor":
+          navigate("/tailor-dashboard");
+          return;
+        case "org_admin":
+        case "manager":
+          navigate("/create-organization");
+          return;
+        default:
+          navigate(isPortal ? "/portal" : "/dashboard");
+          return;
+      }
     }
   };
 
