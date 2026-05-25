@@ -19,7 +19,7 @@ import {
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Search, ShoppingBag, Tag, Building2, LogIn, Eye, Lock,
-  Info, Check, X, ShieldCheck, Star, Sparkles,
+  Info, Check, X, ShieldCheck, Star, Sparkles, UserPlus,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -190,14 +190,6 @@ const PlatformCataloguePage = () => {
               <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
                 <Eye size={10} className="mr-1" /> Free Preview
               </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/")}
-                className="hidden sm:inline-flex"
-              >
-                Register here
-              </Button>
               <Button variant="hero" size="sm" onClick={() => navigate("/auth")}>
                 <LogIn size={14} className="mr-1" /> Sign In
               </Button>
@@ -205,97 +197,7 @@ const PlatformCataloguePage = () => {
           </div>
         </header>
 
-        <div className="container mx-auto px-4 lg:px-8 py-4 max-w-6xl">
-          {/* Guest access banner with clear capability list */}
-          <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5 p-4 mb-5">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <ShieldCheck size={16} className="text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-heading font-bold text-sm">You're browsing as a guest</h2>
-                  <Badge variant="outline" className="text-[10px] border-secondary/30 text-secondary">Free Preview</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-3">
-                  Explore curated products from fashion houses across Africa — no account needed.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                  <div className="space-y-1.5">
-                    <p className="font-medium text-foreground">You can</p>
-                    <ul className="space-y-1 text-muted-foreground">
-                      <li className="flex items-start gap-1.5"><Check size={12} className="text-secondary mt-0.5 shrink-0" /> Browse all curated products</li>
-                      <li className="flex items-start gap-1.5"><Check size={12} className="text-secondary mt-0.5 shrink-0" /> Search by name or fashion house</li>
-                      <li className="flex items-start gap-1.5"><Check size={12} className="text-secondary mt-0.5 shrink-0" /> Filter by category</li>
-                      <li className="flex items-start gap-1.5"><Check size={12} className="text-secondary mt-0.5 shrink-0" /> See prices &amp; tags</li>
-                    </ul>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="font-medium text-foreground">Sign in to</p>
-                    <ul className="space-y-1 text-muted-foreground">
-                      <li className="flex items-start gap-1.5"><X size={12} className="text-destructive mt-0.5 shrink-0" /> Open product details</li>
-                      <li className="flex items-start gap-1.5"><X size={12} className="text-destructive mt-0.5 shrink-0" /> Contact a fashion house</li>
-                      <li className="flex items-start gap-1.5"><X size={12} className="text-destructive mt-0.5 shrink-0" /> Save to wishlist</li>
-                      <li className="flex items-start gap-1.5"><X size={12} className="text-destructive mt-0.5 shrink-0" /> Place orders &amp; bookings</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 mt-4">
-                  <Button variant="hero" size="sm" onClick={() => navigate("/auth")}>
-                    <LogIn size={14} className="mr-1" /> Sign In / Sign Up — Free
-                  </Button>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-xs">
-                        <Info size={12} className="mr-1" /> About guest access
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                          <ShieldCheck size={18} className="text-primary" /> Guest Access Policy
-                        </DialogTitle>
-                        <DialogDescription>
-                          FYSORA FASHN (Fashion Stitches Africa) lets anyone preview the curated platform catalogue without creating an account.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-3 text-sm">
-                        <div>
-                          <p className="font-medium mb-1">Available without signing in</p>
-                          <ul className="text-xs text-muted-foreground space-y-0.5 pl-4 list-disc">
-                            <li>Read-only browsing of curated products</li>
-                            <li>Searching, filtering, and viewing prices</li>
-                            <li>Public-facing organization names &amp; tags</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <p className="font-medium mb-1">Requires a free account</p>
-                          <ul className="text-xs text-muted-foreground space-y-0.5 pl-4 list-disc">
-                            <li>Opening product detail pages</li>
-                            <li>Contacting an organization or designer</li>
-                            <li>Bookings, measurements &amp; video calls</li>
-                            <li>Placing orders and tracking shipments</li>
-                          </ul>
-                        </div>
-                        <div className="rounded-md border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
-                          Tapping any product card while in guest mode will redirect you to the sign-in page. Your search and filter selections are not stored until you sign in.
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="hero" size="sm" className="w-full" onClick={() => navigate("/auth")}>
-                          <LogIn size={14} className="mr-1" /> Continue to Sign In
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Search (read-only filtering allowed) */}
+        <div className="container mx-auto px-4 lg:px-8 py-4 max-w-6xl pb-28">
           {guestBlockedAction && (
             <Alert className="mb-4 border-primary/30 bg-primary/5">
               <Lock className="h-4 w-4" />
@@ -395,15 +297,68 @@ const PlatformCataloguePage = () => {
               ))}
             </div>
           )}
+        </div>
 
-          <div className="mt-8 rounded-lg border border-primary/20 bg-primary/5 p-4 text-center">
-            <p className="text-sm text-muted-foreground mb-3">
-              Ready to shop? Create your free account to start placing orders.
-            </p>
-            <Button size="sm" onClick={() => navigate("/auth")}>
-              <LogIn size={14} className="mr-1" /> Sign In / Sign Up
-            </Button>
-          </div>
+        {/* Floating guest CTA — replaces the old full-page Free Catalogue Preview */}
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 max-w-[calc(100vw-2rem)]">
+          <Dialog>
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.4, type: "spring", stiffness: 220, damping: 22 }}
+              className="flex items-center gap-2 rounded-full border border-primary/30 bg-card/95 backdrop-blur shadow-gold pl-3 pr-1.5 py-1.5"
+            >
+              <ShieldCheck size={14} className="text-primary shrink-0" />
+              <span className="text-[11px] sm:text-xs text-muted-foreground hidden xs:inline sm:inline">
+                Guest preview
+              </span>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]">
+                  <Info size={12} className="mr-1" /> What can I do?
+                </Button>
+              </DialogTrigger>
+              <Button variant="hero" size="sm" className="h-7 rounded-full px-3 text-[11px]" onClick={() => navigate("/auth")}>
+                <UserPlus size={12} className="mr-1" /> Sign in
+              </Button>
+            </motion.div>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-primary" /> Guest Access Policy
+                </DialogTitle>
+                <DialogDescription>
+                  FYSORA FASHN (Fashion Stitches Africa) lets anyone preview the curated platform catalogue without creating an account.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="font-medium mb-1 flex items-center gap-1.5"><Check size={14} className="text-secondary" /> Available without signing in</p>
+                  <ul className="text-xs text-muted-foreground space-y-0.5 pl-5 list-disc">
+                    <li>Read-only browsing of curated products</li>
+                    <li>Searching, filtering, and viewing prices</li>
+                    <li>Public-facing organization names &amp; tags</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium mb-1 flex items-center gap-1.5"><X size={14} className="text-destructive" /> Requires a free account</p>
+                  <ul className="text-xs text-muted-foreground space-y-0.5 pl-5 list-disc">
+                    <li>Opening product detail pages</li>
+                    <li>Contacting an organization or designer</li>
+                    <li>Bookings, measurements &amp; video calls</li>
+                    <li>Placing orders and tracking shipments</li>
+                  </ul>
+                </div>
+                <div className="rounded-md border border-border bg-muted/40 p-2 text-xs text-muted-foreground">
+                  Tapping any product card while in guest mode will redirect you to the sign-in page.
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="hero" size="sm" className="w-full" onClick={() => navigate("/auth")}>
+                  <LogIn size={14} className="mr-1" /> Continue to Sign In
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     );
