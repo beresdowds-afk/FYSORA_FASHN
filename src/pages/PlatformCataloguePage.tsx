@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import IdentityVerificationGate from "@/components/shared/IdentityVerificationGate";
@@ -25,8 +26,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 // Tour bubble removed — platform-catalogue and platform-tour are kept independent
 import { MOCK_CATALOGUE_ITEMS } from "@/data/mockCatalogueItems";
+import { track } from "@/lib/analytics";
+import { resolveHomeRoute } from "@/lib/roleHome";
 
 const MAX_FREE_TOURS = 2;
+const CANONICAL_URL = "https://fs-africa.org.ng/";
+const OG_IMAGE =
+  "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90707f6a-3ae7-447b-850c-88c0da0c0a3d/id-preview-f417a96b--0a83ebdb-a98b-48d3-aab1-d2e653ee34e4.lovable.app-1771102457681.png";
+const SEO_TITLE = "Shop African Fashion — Platform Catalogue | FYSORA FASHN";
+const SEO_DESCRIPTION =
+  "Browse curated African fashion: bespoke garments, designers, and tailors. Search, filter and discover products from verified fashion houses across Africa.";
 
 interface CatalogueItem {
   id: string;
