@@ -1,55 +1,53 @@
 ## Goal
+Polish the Platform Catalogue (now the home page) along four axes: SEO, mobile CTA layout, guest conversion analytics, and signed-in redirect.
 
-`/create-organization` is currently reached from multiple places that interrupt unrelated flows (customers, designers, tailors, super admins navigating the app). Keep the page reachable through deliberate "register an organization" entry points only, and stop forcing other roles into it.
+## 1. SEO metadata for the home page
+- Install `react-helmet-async` and wrap the app in `<HelmetProvider>` once in `src/main.tsx` (outside `BrowserRouter`).
+- Update `index.html`: keep brand title/description as sitewide fallback (for non-JS social crawlers) but remove `<link rel="canonical">` so per-route Helmet owns it.
+- Add a `<Helmet>` block at the top of `PlatformCataloguePage.tsx` rendered for both guest and authed states, with:
+  - `<title>` — "Shop African Fashion — Platform Catalogue | FYSORA FASHN" (<60 chars)
+  - `<meta name="description">` — curated marketplace pitch (<160 chars)
+  - `<link rel="canonical" href="https://fs-africa.org.ng/">`
+  - OpenGraph: `og:title`, `og:description`, `og:url`, `og:type=website`, `og:image` (reuse the existing R2 preview image already in `index.html`)
+  - Twitter card equivalents
+  - JSON-LD `WebSite` + `ItemList` (top 10 catalogue items) so search engines index the marketplace
+- Add a single `<h1>` ("Platform Catalogue") inside the guest header for semantic structure (currently only a `<span>`).
 
-## Audit of every reference
+## 2. Responsive floating CTA
+Current container `fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40` overlaps bottom nav and chat widgets on small screens.
+- Use `env(safe-area-inset-bottom)` padding so the pill clears iOS home indicator.
+- Bump bottom offset on mobile to clear potential bottom-nav (`bottom-20 sm:bottom-6`) and reduce z-index to `z-30` so chat widgets layered higher remain reachable; verify against other fixed UI (`TourCtaBubble`, `CookieConsent`).
+- Make the pill collapse to icon-only on `<xs` widths (hide "Guest preview" + "What can I do?" labels, keep `Sign in` button). Add an accessible `aria-label` on the icon-only trigger.
+- Constrain `max-w-[calc(100vw-2rem)]` and switch to `flex-wrap` so it never overflows on 320 px screens.
+- Add `pb-32 sm:pb-28` to the catalogue content container so the last row of products is never hidden beneath the CTA.
 
-| # | File | Type | Verdict |
-|---|------|------|---------|
-| 1 | `src/App.tsx:52` | Route definition | **Keep** — the page must remain reachable. |
-| 2 | `src/pages/Auth.tsx:728` | OAuth role picker → after picking "organization" | **Keep** — user explicitly chose to register a fashion house. |
-| 3 | `src/config/roleTourTracks.ts:332` | Landing tour CTA "Register Fashion House" | **Change** — landing visitors are unauthenticated; route through auth first to match the other three role CTAs. |
-| 4 | `src/pages/SuperAdminDashboard.tsx:624, 633` | "New Organization" buttons inside the Organizations panel (header + empty state) | **Keep** — this is the canonical admin-action entry. |
-| 5 | `src/pages/SuperAdminDashboard.tsx:290` | "New Org" link permanently in the super admin header | **Remove** — duplicate of #4, clutters the global header. |
-| 6 | `src/pages/Dashboard.tsx:99-107` | Auto-redirect: any signed-in user hitting `/dashboard` without an org gets pushed to `/create-organization` | **Change** — this is the worst interruption. Customers, tailors, designers, etc. who land on `/dashboard` (deep links, stale tabs, OAuth race) are force-routed into org creation. Replace with role-aware routing. |
-| 7 | `src/pages/Dashboard.tsx:163` | Super-admin "no org" landing offers "Create Organization" alongside "Go to Admin Panel" | **Keep** — explicit super-admin choice on a dedicated landing card. |
+## 3. Analytics events
+- Add a tiny helper `src/lib/analytics.ts` exporting `track(event, props?)` that:
+  - Dispatches a `CustomEvent('fsa:analytics', { detail })` on `window` (any future provider can listen).
+  - Pushes to `window.dataLayer` if present (GTM-ready).
+  - No-ops silently if neither is wired.
+- Fire events from `PlatformCataloguePage.tsx`:
+  - `guest_cta_view` — once on mount when `!user`.
+  - `guest_cta_signin_click` — pill "Sign in" button.
+  - `guest_cta_dialog_open` — Dialog `onOpenChange(true)`.
+  - `guest_cta_dialog_signin_click` — footer "Continue to Sign In".
+  - `guest_product_card_click` — inside `promptAuth()` (already the conversion intent).
+  - `guest_signin_required_alert_cta` — Alert's "Sign in / Sign up".
+- Each event includes `{ path: '/', items_count, category: selectedCategory }` for context.
 
-## Changes
+## 4. Hide CTA + auto-route when signed in
+- The guest CTA already lives inside the `if (!user) { return ... }` branch, so it is naturally hidden once signed in. Verify and document.
+- Add a new `useEffect` near the top: when `!authLoading && user && !roleLoading && userRole`, if the resolved role is anything other than `customer` (or super_admin / super_assistant who legitimately browse), call `resolveHomeRoute(user.id)` from `src/lib/roleHome.ts` and `navigate(home, { replace: true })`. Customers stay on the catalogue (it's their home).
+- Keep the existing prefetch path; no behavior change for customers.
 
-### 1. `src/pages/Dashboard.tsx` — fix the forced redirect (lines 99-107)
+## Files touched
+- `index.html` — remove canonical, keep sitewide fallbacks.
+- `src/main.tsx` — wrap with `HelmetProvider`.
+- `src/pages/PlatformCataloguePage.tsx` — Helmet, responsive CTA, analytics calls, signed-in redirect, `<h1>`.
+- `src/lib/analytics.ts` — new helper.
+- `package.json` — add `react-helmet-async`.
 
-Replace the "no current org ⇒ /create-organization" jump with role-aware routing that respects where each user actually belongs:
-
-- `tailor` → `/tailor-dashboard` (already partially handled)
-- `designer` → `/designer-portal`
-- `customer` → `/portal`
-- `org_admin` / `manager` without an org → `/create-organization` (this is the one role for which org creation is the correct next step)
-- Super admin / super assistant / platform_management without an org → stay on Dashboard (the existing "Welcome, Super Admin" card at line 140 handles this).
-- No detectable role yet (race during initial profile load) → stay on Dashboard with the existing spinner instead of redirecting.
-
-Net effect: only users who genuinely need an org to proceed are sent to `/create-organization`. Everyone else continues to their own home.
-
-### 2. `src/pages/SuperAdminDashboard.tsx` — drop the header cross-link (line 290-292)
-
-Remove the always-visible `<Button>… New Org` chip from the super admin top bar. The Organizations panel keeps its own "New Organization" button (#4) so the action is still one click away from the Organizations tab.
-
-### 3. `src/config/roleTourTracks.ts` — route landing CTA through auth (line 332)
-
-Change `ctaPath` for the `organization` track from `"/create-organization"` to `"/auth?role=organization"`, matching the designer/tailor/customer pattern. After sign-in, the OAuth role picker (#2) already forwards to `/create-organization`, so the deliberate flow is preserved without dropping anonymous visitors onto a form that requires auth.
-
-## What stays the same
-
-- Route definition in `App.tsx`.
-- OAuth role-picker handoff in `Auth.tsx`.
-- Both Organizations-panel buttons in `SuperAdminDashboard.tsx`.
-- The super-admin "no org" landing card in `Dashboard.tsx`.
-- The page itself (`CreateOrganization.tsx`) — no functional changes.
-
-## Verification
-
-- Sign in as a customer with no org → land on `/portal`, never bounced to `/create-organization`.
-- Sign in as a designer with no org → land on `/designer-portal`.
-- Sign in as a tailor with no org → land on `/tailor-dashboard`.
-- Sign in as a brand-new org admin → reach `/create-organization` (intentional).
-- Super admin top bar no longer shows the "New Org" chip; Organizations tab still does.
-- Landing page "Register Fashion House" CTA opens `/auth?role=organization`.
+## Out of scope
+- No backend / RLS / migration changes.
+- No new analytics provider (GA/Posthog) — only the event surface; user can wire a provider later.
+- Security scan findings in the side panel are not addressed here (separate task).

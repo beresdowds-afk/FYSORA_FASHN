@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import IdentityVerificationGate from "@/components/shared/IdentityVerificationGate";
@@ -25,8 +26,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 // Tour bubble removed — platform-catalogue and platform-tour are kept independent
 import { MOCK_CATALOGUE_ITEMS } from "@/data/mockCatalogueItems";
+import { track } from "@/lib/analytics";
+import { resolveHomeRoute } from "@/lib/roleHome";
 
 const MAX_FREE_TOURS = 2;
+const CANONICAL_URL = "https://fs-africa.org.ng/";
+const OG_IMAGE =
+  "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90707f6a-3ae7-447b-850c-88c0da0c0a3d/id-preview-f417a96b--0a83ebdb-a98b-48d3-aab1-d2e653ee34e4.lovable.app-1771102457681.png";
+const SEO_TITLE = "Shop African Fashion — Platform Catalogue | FYSORA FASHN";
+const SEO_DESCRIPTION =
+  "Browse curated African fashion: bespoke garments, designers, and tailors. Search, filter and discover products from verified fashion houses across Africa.";
 
 interface CatalogueItem {
   id: string;
@@ -62,6 +71,24 @@ const PlatformCataloguePage = () => {
   const [tourActive, setTourActive] = useState(false); // true when user accepted consent for this session
   // Guest interaction-blocked state: drives a clear in-page message
   const [guestBlockedAction, setGuestBlockedAction] = useState<string | null>(null);
+
+  // Signed-in role-based redirect: privileged operational roles belong on their
+  // own portal, not browsing the marketplace. Customers / super_admin /
+  // super_assistant stay here (catalogue is their home / oversight surface).
+  useEffect(() => {
+    if (authLoading || roleLoading || !user || !userRole) return;
+    const stayRoles = ["customer", "super_admin", "super_assistant"];
+    if (stayRoles.includes(userRole)) return;
+    resolveHomeRoute(user.id).then((home) => {
+      if (home && home !== "/") navigate(home, { replace: true });
+    });
+  }, [authLoading, roleLoading, user, userRole, navigate]);
+
+  // Fire a one-shot view event for guest CTA exposure.
+  useEffect(() => {
+    if (authLoading || user) return;
+    track("guest_cta_view", { path: "/" });
+  }, [authLoading, user]);
 
   // Determine user role + profile info
   useEffect(() => {
@@ -169,6 +196,7 @@ const PlatformCataloguePage = () => {
 
   const promptAuth = () => {
     setGuestBlockedAction("open this product");
+    track("guest_product_card_click", { category: selectedCategory, items_count: items.length });
     // Scroll the alert into view so the message is unmissable
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -177,12 +205,47 @@ const PlatformCataloguePage = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>{SEO_TITLE}</title>
+          <meta name="description" content={SEO_DESCRIPTION} />
+          <link rel="canonical" href={CANONICAL_URL} />
+          <meta property="og:title" content={SEO_TITLE} />
+          <meta property="og:description" content={SEO_DESCRIPTION} />
+          <meta property="og:url" content={CANONICAL_URL} />
+          <meta property="og:type" content="website" />
+          <meta property="og:image" content={OG_IMAGE} />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={SEO_TITLE} />
+          <meta name="twitter:description" content={SEO_DESCRIPTION} />
+          <meta name="twitter:image" content={OG_IMAGE} />
+          <script type="application/ld+json">{JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "FYSORA FASHN (Fashion Stitches Africa)",
+            url: CANONICAL_URL,
+            potentialAction: {
+              "@type": "SearchAction",
+              target: `${CANONICAL_URL}?q={search_term_string}`,
+              "query-input": "required name=search_term_string",
+            },
+          })}</script>
+          <script type="application/ld+json">{JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            itemListElement: filtered.slice(0, 10).map((it, idx) => ({
+              "@type": "ListItem",
+              position: idx + 1,
+              name: it.name,
+              image: it.image_url || undefined,
+            })),
+          })}</script>
+        </Helmet>
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-brand" />
         <header className="border-b border-border bg-card sticky top-0 z-30">
           <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between h-14">
             <div className="flex items-center gap-3">
               <div>
-                <span className="font-heading font-bold text-sm">Platform Catalogue</span>
+                <h1 className="font-heading font-bold text-sm leading-tight">Platform Catalogue</h1>
                 <p className="text-[10px] text-muted-foreground">{filtered.length} curated products</p>
               </div>
             </div>
@@ -197,7 +260,7 @@ const PlatformCataloguePage = () => {
           </div>
         </header>
 
-        <div className="container mx-auto px-4 lg:px-8 py-4 max-w-6xl pb-28">
+        <div className="container mx-auto px-4 lg:px-8 py-4 max-w-6xl pb-36 sm:pb-28">
           {guestBlockedAction && (
             <Alert className="mb-4 border-primary/30 bg-primary/5">
               <Lock className="h-4 w-4" />
@@ -206,7 +269,7 @@ const PlatformCataloguePage = () => {
                 The platform catalogue is view-only for guests. Create a free account or sign in to open product
                 details, contact fashion houses, save favourites, or place orders.
                 <div className="mt-2 flex gap-2">
-                  <Button size="sm" variant="hero" onClick={() => navigate("/auth")}>
+                  <Button size="sm" variant="hero" onClick={() => { track("guest_signin_required_alert_cta"); navigate("/auth"); }}>
                     <LogIn size={12} className="mr-1" /> Sign in / Sign up
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setGuestBlockedAction(null)}>Dismiss</Button>
@@ -300,24 +363,32 @@ const PlatformCataloguePage = () => {
         </div>
 
         {/* Floating guest CTA — replaces the old full-page Free Catalogue Preview */}
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 max-w-[calc(100vw-2rem)]">
-          <Dialog>
+        <div
+          className="fixed right-3 sm:right-6 z-30 max-w-[calc(100vw-1.5rem)] pointer-events-none"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+        >
+          <Dialog onOpenChange={(open) => { if (open) track("guest_cta_dialog_open"); }}>
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: 0.4, type: "spring", stiffness: 220, damping: 22 }}
-              className="flex items-center gap-2 rounded-full border border-primary/30 bg-card/95 backdrop-blur shadow-gold pl-3 pr-1.5 py-1.5"
+              className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-full border border-primary/30 bg-card/95 backdrop-blur shadow-gold pl-3 pr-1.5 py-1.5"
             >
               <ShieldCheck size={14} className="text-primary shrink-0" />
-              <span className="text-[11px] sm:text-xs text-muted-foreground hidden xs:inline sm:inline">
+              <span className="text-[11px] sm:text-xs text-muted-foreground hidden sm:inline">
                 Guest preview
               </span>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]">
-                  <Info size={12} className="mr-1" /> What can I do?
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]" aria-label="What can I do as a guest?">
+                  <Info size={12} className="sm:mr-1" /> <span className="hidden sm:inline">What can I do?</span>
                 </Button>
               </DialogTrigger>
-              <Button variant="hero" size="sm" className="h-7 rounded-full px-3 text-[11px]" onClick={() => navigate("/auth")}>
+              <Button
+                variant="hero"
+                size="sm"
+                className="h-7 rounded-full px-3 text-[11px]"
+                onClick={() => { track("guest_cta_signin_click"); navigate("/auth"); }}
+              >
                 <UserPlus size={12} className="mr-1" /> Sign in
               </Button>
             </motion.div>
@@ -353,7 +424,12 @@ const PlatformCataloguePage = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="hero" size="sm" className="w-full" onClick={() => navigate("/auth")}>
+                <Button
+                  variant="hero"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => { track("guest_cta_dialog_signin_click"); navigate("/auth"); }}
+                >
                   <LogIn size={14} className="mr-1" /> Continue to Sign In
                 </Button>
               </DialogFooter>
