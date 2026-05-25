@@ -1,4 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserGlobalRole } from "@/hooks/useOrganization";
+import { homeForRole } from "@/lib/roleHome";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +100,7 @@ const TailorSidebar = ({ activeTab, onTabChange }: { activeTab: TabId; onTabChan
 // ── Main Page ────────────────────────────────────────────────────────────────
 const TailorDashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
+  const { primaryRole, isSuperAdmin, isSuperAssistant, loading: roleLoading } = useUserGlobalRole();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
@@ -110,6 +113,14 @@ const TailorDashboard = () => {
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
+
+  // Role gate: only tailors (or platform users) belong here.
+  useEffect(() => {
+    if (authLoading || roleLoading || !user) return;
+    if (isSuperAdmin || isSuperAssistant) return;
+    if (!primaryRole || primaryRole === "tailor") return;
+    navigate(homeForRole(primaryRole), { replace: true });
+  }, [authLoading, roleLoading, user, primaryRole, isSuperAdmin, isSuperAssistant, navigate]);
 
   useEffect(() => {
     if (!user) return;
