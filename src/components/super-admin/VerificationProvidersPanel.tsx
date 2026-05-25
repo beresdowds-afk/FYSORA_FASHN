@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import IdentityProviderTester from "./IdentityProviderTester";
 
 interface ProviderConfig {
   id: string;
@@ -223,6 +224,9 @@ const VerificationProvidersPanel = () => {
               <li>Add API keys via <span className="font-medium">Keys & Secrets</span> panel to activate providers</li>
             </ul>
           </div>
+
+          {/* Per-provider credential inputs + Run identity test */}
+          <IdentityProviderTester />
         </TabsContent>
 
         {/* Routing Matrix Tab */}
