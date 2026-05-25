@@ -28,6 +28,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { MOCK_CATALOGUE_ITEMS } from "@/data/mockCatalogueItems";
 import { track } from "@/lib/analytics";
 import { resolveHomeRoute } from "@/lib/roleHome";
+import Navbar from "@/components/landing/Navbar";
+import Footer from "@/components/landing/Footer";
 
 const MAX_FREE_TOURS = 2;
 const CANONICAL_URL = "https://fs-africa.org.ng/";
@@ -240,25 +242,17 @@ const PlatformCataloguePage = () => {
             })),
           })}</script>
         </Helmet>
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-brand" />
-        <header className="border-b border-border bg-card sticky top-0 z-30">
-          <div className="container mx-auto px-4 lg:px-8 flex items-center justify-between h-14">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="font-heading font-bold text-sm leading-tight">Platform Catalogue</h1>
-                <p className="text-[10px] text-muted-foreground">{filtered.length} curated products</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
-                <Eye size={10} className="mr-1" /> Free Preview
-              </Badge>
-              <Button variant="hero" size="sm" onClick={() => navigate("/auth")}>
-                <LogIn size={14} className="mr-1" /> Sign In
-              </Button>
-            </div>
+        <Navbar />
+        <div className="h-16" />
+        <div className="container mx-auto px-4 lg:px-8 pt-4 flex items-center justify-between">
+          <div>
+            <h1 className="font-heading font-bold text-sm leading-tight">Platform Catalogue</h1>
+            <p className="text-[10px] text-muted-foreground">{filtered.length} curated products</p>
           </div>
-        </header>
+          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+            <Eye size={10} className="mr-1" /> Free Preview
+          </Badge>
+        </div>
 
         <div className="container mx-auto px-4 lg:px-8 py-4 max-w-6xl pb-36 sm:pb-28">
           {guestBlockedAction && (
@@ -436,6 +430,7 @@ const PlatformCataloguePage = () => {
             </DialogContent>
           </Dialog>
         </div>
+        <Footer />
       </div>
     );
   }
