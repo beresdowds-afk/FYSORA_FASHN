@@ -46,11 +46,12 @@ const OrgBrandingPanel = ({ org, websiteSettings, canEdit, onSettingsChange, onO
   const [storyPreviewOpen, setStoryPreviewOpen] = useState(false);
   const [officers, setOfficers] = useState<OurStoryPreviewOfficer[]>([]);
 
-  // Refetch officers whenever the story preview opens, so order/photos stay in sync
+  // Keep the officers list live: load on mount and refetch on any change
+  // (insert / update / delete / reorder) via a realtime subscription so the
+  // Our Story preview reflects edits instantly, even while the modal is open.
   useEffect(() => {
-    if (!storyPreviewOpen) return;
     let cancelled = false;
-    (async () => {
+    const fetchOfficers = async () => {
       const { data } = await supabase
         .from("org_company_officers")
         .select("id, full_name, title, photo_url, is_public, display_order")
@@ -58,9 +59,23 @@ const OrgBrandingPanel = ({ org, websiteSettings, canEdit, onSettingsChange, onO
         .eq("is_public", true)
         .order("display_order");
       if (!cancelled) setOfficers((data || []) as any);
-    })();
-    return () => { cancelled = true; };
-  }, [storyPreviewOpen, org.id]);
+    };
+    fetchOfficers();
+
+    const channel = supabase
+      .channel(`org_company_officers:${org.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "org_company_officers", filter: `org_id=eq.${org.id}` },
+        () => fetchOfficers(),
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [org.id]);
 
   const handleFileUpload = async (file: File, type: "logo" | "favicon") => {
     const setUploading = type === "logo" ? setUploadingLogo : setUploadingFavicon;

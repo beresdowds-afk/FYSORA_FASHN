@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit2, Save, X, Upload, Eye, EyeOff, Users, Loader2, GripVertical } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, Upload, Eye, EyeOff, Users, Loader2, GripVertical, ArrowUp, ArrowDown, Undo2 } from "lucide-react";
 
 interface Officer {
   id: string;
@@ -31,6 +31,10 @@ const CompanyOfficersPanel = ({ orgId, canEdit }: CompanyOfficersPanelProps) => 
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
+  // Snapshot of the order before the most recent reorder, so we can undo.
+  const previousOrderRef = useRef<Officer[] | null>(null);
+  // Focused row id for keyboard reordering affordances.
+  const [focusedId, setFocusedId] = useState<string | null>(null);
 
   const loadOfficers = async () => {
     setLoading(true);
@@ -73,24 +77,76 @@ const CompanyOfficersPanel = ({ orgId, canEdit }: CompanyOfficersPanelProps) => 
     if (failed?.error) {
       toast({ title: "Reorder failed", description: failed.error.message, variant: "destructive" });
       loadOfficers();
-    } else {
-      toast({ title: "Team order updated", description: "New order will appear on Our Story." });
+      return;
     }
+    // Show an Undo toast that restores the previous order if invoked.
+    const snapshot = previousOrderRef.current;
+    toast({
+      title: "Team order updated",
+      description: "New order will appear on Our Story.",
+      action: snapshot
+        ? (
+          <button
+            onClick={async () => {
+              const restored = snapshot.map((o, idx) => ({ ...o, display_order: idx }));
+              previousOrderRef.current = null; // single-level undo
+              setOfficers(restored);
+              await persistOrder(restored);
+              toast({ title: "Reorder undone" });
+            }}
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium hover:bg-muted"
+          >
+            <Undo2 size={12} /> Undo
+          </button>
+        ) as any
+        : undefined,
+    });
   };
 
-  const handleDrop = (targetId: string) => {
-    if (!dragId || dragId === targetId) { setDragId(null); setOverId(null); return; }
-    const fromIdx = officers.findIndex(o => o.id === dragId);
-    const toIdx = officers.findIndex(o => o.id === targetId);
-    if (fromIdx < 0 || toIdx < 0) return;
+  const reorder = useCallback((fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return;
+    if (fromIdx < 0 || toIdx < 0 || fromIdx >= officers.length || toIdx >= officers.length) return;
+    // Snapshot the prior order for Undo
+    previousOrderRef.current = officers.map(o => ({ ...o }));
     const next = [...officers];
     const [moved] = next.splice(fromIdx, 1);
     next.splice(toIdx, 0, moved);
     const reindexed = next.map((o, idx) => ({ ...o, display_order: idx }));
     setOfficers(reindexed);
+    persistOrder(reindexed);
+  }, [officers]);
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) { setDragId(null); setOverId(null); return; }
+    const fromIdx = officers.findIndex(o => o.id === dragId);
+    const toIdx = officers.findIndex(o => o.id === targetId);
     setDragId(null);
     setOverId(null);
-    persistOrder(reindexed);
+    reorder(fromIdx, toIdx);
+  };
+
+  const moveBy = (id: string, delta: number) => {
+    const idx = officers.findIndex(o => o.id === id);
+    reorder(idx, idx + delta);
+  };
+
+  const onRowKeyDown = (e: React.KeyboardEvent, officer: Officer, idx: number) => {
+    if (!canEdit) return;
+    // Ctrl/Cmd/Alt + Arrow to reorder so plain arrow keys still scroll the page.
+    const modified = e.altKey || e.ctrlKey || e.metaKey;
+    if (modified && e.key === "ArrowUp") {
+      e.preventDefault();
+      moveBy(officer.id, -1);
+    } else if (modified && e.key === "ArrowDown") {
+      e.preventDefault();
+      moveBy(officer.id, 1);
+    } else if (e.key === "Home" && modified) {
+      e.preventDefault();
+      reorder(idx, 0);
+    } else if (e.key === "End" && modified) {
+      e.preventDefault();
+      reorder(idx, officers.length - 1);
+    }
   };
 
   if (loading) {
@@ -112,7 +168,7 @@ const CompanyOfficersPanel = ({ orgId, canEdit }: CompanyOfficersPanelProps) => 
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Add key team members to display on your public website. Drag the handle to reorder how they appear on the Our Story card. Toggle visibility per officer.
+          Add key team members to display on your public website. Drag the handle <span className="inline-flex items-center px-1 align-middle"><GripVertical size={10} className="text-foreground" /></span> or use the up/down buttons to reorder how they appear on the Our Story card. Keyboard: focus a row and press <kbd className="rounded border border-border bg-muted px-1 text-[10px]">Alt</kbd>+<kbd className="rounded border border-border bg-muted px-1 text-[10px]">↑/↓</kbd>.
         </p>
 
         {(adding || editing) && (
@@ -132,25 +188,32 @@ const CompanyOfficersPanel = ({ orgId, canEdit }: CompanyOfficersPanelProps) => 
           </div>
         ) : (
           <div className="space-y-3">
-            {officers.map((officer) => (
+            {officers.map((officer, idx) => (
               <div
                 key={officer.id}
+                tabIndex={canEdit ? 0 : -1}
+                role={canEdit ? "button" : undefined}
+                aria-label={canEdit ? `${officer.full_name} — position ${idx + 1} of ${officers.length}. Use Alt+Up or Alt+Down to reorder.` : undefined}
+                onFocus={() => setFocusedId(officer.id)}
+                onBlur={() => setFocusedId((cur) => cur === officer.id ? null : cur)}
+                onKeyDown={(e) => onRowKeyDown(e, officer, idx)}
                 draggable={canEdit}
                 onDragStart={(e) => { setDragId(officer.id); e.dataTransfer.effectAllowed = "move"; }}
                 onDragOver={(e) => { if (canEdit && dragId && dragId !== officer.id) { e.preventDefault(); setOverId(officer.id); } }}
                 onDragLeave={() => { if (overId === officer.id) setOverId(null); }}
                 onDrop={(e) => { e.preventDefault(); handleDrop(officer.id); }}
                 onDragEnd={() => { setDragId(null); setOverId(null); }}
-                className={`flex items-center gap-3 rounded-xl border bg-background p-4 transition-all ${
+                className={`flex items-center gap-3 rounded-xl border bg-background p-4 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${
                   dragId === officer.id ? "opacity-50 scale-[0.98]" : ""
-                } ${overId === officer.id ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
+                } ${overId === officer.id ? "border-primary ring-2 ring-primary/30" : focusedId === officer.id ? "border-primary/60" : "border-border"}`}
               >
                 {canEdit && (
                   <div
-                    className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0"
+                    className="flex h-10 w-7 cursor-grab items-center justify-center rounded-md border border-border bg-muted/40 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:cursor-grabbing shrink-0"
                     title="Drag to reorder"
+                    aria-hidden="true"
                   >
-                    <GripVertical size={16} />
+                    <GripVertical size={18} />
                   </div>
                 )}
                 <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden shrink-0">
@@ -168,6 +231,30 @@ const CompanyOfficersPanel = ({ orgId, canEdit }: CompanyOfficersPanelProps) => 
                   {officer.email && <p className="text-xs text-muted-foreground truncate">{officer.email}</p>}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {canEdit && (
+                    <div className="mr-1 flex flex-col" aria-label="Reorder officer">
+                      <Button
+                        variant="ghost" size="icon"
+                        className="h-5 w-7 rounded-md"
+                        disabled={idx === 0 || savingOrder}
+                        onClick={() => moveBy(officer.id, -1)}
+                        title="Move up (Alt+↑)"
+                        aria-label={`Move ${officer.full_name} up`}
+                      >
+                        <ArrowUp size={12} />
+                      </Button>
+                      <Button
+                        variant="ghost" size="icon"
+                        className="h-5 w-7 rounded-md"
+                        disabled={idx === officers.length - 1 || savingOrder}
+                        onClick={() => moveBy(officer.id, 1)}
+                        title="Move down (Alt+↓)"
+                        aria-label={`Move ${officer.full_name} down`}
+                      >
+                        <ArrowDown size={12} />
+                      </Button>
+                    </div>
+                  )}
                   <Button variant="ghost" size="icon" className="h-8 w-8"
                     onClick={() => toggleVisibility(officer)}
                     title={officer.is_public ? "Visible on website" : "Hidden from website"}>
