@@ -278,12 +278,17 @@ const Auth = () => {
       }
 
       // Use prefetched cache if available; otherwise fetch fresh.
-      let activeMemberships =
-        readPrefetchedData(userId)?.memberships ?? null;
+      let prefetched = readPrefetchedData(userId);
+      if (!prefetched) {
+        prefetched = await prefetchPostLoginData(userId);
+      }
+      const activeMemberships = prefetched?.memberships ?? [];
+      const platformRoles = prefetched?.platformRoles ?? [];
 
-      if (!activeMemberships) {
-        const prefetched = await prefetchPostLoginData(userId);
-        activeMemberships = prefetched?.memberships ?? [];
+      // Privileged platform roles go straight to the Super Admin panel.
+      if (platformRoles.length > 0) {
+        navigate("/super-admin");
+        return;
       }
 
       // Only tailor/designer roles
