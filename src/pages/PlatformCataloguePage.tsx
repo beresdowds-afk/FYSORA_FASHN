@@ -405,7 +405,6 @@ const PlatformCataloguePage = () => {
             </Button>
           </div>
         </div>
-        <TourCtaBubble />
       </div>
     );
   }
@@ -543,7 +542,6 @@ const PlatformCataloguePage = () => {
           </div>
         )}
       </div>
-      <TourCtaBubble />
     </div>
   );
 
