@@ -312,6 +312,7 @@ const PlatformCataloguePage = () => {
               </AlertDescription>
             </Alert>
           )}
+          {featuredStrip}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -454,6 +455,7 @@ const PlatformCataloguePage = () => {
       </header>
 
       <div className="container mx-auto px-4 lg:px-8 py-6 max-w-6xl">
+        {featuredStrip}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
