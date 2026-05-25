@@ -19,7 +19,7 @@ import {
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Search, ShoppingBag, Tag, Building2, LogIn, Eye, Lock,
-  Info, Check, X, ShieldCheck,
+  Info, Check, X, ShieldCheck, Star, Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -49,6 +49,7 @@ const PlatformCataloguePage = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [items, setItems] = useState<CatalogueItem[]>([]);
+  const [featured, setFeatured] = useState<CatalogueItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -101,6 +102,28 @@ const PlatformCataloguePage = () => {
     load();
   }, []);
 
+  // Featured products (weekly promotion slots) — surfaced at the top of the catalogue.
+  useEffect(() => {
+    const loadFeatured = async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("featured_product_slots" as any)
+        .select("catalogue_item_id, week_end, org_catalogue_items!inner(*, organizations(name))")
+        .eq("is_active", true)
+        .gte("week_end", today)
+        .order("created_at", { ascending: false })
+        .limit(12);
+      const mapped: CatalogueItem[] = (data || [])
+        .map((row: any) => row.org_catalogue_items)
+        .filter(Boolean)
+        .map((it: any) => ({ ...it, org_name: it.organizations?.name || "Unknown" }));
+      // De-duplicate by id
+      const seen = new Set<string>();
+      setFeatured(mapped.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true))));
+    };
+    loadFeatured();
+  }, []);
+
   const categories = ["all", ...new Set(items.map(i => i.category || "general"))];
   const filtered = items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -108,6 +131,32 @@ const PlatformCataloguePage = () => {
     const matchCat = selectedCategory === "all" || (i.category || "general") === selectedCategory;
     return matchSearch && matchCat;
   });
+
+  const featuredStrip = featured.length > 0 ? (
+    <section className="mb-6">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles size={14} className="text-primary" />
+        <h3 className="font-heading font-bold text-sm">Featured this week</h3>
+        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">{featured.length}</Badge>
+      </div>
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+        {featured.map((it) => (
+          <div key={`f-${it.id}`} className="snap-start shrink-0 w-40 rounded-xl bg-card border border-primary/30 overflow-hidden shadow-gold">
+            <div className="aspect-[3/4] bg-muted relative">
+              {it.image_url
+                ? <img src={it.image_url} alt={it.name} loading="lazy" className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={28} className="text-muted-foreground" /></div>}
+              <Badge className="absolute top-1 left-1 text-[9px] bg-primary text-primary-foreground"><Star size={8} className="mr-0.5" />Featured</Badge>
+            </div>
+            <div className="p-2">
+              <p className="font-semibold text-xs truncate">{it.name}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{it.org_name}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  ) : null;
 
   // Catalogue load doesn't depend on auth — render shell ASAP.
   if (authLoading || loading) {
@@ -263,6 +312,7 @@ const PlatformCataloguePage = () => {
               </AlertDescription>
             </Alert>
           )}
+          {featuredStrip}
           <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <div className="relative flex-1">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -405,6 +455,7 @@ const PlatformCataloguePage = () => {
       </header>
 
       <div className="container mx-auto px-4 lg:px-8 py-6 max-w-6xl">
+        {featuredStrip}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

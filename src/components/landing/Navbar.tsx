@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogIn, UserPlus } from "lucide-react";
+import { Menu, X, LogIn } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import fsaLogo from "@/assets/fsa-logo.png";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
@@ -63,15 +63,9 @@ const Navbar = () => {
 
         <div className="hidden md:flex items-center gap-3">
           <Link to="/auth">
-            <Button variant="heroOutline" size="sm" className="gap-1.5">
-              <LogIn size={15} />
-              Sign In
-            </Button>
-          </Link>
-          <Link to="/auth?mode=signup">
             <Button variant="hero" size="sm" className="gap-1.5">
-              <UserPlus size={15} />
-              Sign Up
+              <LogIn size={15} />
+              Sign In / Sign Up
             </Button>
           </Link>
         </div>
@@ -116,15 +110,9 @@ const Navbar = () => {
               )}
               <div className="flex flex-col gap-2 mt-2">
                 <Link to="/auth" onClick={() => setIsOpen(false)}>
-                  <Button variant="heroOutline" className="w-full gap-1.5">
-                    <LogIn size={15} />
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/auth?mode=signup" onClick={() => setIsOpen(false)}>
                   <Button variant="hero" className="w-full gap-1.5">
-                    <UserPlus size={15} />
-                    Sign Up
+                    <LogIn size={15} />
+                    Sign In / Sign Up
                   </Button>
                 </Link>
               </div>
