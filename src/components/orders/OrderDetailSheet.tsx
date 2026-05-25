@@ -54,8 +54,14 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
     setInitiatingPayment(gateway);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      // Add a marker so PaymentReturnHandler knows to verify when the user returns.
+      const cbUrl = new URL(window.location.href);
+      cbUrl.searchParams.set("payment", "success");
+      cbUrl.searchParams.set("kind", "order");
+      cbUrl.searchParams.set("order_id", order.id);
+      cbUrl.searchParams.set("gateway", gateway);
       const res = await supabase.functions.invoke("initialize-payment", {
-        body: { order_id: order.id, gateway, callback_url: window.location.href },
+        body: { order_id: order.id, gateway, callback_url: cbUrl.toString() },
       });
       if (res.error) {
         toast({ title: "Payment Error", description: res.error.message, variant: "destructive" });
