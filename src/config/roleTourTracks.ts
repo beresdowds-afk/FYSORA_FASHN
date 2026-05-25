@@ -329,7 +329,7 @@ export const roleTourTracks: Record<TourRole, RoleTourTrack> = {
     accent: "from-emerald-500/20 to-primary/10",
     steps: organizationSteps,
     ctaLabel: "Register Fashion House",
-    ctaPath: "/create-organization",
+    ctaPath: "/auth?role=organization",
   },
 };
 

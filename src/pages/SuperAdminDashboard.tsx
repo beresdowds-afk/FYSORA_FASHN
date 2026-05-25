@@ -287,9 +287,6 @@ const SuperAdminDashboard = () => {
                 <Button variant="ghost" size="sm" className="text-ivory/70 hover:text-ivory text-xs hidden lg:flex" onClick={() => navigate("/platform-catalogue")}>
                   <ShoppingBag size={14} className="mr-1" /> Catalogue
                 </Button>
-                <Button variant="ghost" size="sm" className="text-ivory/70 hover:text-ivory text-xs hidden xl:flex" onClick={() => navigate("/create-organization")}>
-                  <Plus size={14} className="mr-1" /> New Org
-                </Button>
                 <Button variant="ghost" size="sm" className="text-ivory/70 hover:text-ivory text-xs hidden xl:flex" onClick={() => navigate("/admin-install")}>
                   <Download size={14} className="mr-1" /> Admin App
                 </Button>

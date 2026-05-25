@@ -97,12 +97,34 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!authLoading && !orgLoading && user && !currentOrg && !hasPlatformAccess) {
-      navigate("/create-organization");
-    }
-    // Redirect tailors to their dedicated dashboard
-    if (!authLoading && !orgLoading && user && currentOrg && role === "tailor") {
+    if (authLoading || orgLoading || !user) return;
+
+    // Route users with an org to their proper home where applicable.
+    if (currentOrg && role === "tailor") {
       navigate("/tailor-dashboard");
+      return;
+    }
+
+    // No current org: route based on role rather than forcing org creation.
+    if (!currentOrg && !hasPlatformAccess) {
+      switch (role) {
+        case "tailor":
+          navigate("/tailor-dashboard");
+          return;
+        case "designer":
+          navigate("/designer-portal");
+          return;
+        case "customer":
+          navigate("/portal");
+          return;
+        case "org_admin":
+        case "manager":
+          navigate("/create-organization");
+          return;
+        default:
+          // Role not yet resolved — stay put; loading spinner handles it.
+          return;
+      }
     }
   }, [authLoading, orgLoading, user, currentOrg, hasPlatformAccess, role, navigate]);
 
