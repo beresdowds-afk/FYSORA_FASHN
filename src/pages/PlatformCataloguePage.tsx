@@ -321,6 +321,31 @@ const PlatformCataloguePage = () => {
                 promptAuth();
               }}
             >
+
+          {featured.length > 0 && (
+            <section className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-primary" />
+                <h3 className="font-heading font-bold text-sm">Featured this week</h3>
+                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">{featured.length}</Badge>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+                {featured.map((it) => (
+                  <div key={`f-${it.id}`} className="snap-start shrink-0 w-40 rounded-xl bg-card border border-primary/30 overflow-hidden shadow-gold">
+                    <div className="aspect-[3/4] bg-muted relative">
+                      {it.image_url ? <img src={it.image_url} alt={it.name} loading="lazy" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={28} className="text-muted-foreground" /></div>}
+                      <Badge className="absolute top-1 left-1 text-[9px] bg-primary text-primary-foreground"><Star size={8} className="mr-0.5" />Featured</Badge>
+                    </div>
+                    <div className="p-2">
+                      <p className="font-semibold text-xs truncate">{it.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{it.org_name}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6 hidden">
               {filtered.map((item, i) => (
                 <motion.div
                   key={item.id}
