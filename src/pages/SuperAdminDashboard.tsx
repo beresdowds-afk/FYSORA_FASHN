@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { resolveHomeRoute } from "@/lib/roleHome";
 import KeysSecretsPanel from "@/components/super-admin/KeysSecretsPanel";
 import ExchangeRatesPanel from "@/components/super-admin/ExchangeRatesPanel";
 import PlatformRevenuePanel from "@/components/super-admin/PlatformRevenuePanel";
@@ -128,7 +129,11 @@ const SuperAdminDashboard = () => {
   useEffect(() => {
     if (!authLoading && !roleLoading) {
       if (!user) navigate("/auth");
-      else if (!hasAccess) navigate("/dashboard");
+      else if (!hasAccess) {
+        // Route non-privileged users straight to their real home rather than
+        // bouncing through /dashboard.
+        resolveHomeRoute(user.id).then((home) => navigate(home, { replace: true }));
+      }
     }
   }, [user, authLoading, hasAccess, roleLoading, navigate]);
 
