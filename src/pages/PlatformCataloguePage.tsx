@@ -19,7 +19,7 @@ import {
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Search, ShoppingBag, Tag, Building2, LogIn, Eye, Lock,
-  Info, Check, X, ShieldCheck,
+  Info, Check, X, ShieldCheck, Star, Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -49,6 +49,7 @@ const PlatformCataloguePage = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
   const [items, setItems] = useState<CatalogueItem[]>([]);
+  const [featured, setFeatured] = useState<CatalogueItem[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,28 @@ const PlatformCataloguePage = () => {
       setLoading(false);
     };
     load();
+  }, []);
+
+  // Featured products (weekly promotion slots) — surfaced at the top of the catalogue.
+  useEffect(() => {
+    const loadFeatured = async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("featured_product_slots" as any)
+        .select("catalogue_item_id, week_end, org_catalogue_items!inner(*, organizations(name))")
+        .eq("is_active", true)
+        .gte("week_end", today)
+        .order("created_at", { ascending: false })
+        .limit(12);
+      const mapped: CatalogueItem[] = (data || [])
+        .map((row: any) => row.org_catalogue_items)
+        .filter(Boolean)
+        .map((it: any) => ({ ...it, org_name: it.organizations?.name || "Unknown" }));
+      // De-duplicate by id
+      const seen = new Set<string>();
+      setFeatured(mapped.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true))));
+    };
+    loadFeatured();
   }, []);
 
   const categories = ["all", ...new Set(items.map(i => i.category || "general"))];
