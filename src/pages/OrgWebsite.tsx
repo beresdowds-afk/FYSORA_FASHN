@@ -260,7 +260,7 @@ const OrgWebsite = () => {
 
       const [catalogueResult, officersResult, tailorsResult] = await Promise.all([
         supabase.from("org_catalogue_items").select("*").eq("org_id", orgData.id).eq("is_available", true).order("sort_order"),
-        supabase.from("org_company_officers").select("*").eq("org_id", orgData.id).eq("is_public", true).order("display_order"),
+        supabase.rpc("get_public_org_officers", { _org_id: orgData.id }),
         supabase.from("tailor_contracts").select("tailor_id").eq("org_id", orgData.id).eq("status", "active"),
       ]);
 
