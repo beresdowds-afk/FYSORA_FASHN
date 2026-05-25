@@ -10,6 +10,8 @@ export interface PrefetchedSessionData {
   userId: string;
   fetchedAt: number;
   role: string | null;
+  /** Privileged platform roles (super_admin, super_assistant, platform_management). */
+  platformRoles: string[];
   memberships: PrefetchedMembership[];
   currentOrgId: string | null;
   identityVerified: boolean;
@@ -42,6 +44,9 @@ export async function prefetchPostLoginData(userId: string): Promise<PrefetchedS
 
     const rolesArr = (rolesRes.data as any[]) || [];
     const role = rolesArr[0]?.role ?? null;
+    const platformRoles = rolesArr
+      .map((r) => r.role)
+      .filter((r: string) => r === "super_admin" || r === "super_assistant" || r === "platform_management");
 
     const memberships: PrefetchedMembership[] = ((membershipsRes.data as any[]) || []).map((m) => ({
       org_id: m.org_id,
@@ -53,6 +58,7 @@ export async function prefetchPostLoginData(userId: string): Promise<PrefetchedS
       userId,
       fetchedAt: Date.now(),
       role,
+      platformRoles,
       memberships,
       currentOrgId: (profileRes.data as any)?.current_org_id ?? null,
       identityVerified: !!(profileRes.data as any)?.identity_verified,
