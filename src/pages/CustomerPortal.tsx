@@ -51,6 +51,7 @@ const paymentStatusLabels: Record<string, string> = {
 
 const CustomerPortal = () => {
   const { user, loading: authLoading, signOut } = useAuth();
+  const { primaryRole, isSuperAdmin, isSuperAssistant, loading: roleLoading } = useUserGlobalRole();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
@@ -71,6 +72,15 @@ const CustomerPortal = () => {
   useEffect(() => {
     if (!authLoading && !user) navigate("/auth?portal=1");
   }, [user, authLoading, navigate]);
+
+  // Role gate: customers (and unspecified users) may view this portal; everyone
+  // else should land on their proper home rather than render an empty shell.
+  useEffect(() => {
+    if (authLoading || roleLoading || !user) return;
+    if (isSuperAdmin || isSuperAssistant) return; // platform users always allowed
+    if (!primaryRole || primaryRole === "customer") return;
+    navigate(homeForRole(primaryRole), { replace: true });
+  }, [authLoading, roleLoading, user, primaryRole, isSuperAdmin, isSuperAssistant, navigate]);
 
   // Verify measurement payment callback
   useEffect(() => {
