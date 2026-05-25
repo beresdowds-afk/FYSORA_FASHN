@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import {
   Code2, Copy, Check, ArrowLeft, Zap, Shield, Globe, Palette,
-  BookOpen, Terminal, Settings, ChevronRight, ExternalLink
+  BookOpen, Terminal, Settings, ChevronRight, ExternalLink, Webhook
 } from "lucide-react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -18,6 +18,7 @@ const sections = [
   { id: "features", label: "Features", icon: BookOpen },
   { id: "theming", label: "Theming", icon: Palette },
   { id: "security", label: "Security", icon: Shield },
+  { id: "webhooks", label: "Payment Webhooks", icon: Webhook },
   { id: "api-reference", label: "API Reference", icon: Code2 },
 ];
 
