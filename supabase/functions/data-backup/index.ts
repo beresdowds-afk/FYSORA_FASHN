@@ -22,12 +22,51 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, backup_id, tables } = await req.json();
-
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Require an authenticated super_admin caller. Backups expose every table
+    // and the restore action can overwrite the entire database, so this MUST be locked down.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    if (userErr || !userRes?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+      _user_id: userRes.user.id,
+      _role: "super_admin",
+    });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden: super_admin role required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { action, backup_id, tables } = await req.json();
+
+    // Audit every backup/restore action.
+    try {
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: userRes.user.id,
+        action: `data_backup.${action}`,
+        entity_type: "data_backup",
+        entity_id: null,
+        metadata: { backup_id: backup_id ?? null, tables: tables ?? null },
+      });
+    } catch (_) { /* best-effort */ }
 
     if (action === "create") {
       // Create a backup by exporting all table data to a JSON snapshot
