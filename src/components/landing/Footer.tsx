@@ -1,5 +1,6 @@
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, Phone, Download } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import fsaLogo from "@/assets/fsa-logo.png";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 
@@ -7,14 +8,14 @@ type FooterLink = { label: string; to?: string; href?: string };
 
 const footerLinks: Record<string, FooterLink[]> = {
   Platform: [
-    { label: "Features" },
-    { label: "Pricing" },
+    { label: "Features", to: "/features" },
+    { label: "Pricing", to: "/pricing" },
     { label: "API Docs", to: "/docs/api" },
     { label: "Website Builder" },
     { label: "Integrations" },
   ],
   Company: [
-    { label: "About Us" },
+    { label: "About Us", to: "/about" },
     { label: "Careers" },
     { label: "Blog" },
     { label: "Press" },
@@ -30,9 +31,9 @@ const footerLinks: Record<string, FooterLink[]> = {
   Legal: [
     { label: "Privacy Policy", to: "/legal" },
     { label: "Terms of Service", to: "/legal" },
-    { label: "Cookie Policy" },
-    { label: "GDPR" },
-    { label: "Data Protection" },
+    { label: "Cookie Policy", to: "/legal" },
+    { label: "GDPR", to: "/legal" },
+    { label: "Data Protection", to: "/legal" },
   ],
 };
 
@@ -54,6 +55,19 @@ const Footer = () => {
     <footer id="contact" className="bg-ebony pt-20 pb-8 relative">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-brand opacity-30" />
       <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12 p-5 rounded-2xl bg-gradient-brand/10 border border-primary/20">
+          <div className="text-center sm:text-left">
+            <p className="font-heading font-semibold text-ivory text-sm">Get the {settings.platform_short_name || "FYSORA FASHN"} app</p>
+            <p className="text-ivory/50 text-xs">Install on your device for the best experience.</p>
+          </div>
+          <Link to="/install">
+            <Button variant="hero" size="sm" className="gap-1.5">
+              <Download size={15} />
+              Download App
+            </Button>
+          </Link>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 mb-16">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
