@@ -478,8 +478,27 @@ const LegalDocs = () => {
           )}
         </motion.div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 };
+
+function LegalSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <article
+      className="rounded-xl border border-border bg-card p-6 sm:p-8 mt-4
+        prose prose-sm max-w-none text-foreground
+        prose-headings:font-heading prose-headings:text-foreground
+        prose-h3:mt-6 prose-h3:text-base
+        prose-p:text-muted-foreground prose-li:text-muted-foreground
+        prose-strong:text-foreground prose-a:text-primary
+        prose-ul:my-2 prose-ul:list-disc prose-ul:pl-5"
+    >
+      <h2 className="font-heading font-bold text-xl mb-2">{title}</h2>
+      {children}
+    </article>
+  );
+}
 
 export default LegalDocs;
