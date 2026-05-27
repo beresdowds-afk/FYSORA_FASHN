@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Check, Star } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Check, Star, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useHeroPricing } from "@/hooks/useHeroPricing";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const PLAN_DEFS = [
   {
@@ -119,6 +123,75 @@ const PLAN_DEFS = [
 
 const Pricing = () => {
   const { pricing, plans } = useHeroPricing();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const handleSelectPlan = async (plan: typeof PLAN_DEFS[number]) => {
+    // Not authenticated → route to sign-up with role + return-to-plan hint
+    if (!user) {
+      const params = new URLSearchParams({
+        role: plan.role,
+        next: `/pricing?plan=${plan.roleKey}`,
+      });
+      if ((plan as any).tier) params.set("tier", (plan as any).tier);
+      navigate(`/auth?${params.toString()}`);
+      return;
+    }
+
+    setBusy(plan.roleKey);
+    try {
+      // Designer subscription → real Stripe/Paystack checkout
+      if (plan.role === "designer") {
+        const { data, error } = await supabase.functions.invoke(
+          "initialize-designer-subscription",
+          { body: { callback_url: `${window.location.origin}/designer-portal?subscription=success` } }
+        );
+        if (error) throw error;
+        const url = (data as any)?.authorization_url || (data as any)?.checkout_url;
+        if ((data as any)?.status === "already_active" || (data as any)?.activated) {
+          toast({ title: "Subscription active", description: "Your designer plan is already active." });
+          navigate("/designer-portal");
+          return;
+        }
+        if (!url) throw new Error("No checkout URL returned");
+        window.location.href = url;
+        return;
+      }
+
+      // Customer Premium → customer subscription panel
+      if (plan.role === "customer") {
+        navigate("/portal?subscribe=premium");
+        return;
+      }
+
+      // Tailor → tailors join via org contracts; route to onboarding info
+      if (plan.role === "tailor") {
+        toast({
+          title: "Tailors join via organizations",
+          description: "Sign in as a tailor and accept a contract from an organization to activate billing.",
+        });
+        navigate("/auth?role=tailor");
+        return;
+      }
+
+      // Organization plans → dashboard with tier hint (needs org_id for checkout)
+      if (plan.role === "organization") {
+        navigate(`/dashboard?subscribe=${(plan as any).tier}`);
+        return;
+      }
+    } catch (e: any) {
+      console.error("[Pricing] checkout failed", e);
+      toast({
+        title: "Checkout failed",
+        description: e?.message || "We couldn't start checkout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <section id="pricing" className="py-24 bg-background relative">
@@ -213,14 +286,16 @@ const Pricing = () => {
                   </span>
                 </div>
 
-                <Link to={`/auth?role=${plan.role}`}>
-                  <Button
-                    variant={plan.popular ? "hero" : "heroOutline"}
-                    className="w-full mb-8"
-                  >
-                    Start Free Trial
-                  </Button>
-                </Link>
+                <Button
+                  variant={plan.popular ? "hero" : "heroOutline"}
+                  className="w-full mb-8"
+                  onClick={() => handleSelectPlan(plan)}
+                  disabled={busy === plan.roleKey}
+                >
+                  {busy === plan.roleKey ? (
+                    <><Loader2 size={14} className="mr-1.5 animate-spin" /> Starting…</>
+                  ) : user ? "Subscribe" : "Start Free Trial"}
+                </Button>
 
                 <ul className="space-y-3">
                   {displayFeatures.map((feature) => (

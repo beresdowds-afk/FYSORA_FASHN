@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import {
   Code2, Copy, Check, ArrowLeft, Zap, Shield, Globe, Palette,
-  BookOpen, Terminal, Settings, ChevronRight, ExternalLink, Webhook
+  BookOpen, Terminal, Settings, ChevronRight, ExternalLink, Webhook, Search
 } from "lucide-react";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -19,7 +20,156 @@ const sections = [
   { id: "theming", label: "Theming", icon: Palette },
   { id: "security", label: "Security", icon: Shield },
   { id: "webhooks", label: "Payment Webhooks", icon: Webhook },
+  { id: "endpoints", label: "Endpoint Reference", icon: Code2 },
   { id: "api-reference", label: "API Reference", icon: Code2 },
+];
+
+type Endpoint = {
+  id: string;
+  method: "GET" | "POST";
+  path: string;
+  summary: string;
+  group: string;
+  auth: "anon" | "bearer";
+  curl: string;
+  exampleResponse?: string;
+};
+
+const ENDPOINTS: Endpoint[] = [
+  {
+    id: "embed-widget",
+    method: "GET",
+    path: "/functions/v1/embed-widget",
+    summary: "Returns the embeddable widget JS (or JSON config) for an organization.",
+    group: "Widget",
+    auth: "anon",
+    curl: `curl "${SUPABASE_URL}/functions/v1/embed-widget?key=YOUR_WIDGET_KEY&format=config"`,
+    exampleResponse: `{
+  "orgId": "uuid",
+  "orgName": "My Fashion House",
+  "features": ["measurements","tryon","appointments","catalogue"],
+  "theme": { "primaryColor": "#D4A853", "borderRadius": "12px", "position": "bottom-right" }
+}`,
+  },
+  {
+    id: "initialize-payment",
+    method: "POST",
+    path: "/functions/v1/initialize-payment",
+    summary: "Start checkout for an order via Paystack/Stripe/Flutterwave.",
+    group: "Payments",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/initialize-payment" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"order_id":"<uuid>","callback_url":"https://your.app/return"}'`,
+    exampleResponse: `{ "authorization_url": "https://checkout.paystack.com/abc...", "reference": "fsa_..." }`,
+  },
+  {
+    id: "initialize-designer-subscription",
+    method: "POST",
+    path: "/functions/v1/initialize-designer-subscription",
+    summary: "Start the $15/month Designer subscription checkout.",
+    group: "Payments",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/initialize-designer-subscription" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"callback_url":"https://your.app/designer-portal?subscription=success"}'`,
+  },
+  {
+    id: "initialize-website-payment",
+    method: "POST",
+    path: "/functions/v1/initialize-website-payment",
+    summary: "Start checkout for a website builder plan (lite, pro, pro-lite).",
+    group: "Payments",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/initialize-website-payment" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"org_id":"<uuid>","plan":"pro"}'`,
+  },
+  {
+    id: "verify-payment",
+    method: "POST",
+    path: "/functions/v1/verify-payment",
+    summary: "Verify a Paystack/Flutterwave reference and activate the underlying flow.",
+    group: "Payments",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/verify-payment" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"reference":"fsa_..."}'`,
+  },
+  {
+    id: "payment-webhook",
+    method: "POST",
+    path: "/functions/v1/payment-webhook",
+    summary: "Unified PSP webhook endpoint (Paystack + Flutterwave). Signature verified.",
+    group: "Payments",
+    auth: "anon",
+    curl: `# Configure this URL in your PSP dashboard — direct curl is rejected without a valid signature.
+# ${SUPABASE_URL}/functions/v1/payment-webhook`,
+  },
+  {
+    id: "ai-measure-detect",
+    method: "POST",
+    path: "/functions/v1/ai-measure-detect",
+    summary: "Submit a frame for AI-powered body measurement detection.",
+    group: "AI",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/ai-measure-detect" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"image_base64":"<jpeg>","profile_id":"<uuid>"}'`,
+  },
+  {
+    id: "virtual-tryon",
+    method: "POST",
+    path: "/functions/v1/virtual-tryon",
+    summary: "Generate a virtual try-on image via Fashn.ai (token-billed).",
+    group: "AI",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/virtual-tryon" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"person_url":"https://...jpg","garment_url":"https://...jpg"}'`,
+  },
+  {
+    id: "carrier-rates",
+    method: "POST",
+    path: "/functions/v1/carrier-rates",
+    summary: "Quote shipping rates across configured carriers for an org.",
+    group: "Logistics",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/carrier-rates" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"org_id":"<uuid>","from":{"country":"NG"},"to":{"country":"GB"},"weight_kg":1.2}'`,
+  },
+  {
+    id: "send-email",
+    method: "POST",
+    path: "/functions/v1/send-email",
+    summary: "Send a transactional email via Resend; billed per send.",
+    group: "Communications",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/send-email" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"to":"user@example.com","subject":"Order ready","html":"<p>Hi!</p>"}'`,
+  },
+  {
+    id: "smart-route-message",
+    method: "POST",
+    path: "/functions/v1/smart-route-message",
+    summary: "Route an outbound message via the optimal channel (SMS/WhatsApp/Email).",
+    group: "Communications",
+    auth: "bearer",
+    curl: `curl -X POST "${SUPABASE_URL}/functions/v1/smart-route-message" \\
+  -H "Authorization: Bearer USER_JWT" \\
+  -H "Content-Type: application/json" \\
+  -d '{"to":"+2348012345678","body":"Your order is ready","prefer":["whatsapp","sms"]}'`,
+  },
 ];
 
 const CodeBlock = ({ code, language = "html" }: { code: string; language?: string }) => {
@@ -41,6 +191,91 @@ const CodeBlock = ({ code, language = "html" }: { code: string; language?: strin
         <code>{code}</code>
       </pre>
     </div>
+  );
+};
+
+const EndpointCard = ({ ep }: { ep: Endpoint }) => {
+  const [copied, setCopied] = useState(false);
+  const copyCurl = () => {
+    navigator.clipboard.writeText(ep.curl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="rounded-xl bg-card border border-border p-4">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <Badge className={ep.method === "GET" ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"}>
+          {ep.method}
+        </Badge>
+        <code className="text-xs font-mono text-foreground break-all">{ep.path}</code>
+        <Badge variant="outline" className="text-[10px] ml-auto">{ep.group}</Badge>
+        <Badge variant="outline" className="text-[10px]">
+          {ep.auth === "bearer" ? "JWT required" : "Public"}
+        </Badge>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">{ep.summary}</p>
+      <div className="relative rounded-md bg-foreground text-background text-xs font-mono overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-foreground/90 border-b border-background/10">
+          <span className="text-background/50">curl</span>
+          <button
+            onClick={copyCurl}
+            className="text-background/70 hover:text-background flex items-center gap-1 text-[11px]"
+          >
+            {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy curl</>}
+          </button>
+        </div>
+        <pre className="p-3 overflow-x-auto whitespace-pre">{ep.curl}</pre>
+      </div>
+      {ep.exampleResponse && (
+        <details className="mt-2 text-xs">
+          <summary className="cursor-pointer text-primary font-medium">Example response</summary>
+          <pre className="mt-1.5 rounded bg-muted p-2 overflow-x-auto text-[11px]">{ep.exampleResponse}</pre>
+        </details>
+      )}
+    </div>
+  );
+};
+
+const EndpointReferenceSection = () => {
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return ENDPOINTS;
+    return ENDPOINTS.filter(
+      (e) =>
+        e.path.toLowerCase().includes(q) ||
+        e.summary.toLowerCase().includes(q) ||
+        e.group.toLowerCase().includes(q) ||
+        e.method.toLowerCase().includes(q)
+    );
+  }, [query]);
+  return (
+    <section id="endpoints" className="mb-12">
+      <h2 className="font-heading font-bold text-xl mb-4 flex items-center gap-2">
+        <Code2 size={20} className="text-primary" /> Endpoint Reference
+      </h2>
+      <div className="relative mb-4">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search endpoints by path, group, or description…"
+          className="pl-9"
+        />
+      </div>
+      {filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          No endpoints match “{query}”.
+        </p>
+      ) : (
+        <div className="grid gap-3">
+          {filtered.map((ep) => <EndpointCard key={ep.id} ep={ep} />)}
+        </div>
+      )}
+      <p className="text-[11px] text-muted-foreground mt-3">
+        Showing {filtered.length} of {ENDPOINTS.length} endpoints. Bearer endpoints accept a Supabase user JWT.
+      </p>
+    </section>
   );
 };
 
@@ -394,6 +629,10 @@ export function FSAWidget({ widgetKey }: { widgetKey: string }) {
 
             {/* API Reference */}
             <section id="api-reference" className="mb-12">
+              {/* Searchable endpoint catalog with copy-curl */}
+            </section>
+            <EndpointReferenceSection />
+            <section className="mb-12">
               <h2 className="font-heading font-bold text-xl mb-4 flex items-center gap-2">
                 <Code2 size={20} className="text-primary" /> API Reference
               </h2>
