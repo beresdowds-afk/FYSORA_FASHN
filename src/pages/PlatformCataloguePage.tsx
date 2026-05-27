@@ -580,17 +580,49 @@ const PlatformCataloguePage = () => {
   // Customers on an active free tour session: read-only view
   if (isOnFreeTour) return catalogueContent(true);
 
-  // Customers who haven't started a tour or need consent: show consent/exhausted dialog
+  // Customers who haven't started a tour or need consent: show read-only
+  // catalogue with a floating consent/subscribe bubble (no full-page gate).
+  const toursRemaining = Math.max(0, MAX_FREE_TOURS - toursUsed);
   return (
-    <FreeTourConsentDialog
-      toursUsed={toursUsed}
-      maxTours={MAX_FREE_TOURS}
-      onConsentGiven={() => {
-        setToursUsed(prev => prev + 1);
-        setTourActive(true);
-      }}
-      onSubscribe={() => navigate("/portal")}
-    />
+    <>
+      {catalogueContent(true)}
+      <div
+        className="fixed right-3 sm:right-6 z-40 max-w-[calc(100vw-1.5rem)] pointer-events-none"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)" }}
+      >
+        <Dialog>
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.3, type: "spring", stiffness: 220, damping: 22 }}
+            className="pointer-events-auto flex flex-wrap items-center gap-2 rounded-full border border-primary/30 bg-card/95 backdrop-blur shadow-gold pl-3 pr-1.5 py-1.5"
+          >
+            <ShieldCheck size={14} className="text-primary shrink-0" />
+            <span className="text-[11px] sm:text-xs text-muted-foreground hidden sm:inline">
+              {toursRemaining > 0
+                ? `${toursRemaining} free preview${toursRemaining === 1 ? "" : "s"} left`
+                : "Previews exhausted"}
+            </span>
+            <DialogTrigger asChild>
+              <Button variant="hero" size="sm" className="h-7 rounded-full px-3 text-[11px]">
+                {toursRemaining > 0 ? (<><Eye size={12} className="mr-1" /> Start Preview</>) : (<><Star size={12} className="mr-1" /> Subscribe</>)}
+              </Button>
+            </DialogTrigger>
+          </motion.div>
+          <DialogContent className="max-w-md p-0 bg-transparent border-0 shadow-none">
+            <FreeTourConsentDialog
+              toursUsed={toursUsed}
+              maxTours={MAX_FREE_TOURS}
+              onConsentGiven={() => {
+                setToursUsed(prev => prev + 1);
+                setTourActive(true);
+              }}
+              onSubscribe={() => navigate("/portal")}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 };
 
