@@ -20,7 +20,7 @@ interface Report {
 export default function AccountsHealthPanel() {
   const { toast } = useToast();
   const [reports, setReports] = useState<Report[]>([]);
-  const [filter, setFilter] = useState<"all" | "degraded" | "broken">("all");
+  const [filter, setFilter] = useState<"all" | "healthy" | "degraded" | "broken">("all");
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
 
