@@ -1,65 +1,74 @@
-## Goal
+# Catalogue Review + Admin Portals & Workers
 
-Make every footer entry on the landing footer either a real navigation link (when a page already exists) or plain non-clickable text (when the page doesn't exist yet). Also make the email, phone, and address clickable.
+This is a large scope. I'll break it into 6 deliverables and ship them in order. Each item is independently verifiable.
 
-## Audit of existing routes
+## 1. Catalogue & Cart Audit — Organizations (native + external sites)
 
-Pages that exist today (from `src/App.tsx`):
-- `/docs/api` → API Docs
-- `/legal` → Legal Document Generator
-- `/install` → install instructions / PWA install page
-- `/browse` → Browse Organizations
-- `/platform-tour` → Platform Tour
-- `/payments` → Payments Portal
-- `/` → Platform Catalogue (home)
+**Goal:** Verify the flow matches the users-guide contract: Dashboard = full CRUD; Mobile App = quick edits; cart submissions land in Orders tab + multi-channel notifications.
 
-Nothing currently exists for: Features, Pricing, Website Builder, Integrations, About Us, Careers, Blog, Press, Partners, Help Center, Documentation, Status, Contact Us, Community, Privacy Policy, Terms of Service, Cookie Policy, GDPR, Data Protection.
+**Files to review (read-only audit, then patch gaps):**
+- `src/components/catalogue/TailorCatalogueManager.tsx` (also used by orgs)
+- `src/pages/CataloguePage.tsx`, `OrgWebsite.tsx`, `DemoOrgWebsite.tsx`
+- `src/components/orders/CreateOrderDialog.tsx`, `OrdersTab.tsx`
+- `supabase/functions/embed-widget/index.ts` (non-native sites)
+- Notification dispatch on new order (email/SMS/WhatsApp)
 
-## Link mapping
+**Output:** A short audit report + targeted patches for any missing pieces (e.g. mobile-app quick-edit guard, embed widget cart → order pipe, notification fan-out on cart submission).
 
-**Platform**
-- Features → plain text (no page)
-- Pricing → plain text
-- API Docs → `/docs/api` (Link)
-- Website Builder → plain text
-- Integrations → plain text
+## 2. Catalogue & Cart Audit — Tailors & Designers
 
-**Company**
-- About Us, Careers, Blog, Press, Partners → all plain text
+Same pattern, scoped to:
+- Tailor: `TailorCataloguePage.tsx`, `OrgTailorPage.tsx`
+- Designer: `DesignerPortal.tsx` catalogue tab
+- Confirm contract-bound tailors only sell through their org (per role-constraints memory)
 
-**Support**
-- Help Center → plain text
-- Documentation → `/docs/api` (closest existing surface)
-- Status → plain text
-- Contact Us → `mailto:` using `settings.contact_email` (acts as the contact channel)
-- Community → plain text
+## 3. Accounts Health Monitor Worker
 
-**Legal**
-- Privacy Policy → `/legal` (Link, opens generator where Privacy can be created)
-- Terms of Service → `/legal`
-- Cookie Policy → plain text
-- GDPR → plain text
-- Data Protection → plain text
+New edge function `supabase/functions/accounts-health-monitor/index.ts`:
+- Iterate verified+activated tailors, designers, organizations
+- Probe: profile row exists, role row exists, org membership active, dashboard route resolves, at least one nav module enabled
+- Write findings to a new `account_health_reports` table
+- Schedule daily via pg_cron
 
-## Contact block
+Surfaced in Super Admin as a new "Accounts Health" panel.
 
-In the same footer top-left contact section:
-- Email → `<a href="mailto:{settings.contact_email}">`
-- Phone → `<a href="tel:{digits-only(settings.contact_phone)}">` (strip spaces/dashes for the `tel:` href, keep display value as-is)
-- Address → `<a href="https://www.google.com/maps/search/?api=1&query={encoded address}" target="_blank" rel="noopener noreferrer">`
+## 4. Monetization Master Switches — finish + enforcement worker
 
-All three keep the existing icon + style; only the wrapper changes to `<a>` with hover styling consistent with the link list (`hover:text-primary transition-colors`).
+- Frontend panel `MonetizationSwitchesPanel.tsx` already exists. Add: audit log on toggle, master-off banner across billing surfaces (`useMonetizationGate` hook), seed missing default switches.
+- Worker `supabase/functions/monetization-enforcement/index.ts`: sweeps pending fee ledger entries, voids charges where `is_monetization_enabled(...)` is false at charge time; logs to `audit_logs`.
+- Hook `useMonetizationGate(scope)` consumed by Pricing CTAs, billing panels, fee triggers.
 
-## Implementation
+## 5. Website Builder Fee Exemptions Portal
 
-Single-file edit: `src/components/landing/Footer.tsx`.
+New super-admin page `src/pages/admin/FeeExemptionsPortal.tsx`:
+- Live list (realtime) of verified organizations + designers + registered tailors + customers
+- Per-row switch → toggles `org_fee_exemptions` / new `user_fee_exemptions` row for `website_builder`, `website_builder_pro`, `registration`, `mobile_app`, `custom_domain_external`
+- Search, filter by role, badge for GABULK FASHION STUDIO (locked exemptions)
+- Worker `supabase/functions/fee-exemption-enforcer/index.ts`: nightly sweep — for every active exemption, ensures matching `org_fee_exemptions` rows exist, voids any fee_ledger entries charged in error, re-applies the GABULK auto-grant if missing.
 
-1. Replace the flat string arrays in `footerLinks` with an array of `{ label, to?, href? }` objects per category. Items with no `to`/`href` render as `<span>` (muted, no hover, no cursor).
-2. Items with `to` render via React Router `<Link>` (import from `react-router-dom`).
-3. Items with `href` (e.g. mailto) render as `<a>`.
-4. Wrap the email/phone/address contact rows in the appropriate `<a>` tags.
-5. No other UI/visual changes; keep colours, spacing, icons, semantic tokens.
+## 6. Zero-Value Invoice Worker for Exemptions
 
-## Out of scope
+New edge function `supabase/functions/exemption-invoice-generator/index.ts`:
+- Triggered when an exemption is granted (DB trigger → pg_net call) and nightly fallback
+- Creates a `subscription_invoices` row: amount=0, currency=org currency (NGN/USD), status=`paid`, payment_method=`exemption_grant`, description=`Complimentary <exemption_type>`
+- Inserts a `platform_fee_ledger` entry with status=`waived` so revenue analytics shows the foregone amount
+- Updates `payments`/`revenue` dashboards (they already read from these tables — no schema changes needed)
 
-No new pages, no route changes, no business logic, no analytics events.
+## Technical notes
+
+- New tables: `account_health_reports`, `user_fee_exemptions` — both with GRANT + RLS (super_admin only).
+- New edge functions deploy automatically; cron via `supabase--insert` after deploy.
+- Workers use service role and respect `is_monetization_enabled()`.
+- Reuses `runPostVerificationFlow` patterns from `_shared/post-verification-flow.ts` where relevant.
+
+## Order of execution
+
+1. Audit (1+2) → small patches only where gaps exist
+2. New tables migration (health reports + user exemptions)
+3. Fee Exemptions Portal UI + worker
+4. Zero-value invoice worker + DB trigger
+5. Monetization enforcement worker + gate hook
+6. Accounts Health worker + super-admin panel
+7. Cron schedules + smoke test edge function curls
+
+Estimated: large change set (~15-20 new/edited files). I'll proceed straight through once approved.
