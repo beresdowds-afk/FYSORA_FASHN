@@ -84,6 +84,42 @@ export type Database = {
           },
         ]
       }
+      account_health_reports: {
+        Row: {
+          checked_at: string
+          checks: Json
+          created_at: string
+          id: string
+          issues: string[]
+          status: string
+          subject_id: string
+          subject_label: string | null
+          subject_type: string
+        }
+        Insert: {
+          checked_at?: string
+          checks?: Json
+          created_at?: string
+          id?: string
+          issues?: string[]
+          status: string
+          subject_id: string
+          subject_label?: string | null
+          subject_type: string
+        }
+        Update: {
+          checked_at?: string
+          checks?: Json
+          created_at?: string
+          id?: string
+          issues?: string[]
+          status?: string
+          subject_id?: string
+          subject_label?: string | null
+          subject_type?: string
+        }
+        Relationships: []
+      }
       admin_support_requests: {
         Row: {
           created_at: string
@@ -4961,6 +4997,8 @@ export type Database = {
           granted_at: string | null
           granted_by: string | null
           id: string
+          invoice_generated_at: string | null
+          invoice_id: string | null
           is_active: boolean | null
           org_id: string
           reason: string | null
@@ -4972,6 +5010,8 @@ export type Database = {
           granted_at?: string | null
           granted_by?: string | null
           id?: string
+          invoice_generated_at?: string | null
+          invoice_id?: string | null
           is_active?: boolean | null
           org_id: string
           reason?: string | null
@@ -4983,6 +5023,8 @@ export type Database = {
           granted_at?: string | null
           granted_by?: string | null
           id?: string
+          invoice_generated_at?: string | null
+          invoice_id?: string | null
           is_active?: boolean | null
           org_id?: string
           reason?: string | null
@@ -8965,6 +9007,48 @@ export type Database = {
           role?: string
           total_steps?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_fee_exemptions: {
+        Row: {
+          created_at: string
+          exemption_type: string
+          expires_at: string | null
+          granted_at: string
+          granted_by: string | null
+          id: string
+          invoice_generated_at: string | null
+          invoice_id: string | null
+          is_active: boolean
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exemption_type: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          invoice_generated_at?: string | null
+          invoice_id?: string | null
+          is_active?: boolean
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exemption_type?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          invoice_generated_at?: string | null
+          invoice_id?: string | null
+          is_active?: boolean
+          reason?: string | null
           user_id?: string
         }
         Relationships: []
