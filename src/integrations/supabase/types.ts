@@ -5247,6 +5247,7 @@ export type Database = {
           is_active: boolean
           last_delivery_at: string | null
           last_status: number | null
+          linked_api_key_id: string | null
           org_id: string
           secret: string
           updated_at: string
@@ -5262,6 +5263,7 @@ export type Database = {
           is_active?: boolean
           last_delivery_at?: string | null
           last_status?: number | null
+          linked_api_key_id?: string | null
           org_id: string
           secret: string
           updated_at?: string
@@ -5277,12 +5279,20 @@ export type Database = {
           is_active?: boolean
           last_delivery_at?: string | null
           last_status?: number | null
+          linked_api_key_id?: string | null
           org_id?: string
           secret?: string
           updated_at?: string
           url?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "org_outbound_webhooks_linked_api_key_id_fkey"
+            columns: ["linked_api_key_id"]
+            isOneToOne: false
+            referencedRelation: "org_integration_api_keys"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "org_outbound_webhooks_org_id_fkey"
             columns: ["org_id"]
@@ -5513,45 +5523,70 @@ export type Database = {
       }
       org_webhook_deliveries: {
         Row: {
+          attempt: number
           attempted_at: string
           duration_ms: number | null
+          error: string | null
           event: string
           id: string
+          max_attempts: number
+          next_retry_at: string | null
           org_id: string
+          parent_delivery_id: string | null
           payload: Json
           request_id: string
           response_body: string | null
           response_status: number | null
+          status: string
           succeeded: boolean
           webhook_id: string
         }
         Insert: {
+          attempt?: number
           attempted_at?: string
           duration_ms?: number | null
+          error?: string | null
           event: string
           id?: string
+          max_attempts?: number
+          next_retry_at?: string | null
           org_id: string
+          parent_delivery_id?: string | null
           payload: Json
           request_id: string
           response_body?: string | null
           response_status?: number | null
+          status?: string
           succeeded?: boolean
           webhook_id: string
         }
         Update: {
+          attempt?: number
           attempted_at?: string
           duration_ms?: number | null
+          error?: string | null
           event?: string
           id?: string
+          max_attempts?: number
+          next_retry_at?: string | null
           org_id?: string
+          parent_delivery_id?: string | null
           payload?: Json
           request_id?: string
           response_body?: string | null
           response_status?: number | null
+          status?: string
           succeeded?: boolean
           webhook_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "org_webhook_deliveries_parent_delivery_id_fkey"
+            columns: ["parent_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "org_webhook_deliveries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "org_webhook_deliveries_webhook_id_fkey"
             columns: ["webhook_id"]
@@ -10382,6 +10417,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      rotate_org_api_key: {
+        Args: { _key_id: string; _new_hash: string; _new_prefix: string }
+        Returns: Json
       }
     }
     Enums: {

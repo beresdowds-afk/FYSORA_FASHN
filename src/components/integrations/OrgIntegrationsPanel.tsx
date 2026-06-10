@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Copy, Key, Webhook, Trash2, RefreshCw, ShieldCheck, Send, Plus, Eye, EyeOff } from "lucide-react";
+import { Copy, Key, Webhook, Trash2, RefreshCw, ShieldCheck, Send, Plus, Eye, EyeOff, PlayCircle, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props { orgId: string }
@@ -36,6 +36,8 @@ type Hook = {
 type Delivery = {
   id: string; webhook_id: string; event: string; response_status: number | null;
   succeeded: boolean; duration_ms: number | null; attempted_at: string;
+  status?: string | null; attempt?: number | null; max_attempts?: number | null;
+  next_retry_at?: string | null; error?: string | null;
 };
 
 const OrgIntegrationsPanel = ({ orgId }: Props) => {
@@ -56,12 +58,25 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
   const [creatingHook, setCreatingHook] = useState(false);
   const [revealSecret, setRevealSecret] = useState<Record<string, boolean>>({});
 
+  // Verify panel state
+  const [verifyKey, setVerifyKey] = useState("");
+  const [verifyHookId, setVerifyHookId] = useState<string>("");
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<any>(null);
+
+  // Delivery filters / replay
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [hookFilter, setHookFilter] = useState<string>("all");
+  const [replaying, setReplaying] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     const [k, h, d] = await Promise.all([
       supabase.from("org_integration_api_keys").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
       supabase.from("org_outbound_webhooks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
-      supabase.from("org_webhook_deliveries").select("id, webhook_id, event, response_status, succeeded, duration_ms, attempted_at").eq("org_id", orgId).order("attempted_at", { ascending: false }).limit(50),
+      supabase.from("org_webhook_deliveries")
+        .select("id, webhook_id, event, response_status, succeeded, duration_ms, attempted_at, status, attempt, max_attempts, next_retry_at, error")
+        .eq("org_id", orgId).order("attempted_at", { ascending: false }).limit(100),
     ]);
     setKeys((k.data as ApiKey[]) ?? []);
     setHooks((h.data as Hook[]) ?? []);
@@ -123,6 +138,43 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
     const res = await call({ action: "rotate_webhook_secret", webhook_id: id });
     if (res) { toast.success("Secret rotated"); load(); }
   };
+  const rotateKey = async (id: string) => {
+    if (!confirm("Rotate this API key? A new secret will be issued, linked webhooks will be re-pointed, and the old key will be revoked atomically.")) return;
+    const res = await call({ action: "rotate_api_key", key_id: id });
+    if (res) {
+      setCreatedKey({ prefix: res.prefix, plaintext: res.plaintext });
+      toast.success(`Rotated. ${res.rotation?.webhooks_relinked ?? 0} webhook(s) re-linked.`);
+      load();
+    }
+  };
+  const replayDelivery = async (id: string) => {
+    setReplaying(id);
+    const res = await call({ action: "replay_delivery", delivery_id: id });
+    setReplaying(null);
+    if (res) {
+      const r = res.dispatch?.results?.[0];
+      if (r?.ok) toast.success(`Replayed (HTTP ${r.status})`);
+      else toast.error(`Replay failed${r?.status ? ` (HTTP ${r.status})` : ""}`);
+      load();
+    }
+  };
+  const processRetries = async () => {
+    const res = await call({ action: "process_retries" });
+    if (res) { toast.success(`Processed ${res.result?.processed ?? 0} pending retries`); load(); }
+  };
+  const runVerify = async () => {
+    if (verifyKey.trim().length < 16) return toast.error("Paste a full API key");
+    setVerifying(true);
+    setVerifyResult(null);
+    const { data, error } = await supabase.functions.invoke("verify-org-integration", {
+      body: { org_id: orgId, api_key: verifyKey.trim(), webhook_id: verifyHookId || undefined },
+    });
+    setVerifying(false);
+    if (error) { toast.error(error.message); return; }
+    setVerifyResult(data);
+    if ((data as any)?.ok) toast.success("Integration verified end-to-end");
+    else toast.error("Verification failed — see details below");
+  };
   const deleteHook = async (id: string) => {
     if (!confirm("Delete this webhook endpoint?")) return;
     if (await call({ action: "delete_webhook", webhook_id: id })) { toast.success("Deleted"); load(); }
@@ -152,6 +204,7 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
         <TabsList>
           <TabsTrigger value="keys"><Key className="w-4 h-4 mr-1" />API Keys</TabsTrigger>
           <TabsTrigger value="webhooks"><Webhook className="w-4 h-4 mr-1" />Webhooks</TabsTrigger>
+          <TabsTrigger value="verify"><ShieldCheck className="w-4 h-4 mr-1" />Verify</TabsTrigger>
           <TabsTrigger value="logs"><Send className="w-4 h-4 mr-1" />Delivery Logs</TabsTrigger>
         </TabsList>
 
@@ -216,6 +269,7 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
                         </p>
                       </div>
                       <div className="flex gap-2">
+                        {!k.revoked_at && <Button size="sm" variant="outline" onClick={() => rotateKey(k.id)}><RefreshCw className="w-3.5 h-3.5 mr-1" />Rotate</Button>}
                         {!k.revoked_at && <Button size="sm" variant="outline" onClick={() => revokeKey(k.id)}><ShieldCheck className="w-3.5 h-3.5 mr-1" />Revoke</Button>}
                         <Button size="sm" variant="ghost" onClick={() => deleteKey(k.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
@@ -305,20 +359,106 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
         <TabsContent value="logs">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Recent webhook deliveries</CardTitle>
-              <CardDescription>Last 50 attempts across all endpoints.</CardDescription>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Webhook deliveries</span>
+                <Button size="sm" variant="outline" onClick={processRetries}>
+                  <RefreshCw className="w-3.5 h-3.5 mr-1" />Run retry queue
+                </Button>
+              </CardTitle>
+              <CardDescription>
+                Last 100 attempts. Failed deliveries retry with exponential backoff (1m, 5m, 15m, 1h, 6h, 24h) before moving to the dead-letter queue. Use Replay to re-send any past event.
+              </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="flex flex-wrap gap-2 mb-3 text-xs">
+                {["all","success","pending_retry","retrying","dead_letter","failed"].map((s) => (
+                  <button key={s} type="button" onClick={() => setStatusFilter(s)}
+                    className={`px-2 py-1 rounded-full border ${statusFilter === s ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border"}`}>
+                    {s}
+                  </button>
+                ))}
+                <select value={hookFilter} onChange={(e) => setHookFilter(e.target.value)}
+                  className="ml-auto text-xs px-2 py-1 rounded border border-border bg-background">
+                  <option value="all">All endpoints</option>
+                  {hooks.map((h) => <option key={h.id} value={h.id}>{h.url.slice(0, 48)}</option>)}
+                </select>
+              </div>
               {deliveries.length === 0 ? <p className="text-sm text-muted-foreground">No deliveries yet.</p> : (
                 <div className="space-y-1 text-xs">
-                  {deliveries.map((d) => (
-                    <div key={d.id} className="flex items-center gap-2 border-b border-border/40 py-1.5">
-                      <Badge variant={d.succeeded ? "default" : "destructive"} className="text-[10px]">{d.response_status ?? "ERR"}</Badge>
-                      <code className="text-[11px]">{d.event}</code>
-                      <span className="text-muted-foreground flex-1">{new Date(d.attempted_at).toLocaleString()}</span>
-                      <span className="text-muted-foreground">{d.duration_ms ?? 0}ms</span>
+                  {deliveries
+                    .filter((d) => statusFilter === "all" ? true : (d.status ?? (d.succeeded ? "success" : "failed")) === statusFilter)
+                    .filter((d) => hookFilter === "all" ? true : d.webhook_id === hookFilter)
+                    .map((d) => {
+                      const st = d.status ?? (d.succeeded ? "success" : "failed");
+                      const icon = st === "success" ? <CheckCircle2 className="w-3 h-3 text-green-600" />
+                        : st === "pending_retry" || st === "retrying" ? <Clock className="w-3 h-3 text-amber-600" />
+                        : st === "dead_letter" ? <AlertTriangle className="w-3 h-3 text-destructive" />
+                        : <XCircle className="w-3 h-3 text-destructive" />;
+                      return (
+                        <div key={d.id} className="flex flex-wrap items-center gap-2 border-b border-border/40 py-1.5">
+                          {icon}
+                          <Badge variant={st === "success" ? "default" : st === "dead_letter" ? "destructive" : "secondary"} className="text-[10px]">{st}</Badge>
+                          <Badge variant="outline" className="text-[10px]">HTTP {d.response_status ?? "—"}</Badge>
+                          <code className="text-[11px]">{d.event}</code>
+                          <span className="text-[10px] text-muted-foreground">try {d.attempt ?? 1}/{d.max_attempts ?? 1}</span>
+                          <span className="text-muted-foreground flex-1">{new Date(d.attempted_at).toLocaleString()}</span>
+                          <span className="text-muted-foreground">{d.duration_ms ?? 0}ms</span>
+                          {d.next_retry_at && (st === "pending_retry" || st === "retrying") && (
+                            <span className="text-[10px] text-amber-600">next {new Date(d.next_retry_at).toLocaleTimeString()}</span>
+                          )}
+                          <Button size="sm" variant="ghost" disabled={replaying === d.id} onClick={() => replayDelivery(d.id)}>
+                            <PlayCircle className="w-3.5 h-3.5 mr-1" />Replay
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="verify">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">End-to-end integration test</CardTitle>
+              <CardDescription>
+                Paste an API key and (optionally) pick a webhook. We verify the key against the stored hash and POST a signed <code>integration.verify</code> envelope so you can confirm your endpoint accepts it.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label>API key</Label>
+                <Input type="password" value={verifyKey} onChange={(e) => setVerifyKey(e.target.value)} placeholder="fsa_live_…" />
+              </div>
+              <div>
+                <Label>Webhook (optional)</Label>
+                <select value={verifyHookId} onChange={(e) => setVerifyHookId(e.target.value)}
+                  className="w-full text-sm px-3 py-2 rounded border border-border bg-background">
+                  <option value="">— key check only —</option>
+                  {hooks.map((h) => <option key={h.id} value={h.id}>{h.url}</option>)}
+                </select>
+              </div>
+              <Button onClick={runVerify} disabled={verifying}>
+                <ShieldCheck className="w-4 h-4 mr-1" />{verifying ? "Verifying…" : "Run verification"}
+              </Button>
+
+              {verifyResult && (
+                <div className="rounded-lg border border-border p-3 space-y-2 text-xs">
+                  <p className="font-medium text-sm flex items-center gap-2">
+                    {verifyResult.ok ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-destructive" />}
+                    Overall: {verifyResult.ok ? "passed" : "failed"}
+                  </p>
+                  <div>
+                    <p className="font-medium">API key</p>
+                    <pre className="bg-muted p-2 rounded overflow-auto">{JSON.stringify(verifyResult.checks?.api_key, null, 2)}</pre>
+                  </div>
+                  {verifyResult.checks?.webhook && (
+                    <div>
+                      <p className="font-medium">Webhook signature round-trip</p>
+                      <pre className="bg-muted p-2 rounded overflow-auto">{JSON.stringify(verifyResult.checks.webhook, null, 2)}</pre>
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </CardContent>

@@ -38,8 +38,12 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json(400, { ok: false, error: "Invalid JSON" }); }
-  const { org_id, event, payload, only_webhook_id } = body || {};
+  const { org_id, event, payload, only_webhook_id, parent_delivery_id, attempt: incomingAttempt, max_attempts: incomingMax } = body || {};
   if (!org_id || !event) return json(400, { ok: false, error: "org_id and event required" });
+
+  // Exponential backoff: 1m, 5m, 15m, 1h, 6h, 24h
+  const BACKOFF_MIN = [1, 5, 15, 60, 360, 1440];
+  const MAX_ATTEMPTS = Math.max(1, Math.min(10, Number(incomingMax) || 6));
 
   let q = admin.from("org_outbound_webhooks")
     .select("id, url, secret, events, is_active")
@@ -60,6 +64,7 @@ Deno.serve(async (req) => {
     let status = 0;
     let respText = "";
     let ok = false;
+    let errMsg: string | null = null;
     try {
       const resp = await fetch(hook.url, {
         method: "POST",
@@ -68,6 +73,7 @@ Deno.serve(async (req) => {
           "X-FSA-Event": event,
           "X-FSA-Signature": `sha256=${signature}`,
           "X-FSA-Request-Id": requestId,
+          "X-FSA-Attempt": String(incomingAttempt || 1),
           "User-Agent": "FashionStitchesAfrica-Webhook/1.0",
         },
         body: bodyStr,
@@ -77,13 +83,30 @@ Deno.serve(async (req) => {
       respText = (await resp.text()).slice(0, 2000);
       ok = resp.ok;
     } catch (e) {
-      respText = `network_error: ${(e as Error).message}`.slice(0, 2000);
+      errMsg = (e as Error).message;
+      respText = `network_error: ${errMsg}`.slice(0, 2000);
     }
     const duration = Date.now() - started;
+
+    const attempt = Number(incomingAttempt) || 1;
+    let nextRetryAt: string | null = null;
+    let deliveryStatus: "success" | "pending_retry" | "dead_letter" | "failed" = "success";
+    if (!ok) {
+      if (attempt < MAX_ATTEMPTS) {
+        const mins = BACKOFF_MIN[Math.min(attempt - 1, BACKOFF_MIN.length - 1)];
+        nextRetryAt = new Date(Date.now() + mins * 60_000).toISOString();
+        deliveryStatus = "pending_retry";
+      } else {
+        deliveryStatus = "dead_letter";
+      }
+    }
 
     await admin.from("org_webhook_deliveries").insert({
       webhook_id: hook.id, org_id, event, payload: envelope, request_id: requestId,
       response_status: status || null, response_body: respText, succeeded: ok, duration_ms: duration,
+      attempt, max_attempts: MAX_ATTEMPTS, status: deliveryStatus,
+      next_retry_at: nextRetryAt, parent_delivery_id: parent_delivery_id ?? null,
+      error: errMsg,
     });
     await admin.from("org_outbound_webhooks").update({
       last_delivery_at: new Date().toISOString(),
@@ -91,7 +114,7 @@ Deno.serve(async (req) => {
       failure_count: ok ? 0 : (hook as any).failure_count != null ? ((hook as any).failure_count + 1) : 1,
     }).eq("id", hook.id);
 
-    results.push({ webhook_id: hook.id, status, ok, request_id: requestId });
+    results.push({ webhook_id: hook.id, status, ok, request_id: requestId, attempt, status_label: deliveryStatus, next_retry_at: nextRetryAt });
   }
 
   return json(200, { ok: true, dispatched: results.length, results });

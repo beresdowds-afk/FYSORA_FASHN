@@ -122,6 +122,71 @@ Deno.serve(async (req) => {
         if (error) return json(400, { ok: false, error: error.message });
         return json(200, { ok: true });
       }
+      case "rotate_api_key": {
+        const id = String(body.key_id ?? "");
+        if (!id) return json(400, { ok: false, error: "key_id required" });
+        const { data: existing, error: exErr } = await admin
+          .from("org_integration_api_keys")
+          .select("environment, org_id, revoked_at").eq("id", id).maybeSingle();
+        if (exErr || !existing || existing.org_id !== org_id) {
+          return json(400, { ok: false, error: "Key not found for this organization" });
+        }
+        if (existing.revoked_at) return json(400, { ok: false, error: "Key already revoked" });
+
+        const raw = randomToken(32);
+        const prefix = `fsa_${existing.environment}_${raw.slice(0, 8)}`;
+        const plaintext = `${prefix}_${raw.slice(8)}`;
+        const key_hash = await sha256Hex(plaintext);
+        // Atomic rotate via security-definer RPC (creates new key, relinks
+        // webhooks, revokes old key in a single transaction).
+        const userClient2 = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
+        const { data, error } = await userClient2.rpc("rotate_org_api_key", {
+          _key_id: id, _new_prefix: prefix, _new_hash: key_hash,
+        });
+        if (error) return json(400, { ok: false, error: error.message });
+        return json(200, { ok: true, plaintext, prefix, rotation: data });
+      }
+      case "link_webhook_to_key": {
+        const wid = String(body.webhook_id ?? "");
+        const kid = body.key_id ? String(body.key_id) : null;
+        const { error } = await admin.from("org_outbound_webhooks")
+          .update({ linked_api_key_id: kid }).eq("id", wid).eq("org_id", org_id);
+        if (error) return json(400, { ok: false, error: error.message });
+        return json(200, { ok: true });
+      }
+      case "replay_delivery": {
+        const did = String(body.delivery_id ?? "");
+        if (!did) return json(400, { ok: false, error: "delivery_id required" });
+        const { data: d, error: dErr } = await admin.from("org_webhook_deliveries")
+          .select("id, webhook_id, org_id, event, payload").eq("id", did).maybeSingle();
+        if (dErr || !d || d.org_id !== org_id) return json(404, { ok: false, error: "Delivery not found" });
+        const data = (d.payload as any)?.data ?? {};
+        const r = await fetch(`${url}/functions/v1/dispatch-org-webhook`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${service}` },
+          body: JSON.stringify({
+            org_id, event: d.event, payload: data,
+            only_webhook_id: d.webhook_id, attempt: 1, max_attempts: 6,
+            parent_delivery_id: d.id,
+          }),
+        });
+        const out = await r.json();
+        await admin.from("audit_logs").insert({
+          user_id: userId, action: "webhook_delivery_replayed",
+          entity_type: "org_webhook_delivery", entity_id: did,
+          metadata: { org_id, event: d.event, webhook_id: d.webhook_id },
+        });
+        return json(200, { ok: true, dispatch: out });
+      }
+      case "process_retries": {
+        // Convenience: lets admins trigger retry processor on demand.
+        const r = await fetch(`${url}/functions/v1/retry-org-webhooks`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${service}` },
+        });
+        const out = await r.json();
+        return json(200, { ok: true, result: out });
+      }
       case "test_webhook": {
         const id = String(body.webhook_id ?? "");
         const dispatcherUrl = `${url}/functions/v1/dispatch-org-webhook`;
