@@ -7,6 +7,7 @@ import fsaLogo from "@/assets/fsa-logo.png";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 
 const navLinks = [
+  { label: "Visit landing page", href: "/landing", isRoute: true },
   { label: "Features", href: "/features", isRoute: true },
   { label: "Pricing", href: "/pricing", isRoute: true },
   { label: "About", href: "/about", isRoute: true },

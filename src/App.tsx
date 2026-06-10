@@ -32,6 +32,7 @@ import PricingPage from "./pages/PricingPage";
 import AboutPage from "./pages/AboutPage";
 import SubscriptionStatus from "./pages/SubscriptionStatus";
 import HelpCatalogue from "./pages/HelpCatalogue";
+import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import PlatformUpdateWatcher from "@/components/platform/PlatformUpdateWatcher";
 import TourSyncWorker from "@/components/platform/TourSyncWorker";
@@ -54,6 +55,7 @@ const App = () => (
           <PersistentChrome>
           <Routes>
             <Route path="/" element={<PlatformCataloguePage />} />
+            <Route path="/landing" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
