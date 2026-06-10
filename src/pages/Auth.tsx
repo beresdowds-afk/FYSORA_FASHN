@@ -127,6 +127,10 @@ const Auth = () => {
       // Super admins / super assistants / platform management never need to
       // register or join an organization — route them straight to the admin panel.
       if (roleNames.some((r) => r === "super_admin" || r === "super_assistant" || r === "platform_management")) {
+        toast({
+          title: "Welcome, Super Admin",
+          description: "Routing you to the Super Admin panel — no organization or registration required.",
+        });
         navigate("/super-admin");
         return;
       }
