@@ -5529,6 +5529,7 @@ export type Database = {
           error: string | null
           event: string
           id: string
+          idempotency_key: string | null
           max_attempts: number
           next_retry_at: string | null
           org_id: string
@@ -5548,6 +5549,7 @@ export type Database = {
           error?: string | null
           event: string
           id?: string
+          idempotency_key?: string | null
           max_attempts?: number
           next_retry_at?: string | null
           org_id: string
@@ -5567,6 +5569,7 @@ export type Database = {
           error?: string | null
           event?: string
           id?: string
+          idempotency_key?: string | null
           max_attempts?: number
           next_retry_at?: string | null
           org_id?: string
