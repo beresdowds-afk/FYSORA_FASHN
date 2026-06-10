@@ -499,6 +499,28 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
                   {hooks.map((h) => <option key={h.id} value={h.id}>{h.url}</option>)}
                 </select>
               </div>
+              {verifyHookId && (() => {
+                const hook = hooks.find((h) => h.id === verifyHookId);
+                const subscribed = hook?.events ?? [];
+                const isWildcard = subscribed.includes("*");
+                const eventChoices = ["integration.verify", ...EVENT_OPTIONS.map((e) => e.id)];
+                return (
+                  <div>
+                    <Label>Event to test against scope</Label>
+                    <select value={verifyEvent} onChange={(e) => setVerifyEvent(e.target.value)}
+                      className="w-full text-sm px-3 py-2 rounded border border-border bg-background">
+                      {eventChoices.map((ev) => {
+                        const allowed = ev === "integration.verify" || isWildcard || subscribed.includes(ev);
+                        return <option key={ev} value={ev}>{ev}{allowed ? "" : " (not subscribed)"}</option>;
+                      })}
+                    </select>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Subscribed: {subscribed.length === 0 ? "none" : subscribed.join(", ")}.
+                      The endpoint will be called only when its scope includes the chosen event.
+                    </p>
+                  </div>
+                );
+              })()}
               <Button onClick={runVerify} disabled={verifying}>
                 <ShieldCheck className="w-4 h-4 mr-1" />{verifying ? "Verifying…" : "Run verification"}
               </Button>
