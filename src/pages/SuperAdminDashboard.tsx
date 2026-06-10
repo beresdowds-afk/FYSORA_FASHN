@@ -160,7 +160,24 @@ const SuperAdminDashboard = () => {
     );
   }
 
-  if (!hasAccess) return null;
+  if (!user) return null;
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="max-w-md w-full rounded-xl border border-border bg-card p-6 text-center">
+          <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
+            <ShieldCheck className="text-destructive" size={22} />
+          </div>
+          <h2 className="font-heading font-bold text-xl mb-2">Restricted area</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            The Super Admin panel is reserved for platform super admins. Your account
+            doesn't have the required role.
+          </p>
+          <Button variant="hero" size="sm" onClick={() => navigate("/")}>Back to homepage</Button>
+        </div>
+      </div>
+    );
+  }
 
   const restrictedTabs = new Set(["platform_settings", "sub_rates", "unified_pricing", "pricing", "features", "regional_management", "monetization_switches", "fee_exemptions"]);
 
