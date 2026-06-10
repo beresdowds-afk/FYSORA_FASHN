@@ -92,6 +92,21 @@ export default function OrgDashboardSidebar({ activeTab, onTabChange }: OrgDashb
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
+        <SidebarGroup>
+          <SidebarGroupLabel>Help</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Catalogue & Cart Guide">
+                  <a href="/help/catalogue">
+                    <HelpCircle className="h-4 w-4" />
+                    {!collapsed && <span>Catalogue Guide</span>}
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
