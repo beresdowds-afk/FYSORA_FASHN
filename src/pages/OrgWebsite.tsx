@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getTemplate, isLightTemplate } from "@/config/websiteTemplates";
+import CartWidget from "@/components/catalogue/CartWidget";
+import { addToCart } from "@/lib/cartFlow";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface OrgWebsiteData {
