@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
   const { data: due, error } = await admin
     .from("org_webhook_deliveries")
-    .select("id, webhook_id, org_id, event, payload, attempt, max_attempts")
+    .select("id, webhook_id, org_id, event, payload, attempt, max_attempts, idempotency_key")
     .eq("status", "pending_retry")
     .lte("next_retry_at", new Date().toISOString())
     .order("next_retry_at", { ascending: true })
@@ -43,6 +43,9 @@ Deno.serve(async (req) => {
   const results: any[] = [];
   for (const d of due) {
     const data = (d.payload as any)?.data ?? {};
+    // Preserve idempotency_key across retries; fall back to the envelope's
+    // key if the column is null (older rows).
+    const idem = (d as any).idempotency_key ?? (d.payload as any)?.idempotency_key ?? null;
     const r = await fetch(`${url}/functions/v1/dispatch-org-webhook`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${service}` },
@@ -52,6 +55,7 @@ Deno.serve(async (req) => {
         attempt: (d.attempt ?? 1) + 1,
         max_attempts: d.max_attempts ?? 6,
         parent_delivery_id: d.id,
+        idempotency_key: idem,
       }),
     });
     const out = await r.json().catch(() => ({}));
