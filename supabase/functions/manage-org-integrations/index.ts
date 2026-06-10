@@ -158,9 +158,12 @@ Deno.serve(async (req) => {
         const did = String(body.delivery_id ?? "");
         if (!did) return json(400, { ok: false, error: "delivery_id required" });
         const { data: d, error: dErr } = await admin.from("org_webhook_deliveries")
-          .select("id, webhook_id, org_id, event, payload").eq("id", did).maybeSingle();
+          .select("id, webhook_id, org_id, event, payload, idempotency_key").eq("id", did).maybeSingle();
         if (dErr || !d || d.org_id !== org_id) return json(404, { ok: false, error: "Delivery not found" });
         const data = (d.payload as any)?.data ?? {};
+        // Reuse the original idempotency key so downstream systems can dedupe
+        // the replay against the original event.
+        const idem = (d as any).idempotency_key ?? (d.payload as any)?.idempotency_key ?? null;
         const r = await fetch(`${url}/functions/v1/dispatch-org-webhook`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${service}` },
@@ -168,13 +171,14 @@ Deno.serve(async (req) => {
             org_id, event: d.event, payload: data,
             only_webhook_id: d.webhook_id, attempt: 1, max_attempts: 6,
             parent_delivery_id: d.id,
+            idempotency_key: idem,
           }),
         });
         const out = await r.json();
         await admin.from("audit_logs").insert({
           user_id: userId, action: "webhook_delivery_replayed",
           entity_type: "org_webhook_delivery", entity_id: did,
-          metadata: { org_id, event: d.event, webhook_id: d.webhook_id },
+          metadata: { org_id, event: d.event, webhook_id: d.webhook_id, idempotency_key: idem },
         });
         return json(200, { ok: true, dispatch: out });
       }

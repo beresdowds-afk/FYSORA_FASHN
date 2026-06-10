@@ -37,7 +37,7 @@ type Delivery = {
   id: string; webhook_id: string; event: string; response_status: number | null;
   succeeded: boolean; duration_ms: number | null; attempted_at: string;
   status?: string | null; attempt?: number | null; max_attempts?: number | null;
-  next_retry_at?: string | null; error?: string | null;
+  next_retry_at?: string | null; error?: string | null; idempotency_key?: string | null;
 };
 
 const OrgIntegrationsPanel = ({ orgId }: Props) => {
@@ -61,8 +61,14 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
   // Verify panel state
   const [verifyKey, setVerifyKey] = useState("");
   const [verifyHookId, setVerifyHookId] = useState<string>("");
+  const [verifyEvent, setVerifyEvent] = useState<string>("integration.verify");
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<any>(null);
+
+  // Inline editing of webhook event subscriptions
+  const [editingEventsFor, setEditingEventsFor] = useState<string | null>(null);
+  const [draftEvents, setDraftEvents] = useState<string[]>([]);
+  const [savingEvents, setSavingEvents] = useState(false);
 
   // Delivery filters / replay
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -167,13 +173,35 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
     setVerifying(true);
     setVerifyResult(null);
     const { data, error } = await supabase.functions.invoke("verify-org-integration", {
-      body: { org_id: orgId, api_key: verifyKey.trim(), webhook_id: verifyHookId || undefined },
+      body: {
+        org_id: orgId,
+        api_key: verifyKey.trim(),
+        webhook_id: verifyHookId || undefined,
+        event: verifyHookId ? verifyEvent : undefined,
+      },
     });
     setVerifying(false);
     if (error) { toast.error(error.message); return; }
     setVerifyResult(data);
     if ((data as any)?.ok) toast.success("Integration verified end-to-end");
     else toast.error("Verification failed — see details below");
+  };
+
+  const startEditEvents = (h: Hook) => {
+    setEditingEventsFor(h.id);
+    setDraftEvents([...h.events]);
+  };
+  const saveEventEdits = async () => {
+    if (!editingEventsFor) return;
+    if (draftEvents.length === 0) return toast.error("Select at least one event");
+    setSavingEvents(true);
+    const res = await call({ action: "update_webhook", webhook_id: editingEventsFor, events: draftEvents });
+    setSavingEvents(false);
+    if (res) {
+      toast.success("Event subscriptions updated");
+      setEditingEventsFor(null);
+      load();
+    }
   };
   const deleteHook = async (id: string) => {
     if (!confirm("Delete this webhook endpoint?")) return;
@@ -334,9 +362,41 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
                         <Button size="sm" variant="ghost" onClick={() => deleteHook(h.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
                       </div>
                       {h.description && <p className="text-xs text-muted-foreground">{h.description}</p>}
-                      <div className="flex flex-wrap gap-1">
-                        {h.events.map((e) => <Badge key={e} variant="secondary" className="text-[10px]">{e}</Badge>)}
-                      </div>
+                      {editingEventsFor === h.id ? (
+                        <div className="rounded-md border border-dashed border-border p-2 space-y-2">
+                          <p className="text-[11px] font-medium text-muted-foreground">Subscribe to events</p>
+                          <div className="grid gap-1.5">
+                            {EVENT_OPTIONS.map((ev) => {
+                              const active = draftEvents.includes(ev.id);
+                              return (
+                                <label key={ev.id} className="flex items-start gap-2 cursor-pointer">
+                                  <Checkbox checked={active} onCheckedChange={(v) =>
+                                    setDraftEvents((prev) => v ? [...prev, ev.id] : prev.filter((x) => x !== ev.id))} />
+                                  <div>
+                                    <p className="text-xs font-medium"><code>{ev.id}</code></p>
+                                    <p className="text-[11px] text-muted-foreground">{ev.desc}</p>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox checked={draftEvents.includes("*")} onCheckedChange={(v) =>
+                                setDraftEvents((prev) => v ? [...prev, "*"] : prev.filter((x) => x !== "*"))} />
+                              <span className="text-xs"><code>*</code> — receive every event</span>
+                            </label>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={saveEventEdits} disabled={savingEvents}>Save scope</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditingEventsFor(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {h.events.length === 0 && <span className="text-[10px] text-muted-foreground italic">No events subscribed</span>}
+                          {h.events.map((e) => <Badge key={e} variant="secondary" className="text-[10px]">{e}</Badge>)}
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => startEditEvents(h)}>Edit scope</Button>
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center gap-2 text-xs">
                         <span className="text-muted-foreground">Signing secret:</span>
                         <code className="bg-muted px-2 py-0.5 rounded">{revealSecret[h.id] ? h.secret : `${h.secret.slice(0, 10)}…`}</code>
@@ -403,6 +463,14 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
                           <span className="text-[10px] text-muted-foreground">try {d.attempt ?? 1}/{d.max_attempts ?? 1}</span>
                           <span className="text-muted-foreground flex-1">{new Date(d.attempted_at).toLocaleString()}</span>
                           <span className="text-muted-foreground">{d.duration_ms ?? 0}ms</span>
+                          {d.idempotency_key && (
+                            <button type="button"
+                              title={`Idempotency-Key: ${d.idempotency_key}`}
+                              onClick={() => copy(d.idempotency_key!, "Idempotency key copied")}
+                              className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded hover:bg-accent">
+                              idem:{d.idempotency_key.slice(-6)}
+                            </button>
+                          )}
                           {d.next_retry_at && (st === "pending_retry" || st === "retrying") && (
                             <span className="text-[10px] text-amber-600">next {new Date(d.next_retry_at).toLocaleTimeString()}</span>
                           )}
@@ -439,6 +507,28 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
                   {hooks.map((h) => <option key={h.id} value={h.id}>{h.url}</option>)}
                 </select>
               </div>
+              {verifyHookId && (() => {
+                const hook = hooks.find((h) => h.id === verifyHookId);
+                const subscribed = hook?.events ?? [];
+                const isWildcard = subscribed.includes("*");
+                const eventChoices = ["integration.verify", ...EVENT_OPTIONS.map((e) => e.id)];
+                return (
+                  <div>
+                    <Label>Event to test against scope</Label>
+                    <select value={verifyEvent} onChange={(e) => setVerifyEvent(e.target.value)}
+                      className="w-full text-sm px-3 py-2 rounded border border-border bg-background">
+                      {eventChoices.map((ev) => {
+                        const allowed = ev === "integration.verify" || isWildcard || subscribed.includes(ev);
+                        return <option key={ev} value={ev}>{ev}{allowed ? "" : " (not subscribed)"}</option>;
+                      })}
+                    </select>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Subscribed: {subscribed.length === 0 ? "none" : subscribed.join(", ")}.
+                      The endpoint will be called only when its scope includes the chosen event.
+                    </p>
+                  </div>
+                );
+              })()}
               <Button onClick={runVerify} disabled={verifying}>
                 <ShieldCheck className="w-4 h-4 mr-1" />{verifying ? "Verifying…" : "Run verification"}
               </Button>

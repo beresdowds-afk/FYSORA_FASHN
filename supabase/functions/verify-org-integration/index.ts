@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
   let body: any;
   try { body = await req.json(); } catch { return json(400, { ok: false, error: "Invalid JSON" }); }
   const { org_id, api_key, webhook_id } = body || {};
+  const verifyEvent: string = String(body?.event ?? "integration.verify");
   if (!org_id || typeof api_key !== "string" || api_key.length < 16) {
     return json(400, { ok: false, error: "org_id and api_key required" });
   }
@@ -84,17 +85,29 @@ Deno.serve(async (req) => {
   // Optional webhook signature round-trip
   if (webhook_id) {
     const { data: hook } = await admin.from("org_outbound_webhooks")
-      .select("id, url, secret, is_active, org_id").eq("id", webhook_id).maybeSingle();
+      .select("id, url, secret, is_active, org_id, events").eq("id", webhook_id).maybeSingle();
     if (!hook || hook.org_id !== org_id) {
       checks.webhook = { ok: false, reason: "not_found" };
     } else if (!hook.is_active) {
       checks.webhook = { ok: false, reason: "inactive" };
+    } else if (
+      verifyEvent !== "integration.verify" &&
+      !(hook.events ?? []).includes(verifyEvent) &&
+      !(hook.events ?? []).includes("*")
+    ) {
+      checks.webhook = {
+        ok: false, reason: "scope_mismatch",
+        message: `Webhook is not subscribed to "${verifyEvent}"`,
+        subscribed_events: hook.events ?? [],
+      };
     } else {
       const requestId = crypto.randomUUID();
+      const idemKey = `verify_${crypto.randomUUID()}`;
       const envelope = {
-        id: requestId, event: "integration.verify", org_id,
+        id: requestId, event: verifyEvent, org_id,
+        idempotency_key: idemKey, attempt: 1,
         created_at: new Date().toISOString(),
-        data: { message: "FSA integration verification ping", initiated_by: userId },
+        data: { message: "FSA integration verification ping", initiated_by: userId, scope_test: verifyEvent },
       };
       const bodyStr = JSON.stringify(envelope);
       const signature = await hmacSha256Hex(hook.secret, bodyStr);
@@ -105,9 +118,10 @@ Deno.serve(async (req) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-FSA-Event": "integration.verify",
+            "X-FSA-Event": verifyEvent,
             "X-FSA-Signature": `sha256=${signature}`,
             "X-FSA-Request-Id": requestId,
+            "X-FSA-Idempotency-Key": idemKey,
             "User-Agent": "FashionStitchesAfrica-Verify/1.0",
           },
           body: bodyStr,
@@ -121,15 +135,17 @@ Deno.serve(async (req) => {
       }
       const duration = Date.now() - started;
       await admin.from("org_webhook_deliveries").insert({
-        webhook_id: hook.id, org_id, event: "integration.verify",
+        webhook_id: hook.id, org_id, event: verifyEvent,
         payload: envelope, request_id: requestId,
         response_status: status || null, response_body: respText || err,
         succeeded: ok, duration_ms: duration,
         status: ok ? "success" : "failed", attempt: 1, max_attempts: 1,
-        error: err,
+        error: err, idempotency_key: idemKey,
       });
       checks.webhook = {
         ok, status, request_id: requestId, duration_ms: duration,
+        event_tested: verifyEvent,
+        idempotency_key: idemKey,
         signature_header: `sha256=${signature}`,
         signature_algorithm: "HMAC-SHA256",
         body_sent: bodyStr,

@@ -38,7 +38,9 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); } catch { return json(400, { ok: false, error: "Invalid JSON" }); }
-  const { org_id, event, payload, only_webhook_id, parent_delivery_id, attempt: incomingAttempt, max_attempts: incomingMax } = body || {};
+  const { org_id, event, payload, only_webhook_id, parent_delivery_id,
+          attempt: incomingAttempt, max_attempts: incomingMax,
+          idempotency_key: incomingIdem, enforce_scope } = body || {};
   if (!org_id || !event) return json(400, { ok: false, error: "org_id and event required" });
 
   // Exponential backoff: 1m, 5m, 15m, 1h, 6h, 24h
@@ -52,12 +54,32 @@ Deno.serve(async (req) => {
   const { data: hooks, error } = await q;
   if (error) return json(500, { ok: false, error: error.message });
 
-  const targets = (hooks ?? []).filter((h) => only_webhook_id || (h.events ?? []).includes(event) || (h.events ?? []).includes("*"));
+  // Scope filter: if only_webhook_id is provided, enforce_scope=true also
+  // requires the hook to subscribe to this event (used by Verify with scope).
+  const targets = (hooks ?? []).filter((h) => {
+    const subscribed = (h.events ?? []).includes(event) || (h.events ?? []).includes("*");
+    if (only_webhook_id) return enforce_scope ? subscribed : true;
+    return subscribed;
+  });
+
+  // Idempotency key: stable across retries / replays of the same logical event.
+  // - Caller may pass one explicitly.
+  // - Otherwise we generate one per logical event (one per dispatch invocation),
+  //   so the same key is sent to every target webhook of this call.
+  const idempotencyKey: string = String(incomingIdem || `evt_${crypto.randomUUID()}`);
   const results: any[] = [];
 
   for (const hook of targets) {
     const requestId = crypto.randomUUID();
-    const envelope = { id: requestId, event, org_id, created_at: new Date().toISOString(), data: payload ?? {} };
+    const envelope = {
+      id: requestId,
+      event,
+      org_id,
+      idempotency_key: idempotencyKey,
+      attempt: Number(incomingAttempt) || 1,
+      created_at: new Date().toISOString(),
+      data: payload ?? {},
+    };
     const bodyStr = JSON.stringify(envelope);
     const signature = await hmacSha256Hex(hook.secret, bodyStr);
     const started = Date.now();
@@ -73,6 +95,7 @@ Deno.serve(async (req) => {
           "X-FSA-Event": event,
           "X-FSA-Signature": `sha256=${signature}`,
           "X-FSA-Request-Id": requestId,
+          "X-FSA-Idempotency-Key": idempotencyKey,
           "X-FSA-Attempt": String(incomingAttempt || 1),
           "User-Agent": "FashionStitchesAfrica-Webhook/1.0",
         },
@@ -106,7 +129,7 @@ Deno.serve(async (req) => {
       response_status: status || null, response_body: respText, succeeded: ok, duration_ms: duration,
       attempt, max_attempts: MAX_ATTEMPTS, status: deliveryStatus,
       next_retry_at: nextRetryAt, parent_delivery_id: parent_delivery_id ?? null,
-      error: errMsg,
+      error: errMsg, idempotency_key: idempotencyKey,
     });
     await admin.from("org_outbound_webhooks").update({
       last_delivery_at: new Date().toISOString(),
@@ -114,8 +137,14 @@ Deno.serve(async (req) => {
       failure_count: ok ? 0 : (hook as any).failure_count != null ? ((hook as any).failure_count + 1) : 1,
     }).eq("id", hook.id);
 
-    results.push({ webhook_id: hook.id, status, ok, request_id: requestId, attempt, status_label: deliveryStatus, next_retry_at: nextRetryAt });
+    results.push({ webhook_id: hook.id, status, ok, request_id: requestId, attempt,
+      status_label: deliveryStatus, next_retry_at: nextRetryAt, idempotency_key: idempotencyKey });
   }
 
+  // If a scope-enforced single-webhook call matched nothing, return a 422-style result so callers can show a clear error.
+  if (only_webhook_id && targets.length === 0) {
+    return json(200, { ok: false, dispatched: 0, results: [], scope_mismatch: true,
+      error: `Webhook is not subscribed to "${event}"` });
+  }
   return json(200, { ok: true, dispatched: results.length, results });
 });
