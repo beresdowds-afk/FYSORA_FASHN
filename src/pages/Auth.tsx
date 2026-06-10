@@ -121,15 +121,22 @@ const Auth = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", u.id)
-        .limit(1);
+        .limit(10);
       if (cancelled) return;
+      const roleNames = (roles || []).map((r: any) => r.role as string);
+      // Super admins / super assistants / platform management never need to
+      // register or join an organization — route them straight to the admin panel.
+      if (roleNames.some((r) => r === "super_admin" || r === "super_assistant" || r === "platform_management")) {
+        navigate("/super-admin");
+        return;
+      }
       if (!roles || roles.length === 0) {
         setShowOAuthRolePicker(true);
       }
     };
     checkPostOAuth();
     return () => { cancelled = true; };
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (roleParam && ROLE_CONFIG[roleParam as UserRole]) {
