@@ -1,6 +1,6 @@
 import {
   BarChart3, Package, UserCheck, Video, Sparkles, Star, Truck,
-  FileText, Users, CreditCard, Receipt, Wallet, Globe, Settings, Search, HelpCircle
+  FileText, Users, CreditCard, Receipt, Wallet, Globe, Settings, Search, HelpCircle, Plug
 } from "lucide-react";
 import {
   Sidebar,
@@ -18,7 +18,7 @@ export type OrgTabId =
   | "overview" | "orders" | "customers" | "bookings" | "premium"
   | "featured" | "logistics" | "contracts" | "members" | "billing"
   | "invoicing" | "invoice_manager" | "wallet" | "website" | "settings"
-  | "sentinel_seo";
+  | "sentinel_seo" | "integrations";
 
 const navGroups = [
   {
@@ -53,6 +53,7 @@ const navGroups = [
     label: "Other",
     items: [
       { id: "website" as const, icon: Globe, label: "Website" },
+      { id: "integrations" as const, icon: Plug, label: "Integrations" },
       { id: "sentinel_seo" as const, icon: Search, label: "SEO & Sentinel" },
       { id: "settings" as const, icon: Settings, label: "Settings" },
     ],

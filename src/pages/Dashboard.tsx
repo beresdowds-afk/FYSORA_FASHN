@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, CreditCard, Crown, MessageCircle, Video, Globe, Sparkles, Truck, FileText, Download, Receipt, Star, Wallet } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import OrgDashboardSidebar, { type OrgTabId } from "@/components/dashboard/OrgDashboardSidebar";
+import OrgIntegrationsPanel from "@/components/integrations/OrgIntegrationsPanel";
 import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel";
 
 import SubscriptionTab from "@/components/billing/SubscriptionTab";
@@ -312,6 +313,7 @@ const Dashboard = () => {
                 <SentinelAddonsMarketplace orgId={currentOrg.id} />
               </div>
             )}
+            {activeTab === "integrations" && <OrgIntegrationsPanel orgId={currentOrg.id} />}
             {activeTab === "settings" && <SettingsTab org={currentOrg} role={role} />}
           </main>
         </div>

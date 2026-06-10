@@ -256,6 +256,30 @@ Deno.serve(async (req) => {
     );
   }
 
+  // Dispatch outbound webhook for orgs subscribed to order.created
+  try {
+    const dispatcherUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/dispatch-org-webhook`;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // fire-and-forget; don't block the response
+    fetch(dispatcherUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+      body: JSON.stringify({
+        org_id: body.org_id,
+        event: "order.created",
+        payload: {
+          order_id: order.id,
+          order_number: order.order_number,
+          source: body.source,
+          customer: body.customer,
+          items: finalLines,
+          total,
+          currency,
+        },
+      }),
+    }).catch(() => {});
+  } catch { /* ignore */ }
+
   return json(200, {
     ok: true,
     order_id: order.id,

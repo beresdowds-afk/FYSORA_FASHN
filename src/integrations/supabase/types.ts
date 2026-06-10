@@ -5053,6 +5053,73 @@ export type Database = {
           },
         ]
       }
+      org_integration_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          environment: string
+          id: string
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          org_id: string
+          revoked_at: string | null
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          org_id: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          org_id?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_integration_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_integration_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_integration_api_keys_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           id: string
@@ -5164,6 +5231,76 @@ export type Database = {
             foreignKeyName: "org_notification_settings_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: true
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_outbound_webhooks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          events: string[]
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_delivery_at: string | null
+          last_status: number | null
+          org_id: string
+          secret: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          events?: string[]
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_delivery_at?: string | null
+          last_status?: number | null
+          org_id: string
+          secret: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          events?: string[]
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_delivery_at?: string | null
+          last_status?: number | null
+          org_id?: string
+          secret?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_outbound_webhooks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_outbound_webhooks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_outbound_webhooks_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
             referencedRelation: "organizations_summary"
             referencedColumns: ["id"]
           },
@@ -5370,6 +5507,56 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: true
             referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_webhook_deliveries: {
+        Row: {
+          attempted_at: string
+          duration_ms: number | null
+          event: string
+          id: string
+          org_id: string
+          payload: Json
+          request_id: string
+          response_body: string | null
+          response_status: number | null
+          succeeded: boolean
+          webhook_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          duration_ms?: number | null
+          event: string
+          id?: string
+          org_id: string
+          payload: Json
+          request_id: string
+          response_body?: string | null
+          response_status?: number | null
+          succeeded?: boolean
+          webhook_id: string
+        }
+        Update: {
+          attempted_at?: string
+          duration_ms?: number | null
+          event?: string
+          id?: string
+          org_id?: string
+          payload?: Json
+          request_id?: string
+          response_body?: string | null
+          response_status?: number | null
+          succeeded?: boolean
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "org_outbound_webhooks"
             referencedColumns: ["id"]
           },
         ]
