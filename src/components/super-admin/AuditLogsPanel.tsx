@@ -120,6 +120,7 @@ const AuditLogsPanel = () => {
           <SelectContent>
             <SelectItem value="all">All Entities</SelectItem>
             <SelectItem value="order">Orders</SelectItem>
+            <SelectItem value="cart_submission">Cart Submissions</SelectItem>
             <SelectItem value="organization">Organizations</SelectItem>
             <SelectItem value="user">Users</SelectItem>
             <SelectItem value="payment">Payments</SelectItem>
