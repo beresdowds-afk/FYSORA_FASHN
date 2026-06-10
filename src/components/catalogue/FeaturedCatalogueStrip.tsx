@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShoppingBag, Star, ChevronLeft, ChevronRight, X, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface FeaturedItem {
   id: string;
@@ -50,7 +50,7 @@ export default function FeaturedCatalogueStrip() {
 
   if (loading) {
     return (
-      <div className="fixed top-16 left-0 right-0 z-40 bg-ebony/90 backdrop-blur-md border-b border-primary/10 h-10 flex items-center px-4">
+      <div className="bg-ebony/90 backdrop-blur-md border-b border-primary/10 h-10 flex items-center px-4 shrink-0">
         <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -64,9 +64,9 @@ export default function FeaturedCatalogueStrip() {
       initial={{ height: 0, opacity: 0 }}
       animate={{ height: collapsed ? 36 : 120, opacity: 1 }}
       transition={{ type: "spring", stiffness: 260, damping: 24 }}
-      className="fixed top-16 left-0 right-0 z-40 bg-ebony/90 backdrop-blur-md border-b border-primary/10 overflow-hidden"
+      className="bg-ebony/90 backdrop-blur-md border-b border-primary/10 overflow-hidden shrink-0"
     >
-      {/* Collapsed state — minimal strip */}
+      {/* Collapsed state */}
       {collapsed && (
         <button
           onClick={() => setCollapsed(false)}
@@ -84,7 +84,7 @@ export default function FeaturedCatalogueStrip() {
           {/* Label */}
           <div className="shrink-0 flex flex-col items-center justify-center px-3 gap-1 border-r border-ivory/10 mr-2 h-full">
             <Sparkles size={14} className="text-primary" />
-            <span className="text-[9px] font-bold uppercase tracking-wider text-ivory/70 writing-vertical-lr" style={{ writingMode: "vertical-lr", textOrientation: "mixed" }}>Featured</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-ivory/70" style={{ writingMode: "vertical-lr", textOrientation: "mixed" }}>Featured</span>
           </div>
 
           {/* Scroll buttons */}
@@ -97,7 +97,7 @@ export default function FeaturedCatalogueStrip() {
 
           <div
             ref={scrollRef}
-            className="flex-1 flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth snap-x px-8 py-1"
+            className="flex-1 flex gap-3 overflow-x-auto scroll-smooth snap-x px-8 py-1"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {items.map((it) => (
