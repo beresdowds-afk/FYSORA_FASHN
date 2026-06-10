@@ -37,7 +37,7 @@ type Delivery = {
   id: string; webhook_id: string; event: string; response_status: number | null;
   succeeded: boolean; duration_ms: number | null; attempted_at: string;
   status?: string | null; attempt?: number | null; max_attempts?: number | null;
-  next_retry_at?: string | null; error?: string | null;
+  next_retry_at?: string | null; error?: string | null; idempotency_key?: string | null;
 };
 
 const OrgIntegrationsPanel = ({ orgId }: Props) => {
@@ -61,8 +61,14 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
   // Verify panel state
   const [verifyKey, setVerifyKey] = useState("");
   const [verifyHookId, setVerifyHookId] = useState<string>("");
+  const [verifyEvent, setVerifyEvent] = useState<string>("integration.verify");
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<any>(null);
+
+  // Inline editing of webhook event subscriptions
+  const [editingEventsFor, setEditingEventsFor] = useState<string | null>(null);
+  const [draftEvents, setDraftEvents] = useState<string[]>([]);
+  const [savingEvents, setSavingEvents] = useState(false);
 
   // Delivery filters / replay
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -167,13 +173,35 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
     setVerifying(true);
     setVerifyResult(null);
     const { data, error } = await supabase.functions.invoke("verify-org-integration", {
-      body: { org_id: orgId, api_key: verifyKey.trim(), webhook_id: verifyHookId || undefined },
+      body: {
+        org_id: orgId,
+        api_key: verifyKey.trim(),
+        webhook_id: verifyHookId || undefined,
+        event: verifyHookId ? verifyEvent : undefined,
+      },
     });
     setVerifying(false);
     if (error) { toast.error(error.message); return; }
     setVerifyResult(data);
     if ((data as any)?.ok) toast.success("Integration verified end-to-end");
     else toast.error("Verification failed — see details below");
+  };
+
+  const startEditEvents = (h: Hook) => {
+    setEditingEventsFor(h.id);
+    setDraftEvents([...h.events]);
+  };
+  const saveEventEdits = async () => {
+    if (!editingEventsFor) return;
+    if (draftEvents.length === 0) return toast.error("Select at least one event");
+    setSavingEvents(true);
+    const res = await call({ action: "update_webhook", webhook_id: editingEventsFor, events: draftEvents });
+    setSavingEvents(false);
+    if (res) {
+      toast.success("Event subscriptions updated");
+      setEditingEventsFor(null);
+      load();
+    }
   };
   const deleteHook = async (id: string) => {
     if (!confirm("Delete this webhook endpoint?")) return;
