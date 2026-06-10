@@ -294,6 +294,10 @@ const Auth = () => {
 
       // Privileged platform roles go straight to the Super Admin panel.
       if (platformRoles.length > 0) {
+        toast({
+          title: "Welcome, Super Admin",
+          description: "Routing you to the Super Admin panel — no organization or registration required.",
+        });
         navigate("/super-admin");
         return;
       }
