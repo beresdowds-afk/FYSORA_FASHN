@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOrgMediaGroups, NodeType, MediaAsset, GroupNode } from "@/hooks/useOrgMediaGroups";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Plus, Trash2, Layers, FolderTree, Album, Image as ImageIcon, ChevronRight, Send } from "lucide-react";
-import { useEffect } from "react";
 
 interface Props { orgId: string; currency?: string }
 
