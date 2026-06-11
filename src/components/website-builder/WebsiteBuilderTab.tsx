@@ -1473,6 +1473,10 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       )}
 
       {/* ── Integration ──────────────────────────────────────── */}
+      {activeSection === "library" && (
+        <OrgMediaGroupingManager orgId={org.id} currency={(org as any).currency || "NGN"} />
+      )}
+
       {activeSection === "integration" && (
         <div className="rounded-xl bg-card border border-border p-6 space-y-6">
           <div>
