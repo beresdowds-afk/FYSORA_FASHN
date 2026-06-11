@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import {
-  Globe, Zap, Link2, Eye, Plus, Trash2, Edit2, Save, X, Package,
+  Globe, Zap, Link2, Eye, Plus, Trash2, Edit2, Save, X, Package, Layers,
   ExternalLink, Copy, Key, Crown, Clock, CheckCircle2, AlertCircle,
   ArrowRight, Sparkles, Star, Lock, Palette, Building2, Book
 } from "lucide-react";
 import OrgBrandingPanel from "./OrgBrandingPanel";
 import SocialSyncPanel from "@/components/catalogue/SocialSyncPanel";
+import OrgMediaGroupingManager from "@/components/catalogue/OrgMediaGroupingManager";
 import CompanyOfficersPanel from "./CompanyOfficersPanel";
 import WebsiteBuilderManual from "./WebsiteBuilderManual";
 import WebsiteTemplatePicker from "./WebsiteTemplatePicker";
@@ -744,7 +745,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
   const [proRequest, setProRequest] = useState<WebsiteRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<"plans" | "general" | "branding" | "company" | "catalogue" | "integration" | "guide" | "templates">("plans");
+  const [activeSection, setActiveSection] = useState<"plans" | "general" | "branding" | "company" | "catalogue" | "library" | "integration" | "guide" | "templates">("plans");
   const [orgDetails, setOrgDetails] = useState<{ description?: string | null; email?: string | null; phone?: string | null; address?: string | null; logo_url?: string | null }>({});
   const [editingItem, setEditingItem] = useState<CatalogueItem | null>(null);
   const [addingItem, setAddingItem] = useState(false);
@@ -1009,6 +1010,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
           { id: "branding" as const, icon: Palette, label: "Branding" },
           { id: "company" as const, icon: Building2, label: "Company Info" },
           { id: "catalogue" as const, icon: Package, label: "Catalogue" },
+          { id: "library" as const, icon: Layers, label: "Library" },
           { id: "templates" as const, icon: Sparkles, label: "Templates" },
           { id: "integration" as const, icon: Link2, label: "Integration" },
           { id: "guide" as const, icon: Book, label: "User Guide" },
