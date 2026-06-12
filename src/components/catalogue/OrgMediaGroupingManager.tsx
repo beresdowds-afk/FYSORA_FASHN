@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOrgMediaGroups, NodeType, MediaAsset, GroupNode } from "@/hooks/useOrgMediaGroups";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Plus, Trash2, Layers, FolderTree, Album, Image as ImageIcon, ChevronRight, Send } from "lucide-react";
+import { Upload, Plus, Trash2, Layers, FolderTree, Album, Image as ImageIcon, ChevronRight, Send, FilePlus2 } from "lucide-react";
 
 interface Props { orgId: string; currency?: string }
 
@@ -32,6 +32,11 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishCat, setPublishCat] = useState<string>("");
   const [publishPrice, setPublishPrice] = useState<string>("");
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [reqOpen, setReqOpen] = useState(false);
+  const [reqLabel, setReqLabel] = useState("");
+  const [reqDesc, setReqDesc] = useState("");
 
   useEffect(() => {
     (supabase as any).from("platform_catalogue_categories")
@@ -56,6 +61,29 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
     toast({ title: `${files.length} image(s) uploaded` });
   };
 
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      setTab("library");
+      await onUpload(files);
+    }
+  };
+
+  const submitCategoryRequest = async () => {
+    if (!reqLabel.trim()) return;
+    const uid = (await supabase.auth.getUser()).data.user?.id;
+    const slug = reqLabel.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const { error } = await (supabase as any).from("platform_category_requests").insert({
+      org_id: orgId, requested_by: uid, label: reqLabel.trim(),
+      slug_suggestion: slug, description: reqDesc.trim() || null,
+    });
+    if (error) return toast({ title: "Request failed", description: error.message, variant: "destructive" });
+    toast({ title: "Category request sent to Super Admin" });
+    setReqOpen(false); setReqLabel(""); setReqDesc("");
+  };
+
   const doPublish = async () => {
     const { error, count } = await g.publishToCatalogue(selection, {
       category_id: publishCat || null,
@@ -75,20 +103,52 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
   }, [selection, g]);
 
   return (
-    <Card className="p-4 space-y-4">
+    <Card
+      className={`p-4 space-y-4 transition-colors ${dragActive ? "ring-2 ring-primary bg-primary/5" : ""}`}
+      onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+      onDragLeave={() => setDragActive(false)}
+      onDrop={onDrop}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="font-heading font-semibold text-lg flex items-center gap-2">
             <Layers size={18} className="text-primary" /> Media Library & Grouping
           </h3>
           <p className="text-xs text-muted-foreground">
-            Group images into Design Sets, Collections, and Albums. Publish any node to the org catalogue.
+            Drag &amp; drop product images anywhere on this card, group into Design Sets / Collections / Albums, then publish.
           </p>
         </div>
         <div className="flex items-center gap-2">
           {selection.length > 0 && (
             <Badge variant="secondary">{selection.length} selected · {previewCount} image(s)</Badge>
           )}
+          <Dialog open={reqOpen} onOpenChange={setReqOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline">
+                <FilePlus2 size={14} className="mr-1" /> Request Category
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Request new platform category</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium">Proposed category name</label>
+                  <Input value={reqLabel} onChange={(e) => setReqLabel(e.target.value)} placeholder="e.g. Bridal Wear" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Why is this needed? (optional)</label>
+                  <Textarea rows={3} value={reqDesc} onChange={(e) => setReqDesc(e.target.value)} placeholder="Short justification for the Super Admin..." />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Your request is sent to the Super Admin for approval. You'll be able to use this category once approved.
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setReqOpen(false)}>Cancel</Button>
+                <Button onClick={submitCategoryRequest} disabled={!reqLabel.trim()}>Send Request</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Dialog open={publishOpen} onOpenChange={setPublishOpen}>
             <DialogTrigger asChild>
               <Button size="sm" disabled={selection.length === 0}>
@@ -133,11 +193,22 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
         </TabsList>
 
         <TabsContent value="library" className="space-y-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="file" accept="image/*" multiple className="hidden"
-              onChange={e => onUpload(e.target.files)} />
-            <Button size="sm" asChild><span><Upload size={14} className="mr-1" /> Upload images</span></Button>
-          </label>
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-border hover:border-primary/60 rounded-lg p-6 cursor-pointer text-center transition-colors"
+          >
+            <Upload size={22} className="text-primary" />
+            <p className="text-sm font-medium">Drag &amp; drop images here, or click to browse</p>
+            <p className="text-[11px] text-muted-foreground">Multiple files supported. They land in your Library, ready to group.</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => { onUpload(e.target.files); e.target.value = ""; }}
+            />
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {g.images.map(img => (
               <SelectableCard key={img.id} selected={isSel("image", img.id)}
