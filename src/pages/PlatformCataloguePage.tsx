@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +57,7 @@ interface PlatformCategory { id: string; slug: string; label: string }
 
 const PlatformCataloguePage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -67,6 +68,9 @@ const PlatformCataloguePage = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
   const [platformCategories, setPlatformCategories] = useState<PlatformCategory[]>([]);
+  const [similarOpen, setSimilarOpen] = useState(false);
+  const [similarFocus, setSimilarFocus] = useState<CatalogueItem | null>(null);
+  const [similarItems, setSimilarItems] = useState<CatalogueItem[]>([]);
 
   // Free tour state
   const [toursUsed, setToursUsed] = useState(0);
@@ -137,6 +141,59 @@ const PlatformCataloguePage = () => {
       .select("id,slug,label").eq("is_active", true).order("sort_order")
       .then(({ data }: any) => setPlatformCategories(data || []));
   }, []);
+
+  // Open similar-products modal when ?source_type/source_id present (from Featured strip)
+  useEffect(() => {
+    if (items.length === 0) return;
+    const st = searchParams.get("source_type");
+    const sid = searchParams.get("source_id");
+    const focusId = searchParams.get("focus");
+    if (st && sid) {
+      openSimilarFromSource(st, sid, focusId || undefined);
+    } else if (focusId) {
+      const it = items.find((i) => i.id === focusId);
+      if (it) openSimilar(it);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, searchParams]);
+
+  const openSimilar = async (it: CatalogueItem) => {
+    setSimilarFocus(it);
+    setSimilarOpen(true);
+    const st = (it as any).source_type;
+    const sid = (it as any).source_id;
+    if (st && sid) {
+      await openSimilarFromSource(st, sid, it.id, false);
+    } else {
+      setSimilarItems([it]);
+    }
+  };
+
+  const openSimilarFromSource = async (st: string, sid: string, focusId?: string, openModal = true) => {
+    const { data } = await supabase
+      .from("org_catalogue_items")
+      .select("*, organizations(name)")
+      .eq("source_type", st as any)
+      .eq("source_id", sid)
+      .eq("is_available", true)
+      .order("published_at", { ascending: true });
+    const list = (data || []).map((d: any) => ({ ...d, org_name: d.organizations?.name || "Unknown" }));
+    setSimilarItems(list);
+    const focus = focusId ? list.find((d) => d.id === focusId) : list[0];
+    if (focus) setSimilarFocus(focus as any);
+    if (openModal) setSimilarOpen(true);
+  };
+
+  const closeSimilar = () => {
+    setSimilarOpen(false);
+    setSimilarFocus(null);
+    setSimilarItems([]);
+    if (searchParams.get("source_type") || searchParams.get("focus")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("source_type"); next.delete("source_id"); next.delete("focus");
+      setSearchParams(next, { replace: true });
+    }
+  };
 
   // Featured products (weekly promotion slots) — surfaced at the top of the catalogue.
   useEffect(() => {
@@ -529,8 +586,12 @@ const PlatformCataloguePage = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.02 }}
+                role={readOnly ? undefined : "button"}
+                tabIndex={readOnly ? undefined : 0}
+                onClick={readOnly ? undefined : () => openSimilar(item)}
+                onKeyDown={readOnly ? undefined : (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSimilar(item); } }}
                 className={`rounded-xl bg-card border border-border overflow-hidden group transition-all duration-300 ${
-                  readOnly ? "opacity-90" : "hover:border-primary/30 hover:shadow-gold"
+                  readOnly ? "opacity-90" : "hover:border-primary/30 hover:shadow-gold cursor-pointer"
                 }`}
               >
                 <div className="aspect-[3/4] bg-muted relative overflow-hidden">
@@ -583,6 +644,61 @@ const PlatformCataloguePage = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={similarOpen} onOpenChange={(o) => { if (!o) closeSimilar(); }}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles size={16} className="text-primary" />
+              {similarFocus?.name || "Similar Products"}
+            </DialogTitle>
+            <DialogDescription>
+              {similarItems.length > 1
+                ? `${similarItems.length} products from the same source folder`
+                : "Product details"}
+            </DialogDescription>
+          </DialogHeader>
+          {similarFocus && (
+            <div className="rounded-lg border border-primary/20 overflow-hidden mb-3">
+              <div className="aspect-[16/9] bg-muted">
+                {similarFocus.image_url ? (
+                  <img src={similarFocus.image_url} alt={similarFocus.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={32} className="text-muted-foreground" /></div>
+                )}
+              </div>
+              <div className="p-3">
+                <p className="font-heading font-bold text-sm">{similarFocus.name}</p>
+                <p className="text-xs text-muted-foreground">{similarFocus.org_name}</p>
+                {similarFocus.price != null && (
+                  <p className="text-primary font-bold text-sm mt-1">{similarFocus.currency || "USD"} {Number(similarFocus.price).toLocaleString()}</p>
+                )}
+              </div>
+            </div>
+          )}
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Similar Products</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {similarItems.filter((s) => s.id !== similarFocus?.id).map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSimilarFocus(s)}
+                className="rounded-lg border border-border bg-card overflow-hidden hover:border-primary text-left"
+              >
+                <div className="aspect-square bg-muted">
+                  {s.image_url ? <img src={s.image_url} alt={s.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><ShoppingBag size={20} className="text-muted-foreground" /></div>}
+                </div>
+                <div className="p-2">
+                  <p className="text-xs font-medium truncate">{s.name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{s.org_name}</p>
+                </div>
+              </button>
+            ))}
+            {similarItems.filter((s) => s.id !== similarFocus?.id).length === 0 && (
+              <p className="text-xs text-muted-foreground col-span-full text-center py-4">No other products in this folder.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 

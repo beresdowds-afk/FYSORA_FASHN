@@ -6685,6 +6685,83 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_category_requests: {
+        Row: {
+          approved_category_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          description: string | null
+          id: string
+          label: string
+          org_id: string
+          requested_by: string
+          slug_suggestion: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_category_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          description?: string | null
+          id?: string
+          label: string
+          org_id: string
+          requested_by: string
+          slug_suggestion?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_category_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          description?: string | null
+          id?: string
+          label?: string
+          org_id?: string
+          requested_by?: string
+          slug_suggestion?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_category_requests_approved_category_id_fkey"
+            columns: ["approved_category_id"]
+            isOneToOne: false
+            referencedRelation: "platform_catalogue_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_category_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_category_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_category_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_dns_records: {
         Row: {
           created_at: string
