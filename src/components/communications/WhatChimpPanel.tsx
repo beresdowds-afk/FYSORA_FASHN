@@ -245,7 +245,7 @@ const WhatChimpPanel = ({ orgId, role }: WhatChimpPanelProps) => {
               </div>
               <div>
                 <Label className="text-xs">Media URL (optional)</Label>
-                <Input placeholder="https://example.com/image.jpg" value={waMediaUrl} onChange={e => setWaMediaUrl(e.target.value)} />
+                <ImageUrlField value={waMediaUrl} onChange={setWaMediaUrl} placeholder="https://example.com/image.jpg or upload" folder="whatsapp" />
               </div>
               <Button onClick={sendWhatsApp} disabled={waSending || !waTo || !waMessage} className="w-full gap-1.5">
                 {waSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
@@ -309,7 +309,7 @@ const WhatChimpPanel = ({ orgId, role }: WhatChimpPanelProps) => {
               </div>
               <div>
                 <Label className="text-xs">Media URL (optional)</Label>
-                <Input placeholder="https://example.com/image.jpg" value={socialMediaUrl} onChange={e => setSocialMediaUrl(e.target.value)} />
+                <ImageUrlField value={socialMediaUrl} onChange={setSocialMediaUrl} placeholder="https://example.com/image.jpg or upload" folder="social" />
               </div>
               <Button onClick={postToSocial} disabled={socialSending || !socialContent} className="w-full gap-1.5" variant="hero">
                 {socialSending ? <Loader2 size={14} className="animate-spin" /> : <Share2 size={14} />}
