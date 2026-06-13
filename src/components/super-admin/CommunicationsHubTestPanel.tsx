@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import ImageUrlField from "@/components/shared/ImageUrlField";
 import {
   MessageSquare, PhoneCall, Loader2, ShieldCheck, ShieldAlert,
   CheckCircle2, XCircle, Activity,
