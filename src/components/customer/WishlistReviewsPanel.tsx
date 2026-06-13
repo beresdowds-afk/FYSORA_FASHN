@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ interface Review {
 const WishlistReviewsPanel = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"wishlist" | "reviews">("wishlist");
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -158,11 +160,14 @@ const WishlistReviewsPanel = () => {
               <Heart size={32} className="text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">Your wishlist is empty.</p>
               <p className="text-xs text-muted-foreground mt-1">Browse organisation catalogues to add items.</p>
+              <Button variant="hero" size="sm" className="mt-4" onClick={() => navigate("/platform-catalogue")}>
+                Browse Platform Catalogue
+              </Button>
             </div>
           ) : (
             <div className="grid gap-3">
               {wishlist.map((item) => (
-                <div key={item.id} className="rounded-xl bg-card border border-border p-4 flex items-center gap-4">
+                <div key={item.id} className="rounded-xl bg-card border border-border p-4 flex items-center gap-4 hover:border-primary/30 transition-colors">
                   <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                     {item.item_image ? (
                       <img src={item.item_image} alt={item.item_name} className="w-full h-full object-cover" />
@@ -170,7 +175,11 @@ const WishlistReviewsPanel = () => {
                       <Heart size={20} className="text-muted-foreground" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/platform-catalogue?item=${item.catalogue_item_id}`)}
+                    className="flex-1 min-w-0 text-left"
+                  >
                     <p className="font-medium text-sm truncate">{item.item_name}</p>
                     <p className="text-xs text-muted-foreground">{item.org_name}</p>
                     {item.item_price && (
@@ -178,7 +187,7 @@ const WishlistReviewsPanel = () => {
                         {item.item_price.toLocaleString()} {item.item_currency || "NGN"}
                       </p>
                     )}
-                  </div>
+                  </button>
                   <Button variant="ghost" size="sm" onClick={() => removeWishlistItem(item.id)} className="text-destructive h-8 w-8 p-0">
                     <Trash2 size={14} />
                   </Button>
