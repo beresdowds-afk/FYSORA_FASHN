@@ -16,6 +16,7 @@ import WebsiteBuilderManual from "./WebsiteBuilderManual";
 import WebsiteTemplatePicker from "./WebsiteTemplatePicker";
 import PublishWebsiteButton, { type PublishWebsiteButtonHandle } from "./PublishWebsiteButton";
 import MediaDropzone from "@/components/shared/MediaDropzone";
+import ImageUrlField from "@/components/shared/ImageUrlField";
 import { PaymentFlowTracker } from "@/components/payments/PaymentFlowTracker";
 import { usePaymentFlow } from "@/hooks/usePaymentFlow";
 import type { AppRole } from "@/hooks/useOrganization";
@@ -1177,12 +1178,12 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Hero Image URL</label>
-                <input
-                  value={settings.hero_image_url}
-                  onChange={(e) => setSettings({ ...settings, hero_image_url: e.target.value })}
+                <ImageUrlField
+                  value={settings.hero_image_url || ""}
+                  onChange={(url) => setSettings({ ...settings, hero_image_url: url })}
                   disabled={!canEdit}
-                  placeholder="https://..."
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="https://… or upload hero image"
+                  folder="hero-images"
                 />
               </div>
 

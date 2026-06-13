@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import ImageUrlField from "@/components/shared/ImageUrlField";
 import {
   MessageSquare, PhoneCall, Loader2, ShieldCheck, ShieldAlert,
   CheckCircle2, XCircle, Activity,
@@ -255,7 +256,7 @@ export default function CommunicationsHubTestPanel() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="wa-media">Media URL (optional — forces WhatsApp)</Label>
-                <Input id="wa-media" value={waMediaUrl} onChange={(e) => setWaMediaUrl(e.target.value)} placeholder="https://…/image.png" />
+                <ImageUrlField inputId="wa-media" value={waMediaUrl} onChange={setWaMediaUrl} placeholder="https://…/image.png or upload" folder="whatsapp-test" />
               </div>
 
               <Button onClick={sendTestWhatsApp} disabled={waSending}>
