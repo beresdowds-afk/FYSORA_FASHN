@@ -115,7 +115,8 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
             <Layers size={18} className="text-primary" /> Media Library & Grouping
           </h3>
           <p className="text-xs text-muted-foreground">
-            Drag &amp; drop product images anywhere on this card, group into Design Sets / Collections / Albums, then publish.
+            Copy, drag &amp; drop product images anywhere on this card. A single image can be reused across multiple
+            Design Sets, Collections and Albums — adding it to a group makes a reusable copy, not a move.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -198,8 +199,10 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
             className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-border hover:border-primary/60 rounded-lg p-6 cursor-pointer text-center transition-colors"
           >
             <Upload size={22} className="text-primary" />
-            <p className="text-sm font-medium">Drag &amp; drop images here, or click to browse</p>
-            <p className="text-[11px] text-muted-foreground">Multiple files supported. They land in your Library, ready to group.</p>
+            <p className="text-sm font-medium">Copy, drag &amp; drop images here, or click to browse</p>
+            <p className="text-[11px] text-muted-foreground">
+              Multiple files supported. Each image lives once in your Library and can be re-used as a component of any number of Designs, Collections and Albums.
+            </p>
             <input
               ref={fileInputRef}
               type="file"

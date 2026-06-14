@@ -36,6 +36,7 @@ export interface InvoiceFormData {
   recipient_name: string;
   recipient_email: string;
   recipient_org_id?: string;
+  recipient_user_id?: string;
   currency: string;
   due_date: string;
   notes: string;
@@ -72,6 +73,8 @@ const InvoiceCreatorDialog = ({
   const [saving, setSaving] = useState(false);
   const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState(orgId || "");
+  const [recipientUsers, setRecipientUsers] = useState<{ id: string; display_name: string | null }[]>([]);
+  const [userSearch, setUserSearch] = useState("");
 
   const [form, setForm] = useState<InvoiceFormData>({
     recipient_type: "organization",
@@ -116,6 +119,22 @@ const InvoiceCreatorDialog = ({
       .then(({ data }) => setOrgs(data || []));
   }, [isSuperAdmin, open]);
 
+  // Lookup users by name for the recipient_user_id picker
+  useEffect(() => {
+    if (!open) return;
+    const q = userSearch.trim();
+    if (q.length < 2) { setRecipientUsers([]); return; }
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .ilike("display_name", `%${q}%`)
+        .limit(10);
+      setRecipientUsers(data || []);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [userSearch, open]);
+
   const updateItem = (index: number, field: keyof LineItem, value: string | number) => {
     setForm((prev) => {
       const items = [...prev.items];
@@ -158,13 +177,20 @@ const InvoiceCreatorDialog = ({
     const invoiceOrgId = isSuperAdmin ? (selectedOrgId || null) : orgId;
     const invoiceNumber = `INV-${Date.now().toString(36).toUpperCase()}`;
 
+    // Capture issuer display name
+    const { data: issuerProfile } = await supabase
+      .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+    const creatorName = issuerProfile?.display_name || user.email || null;
+
     const invoiceData = {
       org_id: invoiceOrgId,
       created_by: user.id,
+      creator_name: creatorName,
       recipient_type: form.recipient_type,
       recipient_name: form.recipient_name.trim(),
       recipient_email: form.recipient_email.trim() || null,
       recipient_org_id: form.recipient_org_id || null,
+      recipient_user_id: form.recipient_user_id || null,
       invoice_number: editInvoice?.id ? undefined : invoiceNumber,
       status,
       subtotal,
@@ -314,6 +340,44 @@ const InvoiceCreatorDialog = ({
                 placeholder="email@example.com"
               />
             </div>
+          </div>
+
+          {/* Link to a platform user (so the invoice bears the recipient's user identity) */}
+          <div>
+            <Label>Link to platform user (optional)</Label>
+            <Input
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Search users by name…"
+            />
+            {form.recipient_user_id && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Linked user id: <span className="font-mono">{form.recipient_user_id}</span>{" "}
+                <button type="button" className="underline" onClick={() => setForm((p) => ({ ...p, recipient_user_id: undefined }))}>clear</button>
+              </p>
+            )}
+            {recipientUsers.length > 0 && !form.recipient_user_id && (
+              <div className="mt-1 border border-border rounded-md max-h-40 overflow-auto bg-popover">
+                {recipientUsers.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => {
+                      setForm((p) => ({
+                        ...p,
+                        recipient_user_id: u.id,
+                        recipient_name: p.recipient_name || u.display_name || "",
+                      }));
+                      setRecipientUsers([]); setUserSearch("");
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted/60 flex justify-between gap-2"
+                  >
+                    <span>{u.display_name || "Unnamed"}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">{u.id.slice(0, 8)}…</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

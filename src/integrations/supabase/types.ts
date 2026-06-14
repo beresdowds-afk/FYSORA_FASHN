@@ -1537,6 +1537,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          creator_name: string | null
           currency: string
           discount_amount: number
           due_date: string | null
@@ -1551,6 +1552,7 @@ export type Database = {
           recipient_name: string
           recipient_org_id: string | null
           recipient_type: string
+          recipient_user_id: string | null
           status: string
           subtotal: number
           tax_amount: number
@@ -1561,6 +1563,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          creator_name?: string | null
           currency?: string
           discount_amount?: number
           due_date?: string | null
@@ -1575,6 +1578,7 @@ export type Database = {
           recipient_name: string
           recipient_org_id?: string | null
           recipient_type?: string
+          recipient_user_id?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number
@@ -1585,6 +1589,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          creator_name?: string | null
           currency?: string
           discount_amount?: number
           due_date?: string | null
@@ -1599,6 +1604,7 @@ export type Database = {
           recipient_name?: string
           recipient_org_id?: string | null
           recipient_type?: string
+          recipient_user_id?: string | null
           status?: string
           subtotal?: number
           tax_amount?: number
@@ -2807,6 +2813,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_plan_access: {
+        Row: {
+          created_at: string
+          feature_key: string
+          id: string
+          is_allowed: boolean
+          notes: string | null
+          plan_key: string
+          quota: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          id?: string
+          is_allowed?: boolean
+          notes?: string | null
+          plan_key: string
+          quota?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          id?: string
+          is_allowed?: boolean
+          notes?: string | null
+          plan_key?: string
+          quota?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      feature_role_access: {
+        Row: {
+          created_at: string
+          feature_key: string
+          id: string
+          is_allowed: boolean
+          notes: string | null
+          quota: number | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          id?: string
+          is_allowed?: boolean
+          notes?: string | null
+          quota?: number | null
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          id?: string
+          is_allowed?: boolean
+          notes?: string | null
+          quota?: number | null
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
       }
       featured_product_slots: {
         Row: {

@@ -18,9 +18,11 @@ interface CustomInvoice {
   id: string;
   org_id: string | null;
   created_by: string;
+  creator_name: string | null;
   recipient_type: string;
   recipient_name: string;
   recipient_email: string | null;
+  recipient_user_id: string | null;
   invoice_number: string;
   status: string;
   subtotal: number;
@@ -192,6 +194,15 @@ const InvoiceManagerPanel = ({ orgId, orgName, currency = "NGN", isSuperAdmin = 
     doc.setTextColor(120);
     doc.text(`Type: ${inv.recipient_type.charAt(0).toUpperCase() + inv.recipient_type.slice(1)}`, 20, y);
     y += 8;
+    if (inv.recipient_user_id) {
+      doc.text(`User ID: ${inv.recipient_user_id}`, 20, y);
+      y += 4;
+    }
+    if (inv.creator_name) {
+      doc.setTextColor(150);
+      doc.text(`Issued by: ${inv.creator_name} (${inv.created_by})`, 20, y);
+      y += 6;
+    }
 
     // Divider
     doc.setDrawColor(200);
@@ -413,6 +424,11 @@ const InvoiceManagerPanel = ({ orgId, orgName, currency = "NGN", isSuperAdmin = 
                         <p className="text-sm font-medium">{inv.recipient_name}</p>
                         {inv.recipient_email && (
                           <p className="text-[10px] text-muted-foreground">{inv.recipient_email}</p>
+                        )}
+                        {inv.recipient_user_id && (
+                          <p className="text-[10px] font-mono text-muted-foreground" title="Recipient user id">
+                            uid: {inv.recipient_user_id.slice(0, 8)}…
+                          </p>
                         )}
                       </td>
                       {isSuperAdmin && (

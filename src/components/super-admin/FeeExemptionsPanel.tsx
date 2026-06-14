@@ -87,9 +87,27 @@ export default function FeeExemptionsPanel() {
   }, [tab]);
 
   const toggle = async (subject: Subject, exType: string, next: boolean) => {
+    // Optimistic UI update so the switch responds instantly to touch.
+    const applyLocal = (granting: boolean) => {
+      if (subject.type === "organization") {
+        setOrgExemptions((m) => {
+          const cur = new Set(m[subject.id] ?? []);
+          if (granting) cur.add(exType); else cur.delete(exType);
+          return { ...m, [subject.id]: cur };
+        });
+      } else {
+        setUserExemptions((m) => {
+          const cur = new Set(m[subject.id] ?? []);
+          if (granting) cur.add(exType); else cur.delete(exType);
+          return { ...m, [subject.id]: cur };
+        });
+      }
+    };
+    applyLocal(next);
     try {
       if (subject.type === "organization") {
         if (subject.meta === "Permanent" && !next) {
+          applyLocal(true); // revert
           toast({ title: "Locked", description: "GABULK exemptions are permanent.", variant: "destructive" });
           return;
         }
@@ -117,6 +135,7 @@ export default function FeeExemptionsPanel() {
       }
       toast({ title: next ? "Exemption granted" : "Exemption revoked" });
     } catch (e: any) {
+      applyLocal(!next); // revert on error
       toast({ title: "Failed", description: e.message, variant: "destructive" });
     }
   };

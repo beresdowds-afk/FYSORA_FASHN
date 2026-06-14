@@ -9,6 +9,7 @@ import {
   Layers, Sparkles, Camera, Shield, Info, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
+import FeatureAccessMatrix from "./FeatureAccessMatrix";
 
 const categoryMeta: Record<string, { label: string; icon: typeof CreditCard; description: string }> = {
   payments: { label: "Payments", icon: CreditCard, description: "Payment gateways and processing" },
@@ -73,9 +74,12 @@ export default function FeatureFlagsPanel() {
       <div>
         <h1 className="font-heading font-bold text-2xl">Feature Management</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Manage platform features, AI measurement models, and service toggles.
+          Manage platform features, AI measurement models, service toggles, and per-role / per-plan access privileges.
         </p>
       </div>
+
+      {/* Role & Plan Access Matrix — unified access privilege editor */}
+      <FeatureAccessMatrix />
 
       {/* Overview Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
