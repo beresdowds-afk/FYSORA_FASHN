@@ -44,7 +44,7 @@ export default function FeaturedCatalogueStrip() {
       // recent published catalogue items so the marquee + pull-down still
       // showcase products.
       if (deduped.length === 0) {
-        const { data: recent } = await supabase
+        const { data: recent } = await (supabase as any)
           .from("org_catalogue_items")
           .select("id, name, image_url, category, organizations(name)")
           .eq("is_published", true)
