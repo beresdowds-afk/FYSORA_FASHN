@@ -37,6 +37,37 @@ const AccessGate = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => { void load(); }, [user?.id, currentOrg?.id]);
 
+  // Realtime: as soon as the org's verification status (or the profile's
+  // access_status) is updated by a super admin, clear the gate without
+  // requiring the user to refresh the page.
+  useEffect(() => {
+    if (!user?.id) return;
+    const channels: any[] = [];
+    if (currentOrg?.id) {
+      channels.push(
+        supabase
+          .channel(`accessgate-org-${currentOrg.id}`)
+          .on(
+            "postgres_changes" as any,
+            { event: "UPDATE", schema: "public", table: "organizations", filter: `id=eq.${currentOrg.id}` },
+            (payload: any) => setOrg((prev: any) => ({ ...(prev || {}), ...(payload.new || {}) })),
+          )
+          .subscribe(),
+      );
+    }
+    channels.push(
+      supabase
+        .channel(`accessgate-profile-${user.id}`)
+        .on(
+          "postgres_changes" as any,
+          { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+          (payload: any) => setProfile((prev: any) => ({ ...(prev || {}), ...(payload.new || {}) })),
+        )
+        .subscribe(),
+    );
+    return () => { channels.forEach((c) => supabase.removeChannel(c)); };
+  }, [user?.id, currentOrg?.id]);
+
   if (loading) return <>{children}</>;
 
   const orgStatus = (org as any)?.business_reg_verification_status as string | undefined;
