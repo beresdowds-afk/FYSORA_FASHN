@@ -10911,6 +10911,17 @@ export type Database = {
       }
     }
     Functions: {
+      admin_list_identity_verifications: {
+        Args: never
+        Returns: {
+          display_name: string
+          id: string
+          identity_number: string
+          identity_type: string
+          identity_verification_status: string
+          identity_verified: boolean
+        }[]
+      }
       admin_set_verification_status: {
         Args: {
           _decision: string
@@ -10954,6 +10965,15 @@ export type Database = {
         Returns: number
       }
       ensure_designer_personal_org: { Args: never; Returns: string }
+      get_my_identity: {
+        Args: never
+        Returns: {
+          identity_number: string
+          identity_type: string
+          identity_verification_status: string
+          identity_verified: boolean
+        }[]
+      }
       get_org_role: {
         Args: { _org_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
