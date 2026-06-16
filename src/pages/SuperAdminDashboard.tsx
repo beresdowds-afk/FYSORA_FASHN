@@ -7,6 +7,7 @@ import WebsitePricingPanel from "@/components/super-admin/WebsitePricingPanel";
 import UnifiedPricingPanel from "@/components/super-admin/UnifiedPricingPanel";
 import DataBackupPanel from "@/components/super-admin/DataBackupPanel";
 import FeatureFlagsPanel from "@/components/super-admin/FeatureFlagsPanel";
+import AlbumLimitsPanel from "@/components/super-admin/AlbumLimitsPanel";
 import PlatformUpdatesPanel from "@/components/super-admin/PlatformUpdatesPanel";
 import VoicedTourSyncPanel from "@/components/super-admin/VoicedTourSyncPanel";
 import WebsiteRequestsDashboard from "@/components/super-admin/WebsiteRequestsDashboard";
@@ -92,7 +93,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "accounts_health" | "pending_verifications" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "tenant_sites" | "pricing" | "unified_pricing" | "monetization_switches" | "fee_exemptions" | "backups" | "features" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync" | "sentinel_mcp";
+type TabId = "overview" | "platform_settings" | "carriers" | "organizations" | "users" | "accounts" | "accounts_health" | "pending_verifications" | "revenue" | "invoicing" | "invoice_manager" | "sub_rates" | "tax_compliance" | "regional_management" | "featured" | "keys" | "rates" | "websites" | "tenant_sites" | "pricing" | "unified_pricing" | "monetization_switches" | "fee_exemptions" | "backups" | "features" | "album_limits" | "mobile" | "app_downloads" | "audit" | "support_requests" | "bank_accounts" | "message_center" | "phone_numbers" | "comms_oversight" | "video_billing" | "domain_management" | "identity_verification" | "communications" | "comms_hub_test" | "registrations" | "disputes" | "website_templates" | "platform_updates" | "voiced_tour_sync" | "sentinel_mcp";
 
 interface SidebarItem {
   id: TabId;
@@ -179,7 +180,7 @@ const SuperAdminDashboard = () => {
     );
   }
 
-  const restrictedTabs = new Set(["platform_settings", "sub_rates", "unified_pricing", "pricing", "features", "regional_management", "monetization_switches", "fee_exemptions"]);
+  const restrictedTabs = new Set(["platform_settings", "sub_rates", "unified_pricing", "pricing", "features", "album_limits", "regional_management", "monetization_switches", "fee_exemptions"]);
 
   const allGroups: SidebarGroupDef[] = [
     {
@@ -247,6 +248,7 @@ const SuperAdminDashboard = () => {
         { id: "phone_numbers", icon: Globe, label: "Phone Numbers" },
         { id: "backups", icon: Activity, label: "Backups" },
         { id: "features", icon: Shield, label: "Feature Flags" },
+        { id: "album_limits", icon: Shield, label: "Album Limits" },
         { id: "mobile", icon: Smartphone, label: "Mobile App" },
         { id: "app_downloads", icon: Download, label: "App Downloads" },
         { id: "platform_updates", icon: Radio, label: "Platform Updates" },
@@ -354,6 +356,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "rates" && <ExchangeRatesPanel />}
             {activeTab === "backups" && <DataBackupPanel />}
             {activeTab === "features" && isSuperAdmin && <FeatureFlagsPanel />}
+            {activeTab === "album_limits" && isSuperAdmin && <AlbumLimitsPanel />}
             {activeTab === "mobile" && <MobileAppManagementPanel />}
             {activeTab === "app_downloads" && <AppDownloadsPanel />}
             {activeTab === "platform_updates" && isSuperAdmin && <PlatformUpdatesPanel />}

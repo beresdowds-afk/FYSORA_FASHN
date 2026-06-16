@@ -1,0 +1,40 @@
+name: Security Gate
+
+# Blocks merges to main when new high/critical security findings are detected
+# from local scan results (e.g. Wiz exports, Supabase linter, connector_security_scan).
+#
+# Expected scan files (any subset) — drop them into ./security-scans/ via your CI step
+# or upload as workflow artifacts before this job runs:
+#   security-scans/wiz.json
+#   security-scans/supabase-linter.json
+#   security-scans/connector_security_scan.json
+#   security-scans/*.json   (any other normalized scanner output)
+#
+# The importer normalizes each file to a common shape, deduplicates similar issues
+# across runs by stable fingerprint, then fails the job if any HIGH/CRITICAL
+# issue is new compared to the baseline stored at security-scans/baseline.json.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  security-gate:
+    name: Block on new high/critical findings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Normalize, dedupe & gate scan results
+        run: node scripts/check-security-findings.mjs
+        env:
+          SCAN_DIR: ./security-scans
+          BASELINE_FILE: ./security-scans/baseline.json
+          FAIL_ON_SEVERITY: high

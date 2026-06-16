@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -54,7 +54,9 @@ const App = () => (
           <PaymentReturnHandler />
           <PersistentChrome>
           <Routes>
-            <Route path="/" element={<PlatformCataloguePage />} />
+            {/* Single canonical mount of the platform catalogue at /platform-catalogue.
+                `/` redirects to avoid two duplicate platform-catalogue pages. */}
+            <Route path="/" element={<Navigate to="/platform-catalogue" replace />} />
             <Route path="/landing" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />

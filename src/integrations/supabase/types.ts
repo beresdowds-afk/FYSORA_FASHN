@@ -393,6 +393,54 @@ export type Database = {
           },
         ]
       }
+      album_role_limits: {
+        Row: {
+          allow_collaborative: boolean
+          allow_downloads: boolean
+          allow_public: boolean
+          allow_sharing: boolean
+          created_at: string
+          id: string
+          is_active: boolean
+          max_albums: number
+          max_images_per_album: number
+          notes: string | null
+          plan_tier: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          allow_collaborative?: boolean
+          allow_downloads?: boolean
+          allow_public?: boolean
+          allow_sharing?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_albums?: number
+          max_images_per_album?: number
+          notes?: string | null
+          plan_tier?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          allow_collaborative?: boolean
+          allow_downloads?: boolean
+          allow_public?: boolean
+          allow_sharing?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_albums?: number
+          max_images_per_album?: number
+          notes?: string | null
+          plan_tier?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_fee_settings: {
         Row: {
           created_at: string
