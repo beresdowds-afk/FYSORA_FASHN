@@ -102,7 +102,7 @@ const AdminInvoicingPaymentsPanel = () => {
       supabase.from("payments").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("platform_fee_ledger").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("ai_measurement_bookings").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("profiles").select("id, display_name, identity_number, identity_type, identity_verified, identity_verification_status").not("identity_number", "is", null),
+      (supabase as any).rpc("admin_list_identity_verifications"),
       supabase.from("subscription_invoices").select("*").order("created_at", { ascending: false }).limit(500),
     ]);
 
