@@ -35,7 +35,7 @@ export function useCustomWebsiteTemplates() {
       .from("custom_website_templates")
       .select("*")
       .order("created_at", { ascending: false });
-    setRows((data as CustomTemplateRow[]) ?? []);
+    setRows(((data ?? []) as unknown) as CustomTemplateRow[]);
     setLoading(false);
   }, []);
 
