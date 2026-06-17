@@ -6,6 +6,7 @@ import { Check, Eye, Palette, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getTemplateList, type WebsiteTemplate } from "@/config/websiteTemplates";
 import { motion } from "framer-motion";
+import { useCustomWebsiteTemplates, rowToTemplate } from "@/hooks/useCustomWebsiteTemplates";
 
 interface WebsiteTemplatePickerProps {
   selectedTemplateId?: string;
@@ -22,7 +23,10 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function WebsiteTemplatePicker({ selectedTemplateId, onSelect, readOnly }: WebsiteTemplatePickerProps) {
-  const templates = getTemplateList();
+  const builtin = getTemplateList();
+  const { rows } = useCustomWebsiteTemplates();
+  const custom = rows.filter((r) => r.is_active).map(rowToTemplate);
+  const templates: WebsiteTemplate[] = [...builtin, ...custom];
   const [previewTemplate, setPreviewTemplate] = useState<WebsiteTemplate | null>(null);
 
   return (
