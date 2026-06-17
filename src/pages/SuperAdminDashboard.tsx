@@ -42,6 +42,7 @@ import CarrierSettingsPanel from "@/components/logistics/CarrierSettingsPanel";
 import CustomerRegistrationsTab from "@/components/customers/CustomerRegistrationsTab";
 import DisputesTab from "@/components/disputes/DisputesTab";
 import WebsiteTemplatePicker from "@/components/website-builder/WebsiteTemplatePicker";
+import WebsiteTemplateBuilder from "@/components/super-admin/WebsiteTemplateBuilder";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -376,7 +377,7 @@ const SuperAdminDashboard = () => {
             {activeTab === "sentinel_mcp" && <SentinelMcpSubscriptionPanel />}
             {activeTab === "registrations" && <RegistrationsPanel orgs={orgs} />}
             {activeTab === "disputes" && <DisputesPanel orgs={orgs} />}
-            {activeTab === "website_templates" && <WebsiteTemplatePicker readOnly />}
+            {activeTab === "website_templates" && (isSuperAdmin ? <WebsiteTemplateBuilder /> : <WebsiteTemplatePicker readOnly />)}
           </main>
         </div>
       </div>

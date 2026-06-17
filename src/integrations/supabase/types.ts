@@ -1705,6 +1705,48 @@ export type Database = {
           },
         ]
       }
+      custom_website_templates: {
+        Row: {
+          category: string
+          copy: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          design: Json
+          id: string
+          is_active: boolean
+          name: string
+          template_key: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          copy?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          design?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          template_key: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          copy?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          design?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          template_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customer_opt_outs: {
         Row: {
           created_at: string
@@ -3381,6 +3423,65 @@ export type Database = {
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_credential_events: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_user_id: string | null
+          api_key_prefix: string | null
+          created_at: string
+          environment: string
+          hmac_secret_name: string | null
+          id: string
+          integration_id: string | null
+          integration_name: string
+          request_metadata: Json
+          slug: string
+          superseded_integration_id: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          api_key_prefix?: string | null
+          created_at?: string
+          environment: string
+          hmac_secret_name?: string | null
+          id?: string
+          integration_id?: string | null
+          integration_name: string
+          request_metadata?: Json
+          slug: string
+          superseded_integration_id?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_user_id?: string | null
+          api_key_prefix?: string | null
+          created_at?: string
+          environment?: string
+          hmac_secret_name?: string | null
+          id?: string
+          integration_id?: string | null
+          integration_name?: string
+          request_metadata?: Json
+          slug?: string
+          superseded_integration_id?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_credential_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "external_integrations"
             referencedColumns: ["id"]
           },
         ]
