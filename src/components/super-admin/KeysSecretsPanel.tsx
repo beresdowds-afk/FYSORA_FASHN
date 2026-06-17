@@ -6,6 +6,7 @@ import PlatformSecretsCard from "./PlatformSecretsCard";
 import SecretsManagementCard from "./SecretsManagementCard";
 import PlatformDnsRecordsPanel from "./PlatformDnsRecordsPanel";
 import ExternalIntegrationsPanel from "./ExternalIntegrationsPanel";
+import CredentialAutoGenerator from "./CredentialAutoGenerator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -165,6 +166,9 @@ const KeysSecretsPanel = () => {
 
       {/* External integrations: non-native domains, APIs, FYSORA Companion PWA */}
       <ExternalIntegrationsPanel />
+
+      {/* One-click worker: auto-generate API key + signing secret + webhook URL */}
+      <CredentialAutoGenerator />
 
       {/* Platform DNS Records (A / TXT / CNAME / MX …) for FYSORA FASHN domains */}
       <PlatformDnsRecordsPanel />
