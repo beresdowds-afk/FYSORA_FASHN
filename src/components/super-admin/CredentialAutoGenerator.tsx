@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Wand2, Copy, Check, ShieldAlert, Loader2 } from "lucide-react";
+import { Wand2, Copy, Check, ShieldAlert, Loader2, RefreshCw, History, AlertCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +23,14 @@ const KIND_OPTIONS: { value: Kind; label: string }[] = [
   { value: "worker", label: "Worker / Background Service" },
 ];
 
+// Mirrors server-side validator
+const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9 _\-.\/]{2,59}$/;
+const REVEAL_SECONDS = 90;
+
 interface GeneratedCreds {
   integration_id: string;
+  action: "generated" | "rotated";
+  superseded_integration_id: string | null;
   api_key: string;
   api_key_prefix: string;
   signing_secret: string;
@@ -32,6 +38,18 @@ interface GeneratedCreds {
   webhook_url: string;
   environment: string;
   notice: string;
+}
+
+interface CredentialEvent {
+  id: string;
+  integration_name: string;
+  slug: string;
+  environment: string;
+  action: string;
+  api_key_prefix: string | null;
+  hmac_secret_name: string | null;
+  actor_email: string | null;
+  created_at: string;
 }
 
 const CredentialAutoGenerator = ({ onGenerated }: { onGenerated?: () => void }) => {
@@ -42,25 +60,93 @@ const CredentialAutoGenerator = ({ onGenerated }: { onGenerated?: () => void }) 
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<GeneratedCreds | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [dupCheck, setDupCheck] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [events, setEvents] = useState<CredentialEvent[]>([]);
+  const [secondsLeft, setSecondsLeft] = useState(REVEAL_SECONDS);
 
-  const generate = async () => {
+  // Live name validation
+  useEffect(() => {
+    const trimmed = name.trim();
+    if (!trimmed) { setNameError(null); setDupCheck("idle"); return; }
+    if (!NAME_RE.test(trimmed)) {
+      setNameError("3–60 chars. Letters, digits, spaces, dot, dash, underscore, slash. Must start with letter/digit.");
+      setDupCheck("idle");
+      return;
+    }
+    setNameError(null);
+    setDupCheck("checking");
+    const slug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("external_integrations")
+        .select("id, name, metadata, is_active")
+        .eq("is_active", true)
+        .filter("metadata->>slug", "eq", slug)
+        .filter("metadata->>environment", "eq", environment);
+      setDupCheck((data ?? []).length > 0 ? "taken" : "available");
+    }, 350);
+    return () => clearTimeout(t);
+  }, [name, environment]);
+
+  const loadEvents = async () => {
+    const { data } = await supabase
+      .from("integration_credential_events")
+      .select("id, integration_name, slug, environment, action, api_key_prefix, hmac_secret_name, actor_email, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setEvents((data as CredentialEvent[]) ?? []);
+  };
+  useEffect(() => { loadEvents(); }, []);
+
+  // Reveal countdown
+  useEffect(() => {
+    if (!result) return;
+    setSecondsLeft(REVEAL_SECONDS);
+    const i = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          clearInterval(i);
+          setResult(null);
+          toast({ title: "Credentials cleared", description: "The reveal window expired. Rotate if you need new values." });
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(i);
+  }, [result]);
+
+  const submit = async (action: "generate" | "rotate") => {
+    if (nameError) {
+      toast({ title: "Fix the name first", description: nameError, variant: "destructive" });
+      return;
+    }
     if (!name.trim()) {
-      toast({ title: "Name is required", description: "Enter the website or API name", variant: "destructive" });
+      toast({ title: "Name is required", variant: "destructive" });
+      return;
+    }
+    if (action === "generate" && dupCheck === "taken") {
+      toast({ title: "Name already in use", description: "Use Rotate to regenerate credentials for this name.", variant: "destructive" });
       return;
     }
     setBusy(true);
     const { data, error } = await supabase.functions.invoke("auto-generate-integration-credentials", {
-      body: { name: name.trim(), kind, base_url: baseUrl.trim() || null, environment },
+      body: { action, name: name.trim(), kind, base_url: baseUrl.trim() || null, environment },
     });
     setBusy(false);
     if (error || !data?.ok) {
-      toast({ title: "Generation failed", description: error?.message || data?.error || "Unknown error", variant: "destructive" });
+      toast({ title: action === "rotate" ? "Rotation failed" : "Generation failed", description: error?.message || data?.error || "Unknown error", variant: "destructive" });
       return;
     }
     setResult(data as GeneratedCreds);
-    setName(""); setBaseUrl("");
+    if (action === "generate") { setName(""); setBaseUrl(""); }
     onGenerated?.();
-    toast({ title: "Credentials generated", description: "Copy them now — they will not be shown again." });
+    loadEvents();
+    toast({
+      title: action === "rotate" ? "Credentials rotated" : "Credentials generated",
+      description: `Reveal expires in ${REVEAL_SECONDS}s — old keys invalidated.`,
+    });
   };
 
   const copy = async (label: string, value: string) => {
@@ -69,21 +155,35 @@ const CredentialAutoGenerator = ({ onGenerated }: { onGenerated?: () => void }) 
     setTimeout(() => setCopied(null), 1500);
   };
 
+  const dupStatus = useMemo(() => {
+    if (!name.trim() || nameError) return null;
+    if (dupCheck === "checking") return <span className="text-muted-foreground">Checking…</span>;
+    if (dupCheck === "available") return <span className="text-emerald-600">Name is available ✓</span>;
+    if (dupCheck === "taken") return <span className="text-amber-600">In use — Rotate to regenerate</span>;
+    return null;
+  }, [dupCheck, name, nameError]);
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-5 space-y-4">
       <div className="flex items-center gap-2">
         <Wand2 size={18} className="text-primary" />
-        <h2 className="font-heading font-semibold text-base">Auto-Generate Shareable Credentials</h2>
+        <h2 className="font-heading font-semibold text-base">Auto-Generate / Rotate Integration Credentials</h2>
       </div>
       <p className="text-xs text-muted-foreground">
-        Enter a website or API name. This worker provisions an API key, an HMAC signing secret and a
-        webhook receiver URL in one click. Only hashes are stored — plaintext values are shown once.
+        Enter a website or API name. The worker provisions an API key, HMAC signing secret and a
+        webhook receiver URL in one click. Only SHA-256 hashes are stored; plaintext is shown once
+        for {REVEAL_SECONDS}s, then cleared. Rotating invalidates the previous key, secret and webhook.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1 md:col-span-2">
           <Label className="text-xs">Website / API name</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Partner CRM, FYSORA Companion PWA" maxLength={100} />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Partner CRM, FYSORA Companion PWA" maxLength={60} />
+          <div className="text-[11px] min-h-[16px]">
+            {nameError ? (
+              <span className="text-destructive flex items-center gap-1"><AlertCircle size={11} />{nameError}</span>
+            ) : dupStatus}
+          </div>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Type</Label>
@@ -110,11 +210,43 @@ const CredentialAutoGenerator = ({ onGenerated }: { onGenerated?: () => void }) 
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button size="sm" variant="hero" onClick={generate} disabled={busy}>
-          {busy ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Wand2 size={14} className="mr-1" />}
-          {busy ? "Generating…" : "Generate Credentials"}
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => submit("rotate")} disabled={busy || !!nameError || !name.trim()}>
+          {busy ? <Loader2 size={14} className="mr-1 animate-spin" /> : <RefreshCw size={14} className="mr-1" />}
+          Rotate
         </Button>
+        <Button size="sm" variant="hero" onClick={() => submit("generate")} disabled={busy || !!nameError || dupCheck === "taken"}>
+          {busy ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Wand2 size={14} className="mr-1" />}
+          {busy ? "Working…" : "Generate"}
+        </Button>
+      </div>
+
+      {/* Audit/event log */}
+      <div className="rounded-lg border border-border bg-background/40 p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <History size={14} className="text-muted-foreground" />
+          <span className="text-xs font-medium">Recent credential events</span>
+        </div>
+        {events.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground">No events yet.</p>
+        ) : (
+          <div className="space-y-1 max-h-48 overflow-auto">
+            {events.map((e) => (
+              <div key={e.id} className="flex items-center justify-between text-[11px] gap-2 px-1 py-1 border-b border-border/40 last:border-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase ${e.action === "rotated" ? "bg-amber-500/15 text-amber-600" : "bg-emerald-500/15 text-emerald-600"}`}>{e.action}</span>
+                  <span className="font-medium truncate">{e.integration_name}</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">{e.environment}</span>
+                  {e.api_key_prefix && <span className="font-mono text-muted-foreground">{e.api_key_prefix}…</span>}
+                </div>
+                <div className="text-muted-foreground whitespace-nowrap">
+                  {e.actor_email ?? "—"} · {new Date(e.created_at).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <Dialog open={!!result} onOpenChange={(o) => !o && setResult(null)}>
@@ -124,7 +256,9 @@ const CredentialAutoGenerator = ({ onGenerated }: { onGenerated?: () => void }) 
               <ShieldAlert size={18} className="text-amber-500" />
               One-Time Credential Display
             </DialogTitle>
-            <DialogDescription>{result?.notice}</DialogDescription>
+            <DialogDescription className="flex items-center gap-2">
+              <Clock size={12} /> {result?.notice} Reveal closes in <b>{secondsLeft}s</b>.
+            </DialogDescription>
           </DialogHeader>
           {result && (
             <div className="space-y-3">
@@ -149,6 +283,9 @@ const CredentialAutoGenerator = ({ onGenerated }: { onGenerated?: () => void }) 
                 Share the API Key and Signing Secret with the external system. The Webhook URL is where they
                 must POST events, signing the body with HMAC-SHA256 using the signing secret in the
                 <code className="font-mono mx-1">x-fysora-signature</code> header.
+                {result.action === "rotated" && (
+                  <div className="mt-2 text-amber-700">Previous credentials for this name have been invalidated.</div>
+                )}
               </div>
             </div>
           )}
