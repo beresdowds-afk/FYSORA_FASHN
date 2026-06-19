@@ -8011,6 +8011,164 @@ export type Database = {
         }
         Relationships: []
       }
+      rest_api_endpoints: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          integration_id: string
+          is_public_facing: boolean
+          method: Database["public"]["Enums"]["rest_endpoint_method"]
+          name: string
+          path: string
+          request_schema: Json
+          requires_auth: boolean
+          response_schema: Json
+          sample_payload: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          integration_id: string
+          is_public_facing?: boolean
+          method?: Database["public"]["Enums"]["rest_endpoint_method"]
+          name: string
+          path: string
+          request_schema?: Json
+          requires_auth?: boolean
+          response_schema?: Json
+          sample_payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          integration_id?: string
+          is_public_facing?: boolean
+          method?: Database["public"]["Enums"]["rest_endpoint_method"]
+          name?: string
+          path?: string
+          request_schema?: Json
+          requires_auth?: boolean
+          response_schema?: Json
+          sample_payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rest_api_endpoints_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "rest_api_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rest_api_integrations: {
+        Row: {
+          auth_header_name: string | null
+          auth_type: Database["public"]["Enums"]["rest_integration_auth_type"]
+          base_url: string
+          created_at: string
+          created_by: string | null
+          default_headers: Json
+          default_query_params: Json
+          environment: Database["public"]["Enums"]["rest_integration_environment"]
+          health_check_path: string | null
+          health_status: Database["public"]["Enums"]["rest_integration_health"]
+          id: string
+          is_active: boolean
+          last_health_check_at: string | null
+          last_health_response_ms: number | null
+          linked_external_integration_id: string | null
+          linked_platform_api_key_id: string | null
+          name: string
+          notes: string | null
+          rate_limit_per_minute: number
+          retry_count: number
+          scope: Database["public"]["Enums"]["rest_integration_scope"]
+          slug: string
+          target_label: string
+          timeout_ms: number
+          updated_at: string
+        }
+        Insert: {
+          auth_header_name?: string | null
+          auth_type?: Database["public"]["Enums"]["rest_integration_auth_type"]
+          base_url: string
+          created_at?: string
+          created_by?: string | null
+          default_headers?: Json
+          default_query_params?: Json
+          environment?: Database["public"]["Enums"]["rest_integration_environment"]
+          health_check_path?: string | null
+          health_status?: Database["public"]["Enums"]["rest_integration_health"]
+          id?: string
+          is_active?: boolean
+          last_health_check_at?: string | null
+          last_health_response_ms?: number | null
+          linked_external_integration_id?: string | null
+          linked_platform_api_key_id?: string | null
+          name: string
+          notes?: string | null
+          rate_limit_per_minute?: number
+          retry_count?: number
+          scope: Database["public"]["Enums"]["rest_integration_scope"]
+          slug: string
+          target_label: string
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_header_name?: string | null
+          auth_type?: Database["public"]["Enums"]["rest_integration_auth_type"]
+          base_url?: string
+          created_at?: string
+          created_by?: string | null
+          default_headers?: Json
+          default_query_params?: Json
+          environment?: Database["public"]["Enums"]["rest_integration_environment"]
+          health_check_path?: string | null
+          health_status?: Database["public"]["Enums"]["rest_integration_health"]
+          id?: string
+          is_active?: boolean
+          last_health_check_at?: string | null
+          last_health_response_ms?: number | null
+          linked_external_integration_id?: string | null
+          linked_platform_api_key_id?: string | null
+          name?: string
+          notes?: string | null
+          rate_limit_per_minute?: number
+          retry_count?: number
+          scope?: Database["public"]["Enums"]["rest_integration_scope"]
+          slug?: string
+          target_label?: string
+          timeout_ms?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rest_api_integrations_linked_external_integration_id_fkey"
+            columns: ["linked_external_integration_id"]
+            isOneToOne: false
+            referencedRelation: "external_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rest_api_integrations_linked_platform_api_key_id_fkey"
+            columns: ["linked_platform_api_key_id"]
+            isOneToOne: false
+            referencedRelation: "platform_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sentinel_agent_incidents: {
         Row: {
           agent_key: string
@@ -11225,6 +11383,20 @@ export type Database = {
         | "completed"
         | "delivered"
         | "cancelled"
+      rest_endpoint_method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
+      rest_integration_auth_type:
+        | "none"
+        | "api_key_header"
+        | "bearer_token"
+        | "basic_auth"
+        | "hmac_signed"
+        | "oauth2_client_credentials"
+      rest_integration_environment: "live" | "test" | "staging"
+      rest_integration_health: "unknown" | "healthy" | "degraded" | "down"
+      rest_integration_scope:
+        | "external_service"
+        | "internal_website"
+        | "internal_app"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -11373,6 +11545,22 @@ export const Constants = {
         "completed",
         "delivered",
         "cancelled",
+      ],
+      rest_endpoint_method: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      rest_integration_auth_type: [
+        "none",
+        "api_key_header",
+        "bearer_token",
+        "basic_auth",
+        "hmac_signed",
+        "oauth2_client_credentials",
+      ],
+      rest_integration_environment: ["live", "test", "staging"],
+      rest_integration_health: ["unknown", "healthy", "degraded", "down"],
+      rest_integration_scope: [
+        "external_service",
+        "internal_website",
+        "internal_app",
       ],
     },
   },
