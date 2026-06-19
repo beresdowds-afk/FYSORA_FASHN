@@ -6240,6 +6240,42 @@ export type Database = {
           },
         ]
       }
+      org_website_template_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          consequences: Json
+          created_at: string
+          from_template_id: string | null
+          id: string
+          metadata: Json
+          org_id: string
+          to_template_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          consequences?: Json
+          created_at?: string
+          from_template_id?: string | null
+          id?: string
+          metadata?: Json
+          org_id: string
+          to_template_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          consequences?: Json
+          created_at?: string
+          from_template_id?: string | null
+          id?: string
+          metadata?: Json
+          org_id?: string
+          to_template_id?: string | null
+        }
+        Relationships: []
+      }
       org_websites: {
         Row: {
           accent_color: string | null
@@ -6257,12 +6293,19 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_enabled: boolean
+          is_published: boolean
+          last_published_at: string | null
+          last_template_change_by: string | null
+          last_unpublished_at: string | null
           linkedin_url: string | null
           mission_statement: string | null
           mode: string
           org_id: string
           our_story: string | null
           public_website_url: string | null
+          published_template_id: string | null
+          published_template_version: number
+          selected_template_id: string | null
           tagline: string | null
           theme: string
           tiktok_url: string | null
@@ -6289,12 +6332,19 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
+          is_published?: boolean
+          last_published_at?: string | null
+          last_template_change_by?: string | null
+          last_unpublished_at?: string | null
           linkedin_url?: string | null
           mission_statement?: string | null
           mode?: string
           org_id: string
           our_story?: string | null
           public_website_url?: string | null
+          published_template_id?: string | null
+          published_template_version?: number
+          selected_template_id?: string | null
           tagline?: string | null
           theme?: string
           tiktok_url?: string | null
@@ -6321,12 +6371,19 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
+          is_published?: boolean
+          last_published_at?: string | null
+          last_template_change_by?: string | null
+          last_unpublished_at?: string | null
           linkedin_url?: string | null
           mission_statement?: string | null
           mode?: string
           org_id?: string
           our_story?: string | null
           public_website_url?: string | null
+          published_template_id?: string | null
+          published_template_version?: number
+          selected_template_id?: string | null
           tagline?: string | null
           theme?: string
           tiktok_url?: string | null
