@@ -14,6 +14,7 @@ import OrgMediaGroupingManager from "@/components/catalogue/OrgMediaGroupingMana
 import CompanyOfficersPanel from "./CompanyOfficersPanel";
 import WebsiteBuilderManual from "./WebsiteBuilderManual";
 import WebsiteTemplatePicker from "./WebsiteTemplatePicker";
+import OrgTemplatePublishPanel from "./OrgTemplatePublishPanel";
 import PublishWebsiteButton, { type PublishWebsiteButtonHandle } from "./PublishWebsiteButton";
 import MediaDropzone from "@/components/shared/MediaDropzone";
 import ImageUrlField from "@/components/shared/ImageUrlField";
