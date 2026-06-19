@@ -20,7 +20,7 @@ interface Props {
 
 type Consequence = { label: string; severity: "info" | "warning" | "breaking" };
 
-function diffTemplates(prev: WebsiteTemplate | null, next: WebsiteTemplate): Consequence[] {
+export function diffTemplates(prev: WebsiteTemplate | null, next: WebsiteTemplate): Consequence[] {
   if (!prev) return [{ label: `Initial template "${next.name}" will be published`, severity: "info" }];
   if (prev.id === next.id) return [];
   const out: Consequence[] = [];
