@@ -1567,12 +1567,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
 
       {/* ── Templates ────────────────────────────────────────── */}
       {activeSection === "templates" && (
-        <WebsiteTemplatePicker
-          selectedTemplateId={settings.theme === "light" ? "hertunba-luxe" : "dark-atelier"}
-          onSelect={(templateId) => {
-            toast({ title: "Template selected", description: `"${templateId}" will be applied when you save settings.` });
-          }}
-        />
+        <OrgTemplatePublishPanel org={{ id: org.id, name: org.name }} />
       )}
 
       {/* ── User Guide ───────────────────────────────────────── */}
