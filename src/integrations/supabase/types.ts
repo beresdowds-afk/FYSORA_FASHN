@@ -3475,6 +3475,8 @@ export type Database = {
           created_at: string
           customer_id: string | null
           description: string | null
+          evidence_scan: Json
+          evidence_status: string
           evidence_urls: string[]
           id: string
           organization_id: string | null
@@ -3500,6 +3502,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           description?: string | null
+          evidence_scan?: Json
+          evidence_status?: string
           evidence_urls?: string[]
           id?: string
           organization_id?: string | null
@@ -3525,6 +3529,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           description?: string | null
+          evidence_scan?: Json
+          evidence_status?: string
           evidence_urls?: string[]
           id?: string
           organization_id?: string | null
@@ -11892,6 +11898,19 @@ export type Database = {
         Args: { _key_id: string; _new_hash: string; _new_prefix: string }
         Returns: Json
       }
+      transition_insurance_claim: {
+        Args: {
+          _amount_approved?: number
+          _claim_id: string
+          _new_status: string
+          _notes?: string
+        }
+        Returns: Json
+      }
+      update_claim_evidence_scan: {
+        Args: { _claim_id: string; _scan?: Json; _status: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
@@ -11913,6 +11932,7 @@ export type Database = {
         | "paid"
         | "expired"
         | "cancelled"
+        | "evidence_requested"
       insurance_claim_type:
         | "delivery_failure"
         | "wrong_item"
@@ -12094,6 +12114,7 @@ export const Constants = {
         "paid",
         "expired",
         "cancelled",
+        "evidence_requested",
       ],
       insurance_claim_type: [
         "delivery_failure",
