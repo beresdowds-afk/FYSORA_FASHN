@@ -82,3 +82,11 @@ Architect for millions of users, multi-country operations, multiple currencies, 
 5. All ecosystem services operate as a unified commercial platform.
 6. No direct Companion ↔ iFYSORA communication exists.
 7. FYSORA FASHN remains the sole governance and revenue authority.
+
+---
+
+## Related Documents
+- [Authentication & SSO](Authentication_SSO.md) — how unified identity enforces governance at the user level.
+- [API Synchronization](API_Synchronization.md) — data flows that keep ecosystem partners in lockstep with FYSORA FASHN.
+- [Commercialization & Subscription](Commercialization_Subscription.md) — how revenue authority is operationalized through billing.
+- [Back to Index](index.md)

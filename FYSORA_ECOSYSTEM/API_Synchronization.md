@@ -108,3 +108,11 @@ This allows microservices to react without polling.
 - JWT validation required for all authenticated endpoints.
 - Internal endpoints (e.g., health checks) may use IP whitelisting.
 - API keys for application identification (iFYSORA, Companion) with different permission scopes.
+
+---
+
+## Related Documents
+- [Ecosystem Governance](Ecosystem_Governance.md) — rules that data synchronization must honor.
+- [Authentication & SSO](Authentication_SSO.md) — identity tokens consumed by every endpoint.
+- [Commercialization & Subscription](Commercialization_Subscription.md) — billing and subscription events propagated through these APIs.
+- [Back to Index](index.md)

@@ -68,3 +68,11 @@ All endpoints must verify that the requesting application is part of the ecosyst
 ## Cross-Origin Considerations
 - Use CORS policies that allow requests from the three approved domains.
 - CSRF protection (e.g., CSRF tokens, SameSite cookies).
+
+---
+
+## Related Documents
+- [Ecosystem Governance](Ecosystem_Governance.md) — the authority model that SSO enforces.
+- [API Synchronization](API_Synchronization.md) — token validation and identity propagation across services.
+- [Commercialization & Subscription](Commercialization_Subscription.md) — subscription entitlements resolved at the identity layer.
+- [Back to Index](index.md)
