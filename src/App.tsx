@@ -35,6 +35,7 @@ import HelpCatalogue from "./pages/HelpCatalogue";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import FysoraEcosystemDocs from "./pages/FysoraEcosystemDocs";
+import ClaimTrackingPage from "./pages/ClaimTrackingPage";
 import PlatformUpdateWatcher from "@/components/platform/PlatformUpdateWatcher";
 import TourSyncWorker from "@/components/platform/TourSyncWorker";
 import PaymentReturnHandler from "@/components/payments/PaymentReturnHandler";
@@ -89,6 +90,7 @@ const App = () => (
             <Route path="/help/catalogue" element={<HelpCatalogue />} />
             <Route path="/fysora-ecosystem" element={<FysoraEcosystemDocs />} />
             <Route path="/fysora-ecosystem/:doc" element={<FysoraEcosystemDocs />} />
+            <Route path="/claims/:id" element={<ClaimTrackingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </PersistentChrome>

@@ -17,6 +17,7 @@ import InvoiceManagerPanel from "@/components/invoices/InvoiceManagerPanel";
 import { useOrgSubscription } from "@/hooks/useSubscription";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import OrdersTab from "@/components/orders/OrdersTab";
+import RiskScoreCard from "@/components/insurance/RiskScoreCard";
 import CustomersTab from "@/components/customers/CustomersTab";
 import InviteMemberDialog from "@/components/members/InviteMemberDialog";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -342,6 +343,9 @@ const OverviewTab = ({ org, role }: { org: any; role: AppRole | null }) => {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <h2 className="font-heading font-bold text-2xl mb-6">Dashboard Overview</h2>
+      <div className="mb-6">
+        <RiskScoreCard orgId={org.id} />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { icon: ShoppingBag, label: "Orders", value: loading ? "…" : String(stats.activeOrders), desc: "Active orders", color: "text-primary" },

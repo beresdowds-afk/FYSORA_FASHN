@@ -15,6 +15,10 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useOrderPolicy } from "@/hooks/useInsurance";
+import ProtectedBadge from "@/components/insurance/ProtectedBadge";
+import ReportIssueDialog from "@/components/insurance/ReportIssueDialog";
+import { ShieldAlert } from "lucide-react";
 
 interface InvoiceSettings {
   invoice_address?: string | null;
@@ -46,6 +50,8 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
   const { recordPayment } = usePayments(orgId, order?.id);
   const { createNotification } = useNotifications();
   const [initiatingPayment, setInitiatingPayment] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const { data: policy } = useOrderPolicy(order?.id);
   const canManage = role === "org_admin" || role === "manager" || role === "super_admin";
   const canUpdateStatus = canManage || role === "tailor";
 
@@ -114,6 +120,7 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
   const showInvoice = ["completed", "delivered"].includes(order.status);
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader>
@@ -132,6 +139,7 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColors[order.status as OrderStatus]}`}>
                 {statusLabels[order.status as OrderStatus]}
               </span>
+              {policy && <ProtectedBadge size="md" />}
               {nextStatus && canUpdateStatus && (
                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onStatusChange(order.id, nextStatus)}>
                   Move to {statusLabels[nextStatus]} <ArrowRight size={12} className="ml-1" />
@@ -139,6 +147,12 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
               )}
               {showInvoice && (
                 <InvoiceGenerator order={order} orgName={orgName || "FYSORA FASHN (Fashion Stitches Africa)"} orgSettings={orgSettings} />
+              )}
+              {policy && (
+                <Button size="sm" variant="outline" className="h-7 text-xs"
+                  onClick={() => setReportOpen(true)}>
+                  <ShieldAlert size={12} className="mr-1" /> Report Issue
+                </Button>
               )}
             </div>
           </div>
@@ -349,6 +363,15 @@ const OrderDetailSheet = ({ order, open, onOpenChange, role, tailors, onStatusCh
         </div>
       </SheetContent>
     </Sheet>
+    {policy && (
+      <ReportIssueDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        policy={policy as any}
+        orderTitle={order.title}
+      />
+    )}
+  </>
   );
 };
 

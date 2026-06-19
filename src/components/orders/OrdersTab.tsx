@@ -19,6 +19,8 @@ import CurrencyDisplay from "@/components/shared/CurrencyDisplay";
 import CartSubmissionLog from "./CartSubmissionLog";
 import CatalogueCartGuide from "@/components/help/CatalogueCartGuide";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import ProtectedBadge from "@/components/insurance/ProtectedBadge";
+import { useOrderPoliciesMap } from "@/hooks/useInsurance";
 
 const exportOrdersCSV = (orders: Order[], currency: string) => {
   const headers = ["Order Number", "Title", "Status", "Customer", "Tailor", "Due Date", "Amount", "Currency", "Created"];
@@ -102,6 +104,8 @@ const OrdersTab = ({ orgId, currency, role, orgName, orgSettings }: OrdersTabPro
     }
     return result;
   }, [orders, statusFilter, paymentFilter, searchQuery, dateFrom, dateTo]);
+
+  const { data: policiesMap = {} } = useOrderPoliciesMap(filteredOrders.map((o) => o.id));
 
   const hasFilters = searchQuery || dateFrom || dateTo || statusFilter !== "all" || paymentFilter !== "all";
   const clearFilters = () => { setSearchQuery(""); setDateFrom(undefined); setDateTo(undefined); setStatusFilter("all"); setPaymentFilter("all"); };
@@ -318,7 +322,10 @@ const OrdersTab = ({ orgId, currency, role, orgName, orgSettings }: OrdersTabPro
                     onClick={() => openDetail(order)}
                   >
                     <td className="px-4 py-3">
-                      <p className="text-sm font-medium">{order.title}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium">{order.title}</p>
+                        {policiesMap[order.id] && <ProtectedBadge />}
+                      </div>
                       <p className="text-[10px] text-muted-foreground">{order.order_number}</p>
                     </td>
                     <td className="px-4 py-3">
