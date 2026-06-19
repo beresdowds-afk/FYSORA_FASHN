@@ -13,7 +13,7 @@ import SocialSyncPanel from "@/components/catalogue/SocialSyncPanel";
 import OrgMediaGroupingManager from "@/components/catalogue/OrgMediaGroupingManager";
 import CompanyOfficersPanel from "./CompanyOfficersPanel";
 import WebsiteBuilderManual from "./WebsiteBuilderManual";
-import WebsiteTemplatePicker from "./WebsiteTemplatePicker";
+import OrgTemplatePublishPanel from "./OrgTemplatePublishPanel";
 import PublishWebsiteButton, { type PublishWebsiteButtonHandle } from "./PublishWebsiteButton";
 import MediaDropzone from "@/components/shared/MediaDropzone";
 import ImageUrlField from "@/components/shared/ImageUrlField";
@@ -1566,12 +1566,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
 
       {/* ── Templates ────────────────────────────────────────── */}
       {activeSection === "templates" && (
-        <WebsiteTemplatePicker
-          selectedTemplateId={settings.theme === "light" ? "hertunba-luxe" : "dark-atelier"}
-          onSelect={(templateId) => {
-            toast({ title: "Template selected", description: `"${templateId}" will be applied when you save settings.` });
-          }}
-        />
+        <OrgTemplatePublishPanel org={{ id: org.id, name: org.name }} />
       )}
 
       {/* ── User Guide ───────────────────────────────────────── */}
