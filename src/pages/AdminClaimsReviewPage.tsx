@@ -36,7 +36,7 @@ function statusVariant(status: string): "default" | "secondary" | "destructive" 
 
 export default function AdminClaimsReviewPage() {
   const { user, loading } = useAuth();
-  const { role } = useUserGlobalRole();
+  const { isSuperAdmin, isSuperAssistant, loading: roleLoading } = useUserGlobalRole();
   const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any | null>(null);
@@ -51,11 +51,9 @@ export default function AdminClaimsReviewPage() {
       c.description?.toLowerCase().includes(q));
   }, [claims, search]);
 
-  if (loading) return <div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Loading…</div>;
+  if (loading || roleLoading) return <div className="container mx-auto px-4 py-16 text-center text-muted-foreground">Loading…</div>;
   if (!user) return <Navigate to="/auth" replace />;
-  if (role && role !== "super_admin" && role !== "super_assistant") {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (!isSuperAdmin && !isSuperAssistant) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-6 space-y-6">
