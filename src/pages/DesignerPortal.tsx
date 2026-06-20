@@ -17,6 +17,7 @@ import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel"
 import InvoiceManagerPanel from "@/components/invoices/InvoiceManagerPanel";
 import PaymentGatewayPanel from "@/components/settings/PaymentGatewayPanel";
 import DashboardBillingPanel from "@/components/payments/DashboardBillingPanel";
+import OrgTemplatePublishPanel from "@/components/website-builder/OrgTemplatePublishPanel";
 import {
   LogOut, Package, Clock, BarChart3, Palette, FileText,
   Wallet, User, ShoppingBag, CheckCircle2, ArrowRight,
