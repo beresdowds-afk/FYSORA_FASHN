@@ -5,13 +5,15 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useClaim, useClaimActions, usePostClaimMessage, useRateClaim, useRealtimeClaim } from "@/hooks/useInsurance";
+import { useClaim, useClaimActions, useRateClaim, useRealtimeClaim } from "@/hooks/useInsurance";
 import { useInsuranceConfig } from "@/hooks/useInsuranceConfig";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
-import { ArrowLeft, Send, Star, ShieldCheck, Clock, CheckCircle2, XCircle, FileText, ShieldAlert, Loader2 } from "lucide-react";
+import { ArrowLeft, Star, ShieldCheck, Clock, FileText, ShieldAlert, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ClaimChatPanel from "@/components/insurance/ClaimChatPanel";
+import ClaimAuditTimeline from "@/components/insurance/ClaimAuditTimeline";
 
 const FLOW = ["submitted", "reviewing", "evidence_requested", "approved", "paid"] as const;
 const FLOW_LABELS: Record<(typeof FLOW)[number], string> = {
@@ -43,23 +45,17 @@ const EVIDENCE_BADGE: Record<string, { label: string; cls: string; icon: any }> 
 
 export default function ClaimTrackingPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const { toast } = useToast();
   const { data: claim, isLoading } = useClaim(id);
   const { data: actions = [] } = useClaimActions(id);
   useRealtimeClaim(id);
   const { data: cfg } = useInsuranceConfig();
-  const post = usePostClaimMessage();
   const rate = useRateClaim();
 
-  const [draft, setDraft] = useState("");
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
 
-  const timeline = useMemo(
-    () => (actions ?? []).filter((a: any) => a.action_type !== "message"),
-    [actions],
-  );
   const messages = useMemo(
     () => (actions ?? []).filter((a: any) => a.action_type === "message"),
     [actions],
@@ -93,12 +89,6 @@ export default function ClaimTrackingPage() {
   const evStatus = (claim.evidence_status ?? (claim.evidence_urls?.length ? "pending" : "skipped")) as keyof typeof EVIDENCE_BADGE;
   const evMeta = EVIDENCE_BADGE[evStatus] ?? EVIDENCE_BADGE.pending;
   const EvIcon = evMeta.icon;
-
-  const send = async () => {
-    if (!draft.trim()) return;
-    await post.mutateAsync({ claimId: claim.id, message: draft.trim() });
-    setDraft("");
-  };
 
   const submitRating = async () => {
     if (!rating) return;
@@ -167,35 +157,9 @@ export default function ClaimTrackingPage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Timeline</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Audit timeline</CardTitle></CardHeader>
           <CardContent>
-            <ol className="relative space-y-4 border-l border-border pl-4">
-              <li className="relative">
-                <span className="absolute -left-[21px] flex h-3 w-3 rounded-full bg-[hsl(43,65%,52%)]" />
-                <p className="text-sm font-medium">Claim submitted</p>
-                <p className="text-xs text-muted-foreground">{format(new Date(claim.created_at), "PPp")}</p>
-              </li>
-              {timeline.map((a: any) => (
-                <li key={a.id} className="relative">
-                  <span className={cn(
-                    "absolute -left-[21px] flex h-3 w-3 rounded-full",
-                    a.action_type === "rejected" ? "bg-destructive" : "bg-[hsl(152,100%,26%)]",
-                  )} />
-                  <p className="text-sm font-medium capitalize">{a.action_type.replace("_", " ")}</p>
-                  {a.description && <p className="text-xs">{a.description}</p>}
-                  <p className="text-xs text-muted-foreground">{format(new Date(a.created_at), "PPp")}</p>
-                </li>
-              ))}
-              {isTerminal && (
-                <li className="relative">
-                  <span className="absolute -left-[21px] flex h-3 w-3 rounded-full bg-muted-foreground" />
-                  <p className="text-sm font-medium flex items-center gap-1">
-                    {claim.status === "paid" ? <CheckCircle2 size={14} className="text-[hsl(152,100%,26%)]" /> : <XCircle size={14} className="text-destructive" />}
-                    Resolved
-                  </p>
-                </li>
-              )}
-            </ol>
+            <ClaimAuditTimeline claimId={claim.id} variant="customer" />
 
             {claim.evidence_urls?.length > 0 && (
               <div className="mt-4">
@@ -215,39 +179,7 @@ export default function ClaimTrackingPage() {
         <Card className="flex flex-col">
           <CardHeader><CardTitle className="text-base">Chat with claims team</CardTitle></CardHeader>
           <CardContent className="flex flex-1 flex-col gap-3">
-            <div className="flex-1 space-y-2 overflow-y-auto rounded border border-border bg-muted/20 p-3 min-h-[200px] max-h-[320px]">
-              {messages.length === 0 ? (
-                <p className="text-center text-xs text-muted-foreground">No messages yet.</p>
-              ) : messages.map((m: any) => {
-                const mine = m.performed_by === user?.id;
-                return (
-                  <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
-                    <div className={cn(
-                      "max-w-[80%] rounded-lg px-3 py-1.5 text-sm",
-                      mine ? "bg-primary text-primary-foreground" : "bg-card border border-border",
-                    )}>
-                      <p>{m.description}</p>
-                      <p className={cn("text-[10px] mt-0.5", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                        {formatDistanceToNow(new Date(m.created_at))} ago
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex gap-2">
-              <Textarea
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="Type a message…"
-                rows={2}
-                className="resize-none"
-                onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
-              />
-              <Button onClick={send} disabled={!draft.trim() || post.isPending} size="icon">
-                <Send size={14} />
-              </Button>
-            </div>
+            <ClaimChatPanel claimId={claim.id} messages={messages as any} />
           </CardContent>
         </Card>
       </div>
