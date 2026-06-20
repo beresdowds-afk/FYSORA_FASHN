@@ -21,7 +21,7 @@ interface Props {
 type Consequence = { label: string; severity: "info" | "warning" | "breaking" };
 
 export function diffTemplates(prev: WebsiteTemplate | null, next: WebsiteTemplate): Consequence[] {
-  if (!prev) return [{ label: `Initial template "${next.name}" will be published`, severity: "info" }];
+  if (!prev) return [{ label: `Initial template "${next.name}" will be published.`, severity: "info" }];
   if (prev.id === next.id) return [];
   const out: Consequence[] = [];
   if (prev.design.heroStyle !== next.design.heroStyle) out.push({ label: `Hero layout changes: ${prev.design.heroStyle} → ${next.design.heroStyle}`, severity: "warning" });
@@ -34,7 +34,12 @@ export function diffTemplates(prev: WebsiteTemplate | null, next: WebsiteTemplat
   if (prev.design.showSustainabilityBadge && !next.design.showSustainabilityBadge) out.push({ label: `Sustainability badge will be removed`, severity: "breaking" });
   if (prev.design.editorialDescriptions && !next.design.editorialDescriptions) out.push({ label: `Editorial product descriptions will be hidden`, severity: "breaking" });
   if (!prev.design.showCulturalStory && next.design.showCulturalStory) out.push({ label: `Cultural story section will appear (needs copy)`, severity: "warning" });
-  out.push({ label: `Site must be re-published to reflect the new template on the live URL`, severity: "info" });
+  if (prev.design.cardStyle !== next.design.cardStyle) out.push({ label: `Catalogue card style: ${prev.design.cardStyle} → ${next.design.cardStyle}`, severity: "info" });
+  if (prev.design.hoverEffect !== next.design.hoverEffect) out.push({ label: `Hover effect: ${prev.design.hoverEffect} → ${next.design.hoverEffect}`, severity: "info" });
+  if (prev.design.animationStyle !== next.design.animationStyle) out.push({ label: `Animation style: ${prev.design.animationStyle} → ${next.design.animationStyle}`, severity: "info" });
+  if (prev.design.imageAspect !== next.design.imageAspect) out.push({ label: `Product image aspect: ${prev.design.imageAspect} → ${next.design.imageAspect} (existing photos may need re-cropping)`, severity: "warning" });
+  if (prev.category !== next.category) out.push({ label: `Template category changes: ${prev.category} → ${next.category} — overall mood and brand feel will shift`, severity: "warning" });
+  out.push({ label: `Site must be re-published to reflect the new template on the live URL.`, severity: "info" });
   return out;
 }
 
@@ -158,8 +163,10 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
   const askConfirm = (action: "apply" | "publish") => {
     if (!candidate) return;
     setPendingAction(action);
-    if (needsConsent) { setAck(false); setConfirmOpen(true); }
-    else { action === "publish" ? runPublish() : runApply(); }
+    // Always require explicit consent before applying or publishing a
+    // template change, even when only "info"-level differences are detected.
+    setAck(false);
+    setConfirmOpen(true);
   };
 
   if (loading) {
@@ -208,8 +215,60 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
 
       <WebsiteTemplatePicker
         selectedTemplateId={candidateId ?? undefined}
-        onSelect={(id) => setCandidateId(id)}
+        onSelect={(id) => {
+          setCandidateId(id);
+          const next = all.find((t) => t.id === id);
+          if (next && published && next.id !== published.id) {
+            const cons = diffTemplates(published, next);
+            const breaking = cons.filter((c) => c.severity === "breaking").length;
+            const warnings = cons.filter((c) => c.severity === "warning").length;
+            toast({
+              title: `“${next.name}” selected (draft)`,
+              description:
+                breaking || warnings
+                  ? `${breaking} breaking · ${warnings} warning${warnings === 1 ? "" : "s"}. Review and confirm before applying or publishing.`
+                  : "No breaking differences detected. Click Apply or Publish to confirm.",
+            });
+          }
+        }}
       />
+
+      {candidate && candidate.id !== published?.id && (
+        <Card>
+          <CardContent className="p-5 space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={14} className="text-amber-500" />
+              <h4 className="text-sm font-semibold">
+                Feature mismatch preview — {published?.name ?? "no template"} → {candidate.name}
+              </h4>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              These changes will take effect only after you confirm. Nothing is live yet.
+            </p>
+            <ul className="space-y-1.5 text-sm pt-1">
+              {consequences.map((c, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span
+                    className={`mt-0.5 inline-block w-1.5 h-1.5 rounded-full ${
+                      c.severity === "breaking"
+                        ? "bg-destructive"
+                        : c.severity === "warning"
+                        ? "bg-amber-500"
+                        : "bg-primary"
+                    }`}
+                  />
+                  <span>
+                    <span className="capitalize text-[10px] mr-2 px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                      {c.severity}
+                    </span>
+                    {c.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {events.length > 0 && (
         <Card>
@@ -231,24 +290,38 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
       <Dialog open={confirmOpen} onOpenChange={(o) => { if (!o) { setConfirmOpen(false); setAck(false); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><AlertTriangle size={16} className="text-amber-500" /> Review consequences</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle size={16} className="text-amber-500" />
+              {pendingAction === "publish" ? "Confirm publish" : "Confirm template change"}
+            </DialogTitle>
             <DialogDescription>
-              Switching from <strong>{published?.name ?? "no template"}</strong> to <strong>{candidate?.name}</strong> will cause the following:
+              {pendingAction === "publish"
+                ? <>You are about to <strong>publish</strong> <strong>{candidate?.name}</strong> to your live site
+                    {published ? <> (replacing <strong>{published.name}</strong>)</> : null}. Review the differences below before confirming.</>
+                : <>Saving <strong>{candidate?.name}</strong> as the selected template
+                    {published ? <> (currently published: <strong>{published.name}</strong>)</> : null}. The live site will not change until you publish.</>}
             </DialogDescription>
           </DialogHeader>
-          <ul className="space-y-1.5 text-sm max-h-64 overflow-auto">
+          {consequences.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No feature differences detected.</p>
+          ) : (
+          <ul className="space-y-1.5 text-sm max-h-64 overflow-auto pr-2">
             {consequences.map((c, i) => (
               <li key={i} className="flex items-start gap-2">
                 <span className={`mt-0.5 inline-block w-1.5 h-1.5 rounded-full ${
                   c.severity === "breaking" ? "bg-destructive" : c.severity === "warning" ? "bg-amber-500" : "bg-primary"
                 }`} />
-                <span>{c.label}</span>
+                <span>
+                  <span className="capitalize text-[10px] mr-2 px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{c.severity}</span>
+                  {c.label}
+                </span>
               </li>
             ))}
           </ul>
+          )}
           <label className="flex items-center gap-2 text-xs pt-2">
             <Checkbox checked={ack} onCheckedChange={(v) => setAck(!!v)} />
-            I understand these changes and want to proceed.
+            I have reviewed the differences and want to {pendingAction === "publish" ? "publish this template now" : "save this selection"}.
           </label>
           <DialogFooter>
             <Button variant="ghost" onClick={() => { setConfirmOpen(false); setAck(false); }}>Cancel</Button>
