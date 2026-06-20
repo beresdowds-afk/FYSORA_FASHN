@@ -17,6 +17,7 @@ import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel"
 import InvoiceManagerPanel from "@/components/invoices/InvoiceManagerPanel";
 import PaymentGatewayPanel from "@/components/settings/PaymentGatewayPanel";
 import DashboardBillingPanel from "@/components/payments/DashboardBillingPanel";
+import OrgTemplatePublishPanel from "@/components/website-builder/OrgTemplatePublishPanel";
 import {
   LogOut, Package, Clock, BarChart3, Palette, FileText,
   Wallet, User, ShoppingBag, CheckCircle2, ArrowRight,
@@ -744,6 +745,7 @@ const WebsiteTab = ({
   subscriptionActive,
   onSubscribe,
   subscribing,
+  profile,
 }: {
   userId: string;
   profile: any;
@@ -882,6 +884,32 @@ const WebsiteTab = ({
           </div>
         </Card>
       </div>
+
+      {/* Template selection — designers can pick & publish from their own dashboard */}
+      {subscriptionActive && (personalOrgId || contracts[0]?.org_id) ? (
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div>
+              <h3 className="font-heading font-semibold text-lg">Website Template</h3>
+              <p className="text-xs text-muted-foreground">
+                Choose, preview and publish a design for your designer website. Mismatched features are flagged before any change goes live.
+              </p>
+            </div>
+          </div>
+          <OrgTemplatePublishPanel
+            org={{
+              id: (personalOrgId || contracts[0]?.org_id) as string,
+              name: profile?.display_name || contracts[0]?.organizations?.name || "Designer Studio",
+            }}
+          />
+        </div>
+      ) : !subscriptionActive ? (
+        <Card className="p-5 mt-8 border-dashed">
+          <p className="text-sm text-muted-foreground">
+            Activate your $15/month designer subscription to choose and publish a website template.
+          </p>
+        </Card>
+      ) : null}
     </motion.div>
   );
 };
