@@ -11760,6 +11760,9 @@ export type Database = {
           created_at: string | null
           facebook_url: string | null
           favicon_url: string | null
+          featured_showcase_enabled: boolean | null
+          featured_showcase_speed: string | null
+          featured_showcase_variant: string | null
           font_body: string | null
           font_heading: string | null
           hero_description: string | null
@@ -11787,6 +11790,9 @@ export type Database = {
           created_at?: string | null
           facebook_url?: string | null
           favicon_url?: string | null
+          featured_showcase_enabled?: boolean | null
+          featured_showcase_speed?: string | null
+          featured_showcase_variant?: string | null
           font_body?: string | null
           font_heading?: string | null
           hero_description?: string | null
@@ -11814,6 +11820,9 @@ export type Database = {
           created_at?: string | null
           facebook_url?: string | null
           favicon_url?: string | null
+          featured_showcase_enabled?: boolean | null
+          featured_showcase_speed?: string | null
+          featured_showcase_variant?: string | null
           font_body?: string | null
           font_heading?: string | null
           hero_description?: string | null
