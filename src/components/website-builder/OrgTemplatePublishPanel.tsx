@@ -168,7 +168,7 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
         org_id: org.id,
         template_key: candidate.id,
         published_by: user?.id ?? null,
-        snapshot: { previous_template: published?.id ?? null, version: newVersion, compatibility_report: report?.issues ?? [] },
+        snapshot: { previous_template: published?.id ?? null, version: newVersion, compatibility_report: (report?.issues ?? []) as any },
         note: "Published from template panel",
       }]);
       toast({ title: "Template published", description: `Version ${newVersion} of "${candidate.name}" is now live.` });
