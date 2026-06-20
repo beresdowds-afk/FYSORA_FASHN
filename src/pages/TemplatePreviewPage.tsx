@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Clock, EyeOff } from "lucide-react";
 import { getTemplateList, type WebsiteTemplate } from "@/config/websiteTemplates";
-import BrandingLivePreview from "@/components/website-builder/BrandingLivePreview";
 
 export default function TemplatePreviewPage() {
   const { token } = useParams<{ token: string }>();
@@ -63,7 +62,24 @@ export default function TemplatePreviewPage() {
       </div>
       <div className="p-4 sm:p-6">
         {template ? (
-          <BrandingLivePreview template={template} />
+          <Card>
+            <CardContent className="p-6 space-y-4" style={{ background: template.design.bgBase, color: template.design.textPrimary, fontFamily: template.design.fontBodyDefault }}>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-semibold" style={{ fontFamily: template.design.fontHeadingDefault, letterSpacing: template.design.headingSpacing }}>{template.name}</h1>
+                <Badge variant="outline" className="capitalize">{template.category}</Badge>
+              </div>
+              <p className="text-sm opacity-80">{template.description}</p>
+              <div className="p-6 rounded" style={{ background: template.design.bgSurface }}>
+                <h2 className="text-xl mb-2" style={{ fontFamily: template.design.fontHeadingDefault }}>{template.copy.heroTagline}</h2>
+                <p className="text-sm opacity-70">{template.copy.catalogueIntro}</p>
+              </div>
+              <div className={`grid gap-3 grid-cols-${template.design.gridColumns}`}>
+                {Array.from({ length: template.design.gridColumns * 2 }).map((_, i) => (
+                  <div key={i} className="aspect-square rounded" style={{ background: template.design.bgSurface, opacity: 0.6 }} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <p className="text-sm text-muted-foreground">Template "{staging.template_key}" not found in registry.</p>
         )}
