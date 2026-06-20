@@ -10,12 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAdminClaims, useTransitionClaim, useUpdateEvidenceScan, useClaimActions } from "@/hooks/useInsurance";
+import ClaimChatPanel from "@/components/insurance/ClaimChatPanel";
+import ClaimAuditTimeline from "@/components/insurance/ClaimAuditTimeline";
 import { useUserGlobalRole } from "@/hooks/useOrganization";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { ArrowLeft, ShieldCheck, ShieldAlert, FileText, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, ShieldCheck, ShieldAlert, FileText, Eye, Loader2, Download } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 const STATUS_FILTERS = [
@@ -152,6 +154,11 @@ function ClaimReviewDialog({ claim, onClose }: { claim: any | null; onClose: () 
   const [newStatus, setNewStatus] = useState<string>("reviewing");
   const [notes, setNotes] = useState("");
   const [amount, setAmount] = useState<string>("");
+  const [exporting, setExporting] = useState(false);
+  const messages = useMemo(
+    () => (actions ?? []).filter((a: any) => a.action_type === "message"),
+    [actions],
+  );
 
   if (!claim) return null;
 
@@ -159,6 +166,35 @@ function ClaimReviewDialog({ claim, onClose }: { claim: any | null; onClose: () 
     const { data } = await (supabase.storage.from("insurance-evidence") as any)
       .createSignedUrl(path, 60 * 10);
     if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+  };
+
+  const exportBundle = async () => {
+    setExporting(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess?.session?.access_token;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/insurance-claim-export`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ claim_id: claim.id }),
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || `Export failed (${resp.status})`);
+      }
+      const blob = await resp.blob();
+      const dl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dl; a.download = `${claim.claim_number}-evidence.zip`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(dl);
+      toast({ title: "Evidence bundle downloaded" });
+    } catch (e: any) {
+      toast({ title: "Export failed", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
   };
 
   const apply = async () => {
