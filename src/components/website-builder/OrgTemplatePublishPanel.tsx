@@ -164,6 +164,13 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
       }).eq("id", row.id);
       if (error) throw error;
       await writeEvent("publish", published?.id ?? null, candidate.id, consequences);
+      await supabase.from("org_template_publish_history").insert({
+        org_id: org.id,
+        template_key: candidate.id,
+        published_by: user?.id ?? null,
+        snapshot: { previous_template: published?.id ?? null, version: newVersion, compatibility_report: report?.issues ?? [] },
+        note: "Published from template panel",
+      });
       toast({ title: "Template published", description: `Version ${newVersion} of "${candidate.name}" is now live.` });
       await load();
     } catch (e: any) {
