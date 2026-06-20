@@ -9,10 +9,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle2, Loader2, Rocket, EyeOff, AlertTriangle, History } from "lucide-react";
+import { CheckCircle2, Loader2, Rocket, EyeOff, AlertTriangle, History, Eye, Undo2, Copy } from "lucide-react";
 import { getTemplateList, type WebsiteTemplate } from "@/config/websiteTemplates";
 import { useCustomWebsiteTemplates, rowToTemplate } from "@/hooks/useCustomWebsiteTemplates";
 import WebsiteTemplatePicker from "./WebsiteTemplatePicker";
+import SegmentRulesPanel from "./SegmentRulesPanel";
+import { checkTemplateCompatibility, type CompatIssue, type WebsiteState } from "@/lib/templateCompatibility";
 
 interface Props {
   org: { id: string; name: string };
@@ -60,15 +62,24 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
   const [ack, setAck] = useState(false);
   const [pendingAction, setPendingAction] = useState<"apply" | "publish">("apply");
   const [events, setEvents] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [stagingRow, setStagingRow] = useState<any>(null);
+  const [stagingBusy, setStagingBusy] = useState(false);
+  const [rollbackBusy, setRollbackBusy] = useState(false);
+  const [rollbackConfirmOpen, setRollbackConfirmOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    const [{ data: site }, { data: ev }] = await Promise.all([
+    const [{ data: site }, { data: ev }, { data: hist }, { data: stage }] = await Promise.all([
       supabase.from("org_websites").select("*").eq("org_id", org.id).maybeSingle(),
       supabase.from("org_website_template_events").select("*").eq("org_id", org.id).order("created_at", { ascending: false }).limit(10),
+      supabase.from("org_template_publish_history").select("*").eq("org_id", org.id).order("published_at", { ascending: false }).limit(10),
+      supabase.from("org_template_staging").select("*").eq("org_id", org.id).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     setSiteRow(site);
     setEvents(ev || []);
+    setHistory(hist || []);
+    setStagingRow(stage || null);
     setCandidateId((site as any)?.selected_template_id ?? (site as any)?.published_template_id ?? null);
     setLoading(false);
   };
@@ -78,7 +89,26 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
   const findById = (id: string | null) => all.find(t => t.id === id) || null;
   const published = findById((siteRow as any)?.published_template_id ?? null);
   const candidate = findById(candidateId);
-  const consequences = useMemo(() => candidate ? diffTemplates(published, candidate) : [], [published, candidate]);
+
+  // Build website state hints from siteRow for the compatibility checker
+  const websiteState: WebsiteState = useMemo(() => ({
+    hero_image_url: (siteRow as any)?.hero_image_url ?? null,
+    logo_url: (siteRow as any)?.logo_url ?? null,
+    gallery_count: (siteRow as any)?.gallery_count ?? 0,
+    category_count: (siteRow as any)?.category_count ?? 0,
+    cultural_story_text: (siteRow as any)?.cultural_story_text ?? null,
+    has_officers: !!(siteRow as any)?.has_officers,
+    has_featured_products: !!(siteRow as any)?.has_featured_products,
+  }), [siteRow]);
+
+  const report = useMemo(
+    () => candidate ? checkTemplateCompatibility(published, candidate, websiteState) : null,
+    [published, candidate, websiteState]
+  );
+  const consequences: Consequence[] = useMemo(() => {
+    if (!report) return [];
+    return report.issues.map((i: CompatIssue) => ({ label: i.message, severity: i.severity }));
+  }, [report]);
 
   const writeEvent = async (action: "select" | "apply" | "publish" | "unpublish" | "change", fromId: string | null, toId: string | null, cons: Consequence[]) => {
     await supabase.from("org_website_template_events").insert({
@@ -162,10 +192,80 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
   const askConfirm = (action: "apply" | "publish") => {
     if (!candidate) return;
     setPendingAction(action);
-    // Always require explicit consent before applying or publishing a
-    // template change, even when only "info"-level differences are detected.
     setAck(false);
     setConfirmOpen(true);
+  };
+
+  const saveStagingPreview = async () => {
+    if (!candidate) return;
+    try {
+      setStagingBusy(true);
+      const { data, error } = await supabase
+        .from("org_template_staging")
+        .insert({
+          org_id: org.id,
+          template_key: candidate.id,
+          created_by: user?.id ?? null,
+          compatibility_report: report ? (report.issues as any) : [],
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      setStagingRow(data);
+      toast({
+        title: "Preview staged for 72 hours",
+        description: "Share the preview link with your team before promoting to live.",
+      });
+    } catch (e: any) {
+      toast({ title: "Could not stage preview", description: e.message, variant: "destructive" });
+    } finally {
+      setStagingBusy(false);
+    }
+  };
+
+  const promoteStaging = async () => {
+    if (!stagingRow) return;
+    try {
+      setStagingBusy(true);
+      const { error } = await supabase.rpc("promote_staging_template", { _staging_id: stagingRow.id });
+      if (error) throw error;
+      toast({ title: "Promoted to live", description: "The staged template is now your published website." });
+      await load();
+    } catch (e: any) {
+      toast({ title: "Promote failed", description: e.message, variant: "destructive" });
+    } finally {
+      setStagingBusy(false);
+    }
+  };
+
+  const discardStaging = async () => {
+    if (!stagingRow) return;
+    await supabase.from("org_template_staging").update({ status: "discarded" }).eq("id", stagingRow.id);
+    setStagingRow(null);
+    toast({ title: "Preview discarded" });
+  };
+
+  const runRollback = async () => {
+    try {
+      setRollbackBusy(true);
+      const { data, error } = await supabase.rpc("rollback_org_template", { _org_id: org.id });
+      if (error) throw error;
+      const res = data as any;
+      toast({ title: "Rolled back", description: `Restored "${res?.to ?? "previous template"}". Logged to audit trail.` });
+      setRollbackConfirmOpen(false);
+      await load();
+    } catch (e: any) {
+      toast({ title: "Rollback failed", description: e.message, variant: "destructive" });
+    } finally {
+      setRollbackBusy(false);
+    }
+  };
+
+  const previewUrl = stagingRow ? `${window.location.origin}/preview/template/${stagingRow.preview_token}` : null;
+  const copyPreview = async () => {
+    if (!previewUrl) return;
+    try { await navigator.clipboard.writeText(previewUrl); toast({ title: "Preview link copied" }); }
+    catch { toast({ title: previewUrl }); }
   };
 
   if (loading) {
@@ -173,6 +273,7 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
   }
 
   const isPublished = !!(siteRow as any)?.is_published;
+  const canRollback = history.length >= 2 || (history.length === 1 && history[0].template_key !== published?.id);
 
   return (
     <div className="space-y-5">
@@ -204,6 +305,14 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
               {busy === "publish" ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Rocket size={14} className="mr-1" />}
               Publish template
             </Button>
+            <Button onClick={saveStagingPreview} disabled={!candidate || stagingBusy} variant="secondary">
+              {stagingBusy ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Eye size={14} className="mr-1" />}
+              Save as preview (72h)
+            </Button>
+            <Button onClick={() => setRollbackConfirmOpen(true)} disabled={!canRollback || rollbackBusy} variant="outline">
+              {rollbackBusy ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Undo2 size={14} className="mr-1" />}
+              Rollback to previous
+            </Button>
             <Button onClick={runUnpublish} disabled={!isPublished || busy !== null} variant="ghost" className="sm:col-span-2">
               {busy === "unpublish" ? <Loader2 size={14} className="mr-1 animate-spin" /> : <EyeOff size={14} className="mr-1" />}
               Unpublish live site
@@ -211,6 +320,33 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {stagingRow && previewUrl && (
+        <Card>
+          <CardContent className="p-5 space-y-2">
+            <div className="flex items-center gap-2">
+              <Eye size={14} className="text-amber-500" />
+              <h4 className="text-sm font-semibold">Active staging preview</h4>
+              <Badge variant="outline" className="text-amber-600 border-amber-500/40">
+                expires {new Date(stagingRow.expires_at).toLocaleString()}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This preview is private and not visible to customers. You can promote it to live or discard it.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="text-[11px] bg-muted px-2 py-1 rounded truncate max-w-full">{previewUrl}</code>
+              <Button size="sm" variant="outline" onClick={copyPreview}><Copy size={12} className="mr-1" /> Copy</Button>
+              <Button size="sm" variant="outline" onClick={() => window.open(previewUrl, "_blank")}>Open</Button>
+              <Button size="sm" variant="hero" onClick={promoteStaging} disabled={stagingBusy}>
+                {stagingBusy ? <Loader2 size={12} className="mr-1 animate-spin" /> : <Rocket size={12} className="mr-1" />}
+                Promote to live
+              </Button>
+              <Button size="sm" variant="ghost" onClick={discardStaging}>Discard</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <WebsiteTemplatePicker
         selectedTemplateId={candidateId ?? undefined}
@@ -232,17 +368,24 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
         }}
       />
 
+      <SegmentRulesPanel org={{ id: org.id }} />
+
       {candidate && candidate.id !== published?.id && (
         <Card>
           <CardContent className="p-5 space-y-2">
             <div className="flex items-center gap-2">
               <AlertTriangle size={14} className="text-amber-500" />
               <h4 className="text-sm font-semibold">
-                Feature mismatch preview — {published?.name ?? "no template"} → {candidate.name}
+                Compatibility report — {published?.name ?? "no template"} → {candidate.name}
               </h4>
+              {report && (
+                <span className="text-[11px] text-muted-foreground ml-auto">
+                  {report.breakingCount} breaking · {report.warningCount} warnings · {report.infoCount} info
+                </span>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
-              These changes will take effect only after you confirm. Nothing is live yet.
+              Automatic check ran before consent. These changes take effect only after you confirm.
             </p>
             <ul className="space-y-1.5 text-sm pt-1">
               {consequences.map((c, i) => (
@@ -262,6 +405,26 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
                     </span>
                     {c.label}
                   </span>
+                </li>
+              ))}
+              {consequences.length === 0 && (
+                <li className="text-xs text-muted-foreground">No compatibility issues detected.</li>
+              )}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {history.length > 0 && (
+        <Card>
+          <CardContent className="p-5 space-y-2">
+            <div className="flex items-center gap-2"><History size={14} className="text-primary" /><h4 className="text-sm font-semibold">Publish history</h4></div>
+            <ul className="text-xs space-y-1">
+              {history.map((h) => (
+                <li key={h.id} className="flex items-center justify-between gap-2 border-b border-border/60 py-1">
+                  <span className="font-medium">{findById(h.template_key)?.name ?? h.template_key}</span>
+                  {h.was_rollback && <Badge variant="outline" className="text-[10px]">rollback</Badge>}
+                  <span className="text-muted-foreground ml-auto">{new Date(h.published_at).toLocaleString()}</span>
                 </li>
               ))}
             </ul>
@@ -326,6 +489,24 @@ export default function OrgTemplatePublishPanel({ org }: Props) {
             <Button variant="ghost" onClick={() => { setConfirmOpen(false); setAck(false); }}>Cancel</Button>
             <Button disabled={!ack || busy !== null} onClick={() => pendingAction === "publish" ? runPublish() : runApply()}>
               {pendingAction === "publish" ? "Publish now" : "Apply selection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={rollbackConfirmOpen} onOpenChange={setRollbackConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Undo2 size={16} /> Rollback to previous template</DialogTitle>
+            <DialogDescription>
+              This restores the most recently published template before the current one. The action is logged to the audit trail and can itself be undone by rolling back again.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRollbackConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={runRollback} disabled={rollbackBusy}>
+              {rollbackBusy ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Undo2 size={14} className="mr-1" />}
+              Confirm rollback
             </Button>
           </DialogFooter>
         </DialogContent>
