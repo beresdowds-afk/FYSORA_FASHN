@@ -1689,7 +1689,10 @@ const CatalogueItemForm = ({ item, orgId, currency, onSave, onCancel }: {
           label="Drop product image here"
           hint="Or click to browse. PNG, JPG, WebP up to 50MB."
           onUpload={async (file) => {
-            const path = `org/${orgId}/catalogue/${Date.now()}-${file.name.replace(/[^a-z0-9.\-_]/gi, "_")}`;
+            // Storage RLS expects the first path segment to be the org UUID
+            // (string_to_array(name,'/')[1]::uuid). Putting a literal "org/"
+            // prefix made Postgres try to cast "org" to uuid and fail.
+            const path = `${orgId}/catalogue/${Date.now()}-${file.name.replace(/[^a-z0-9.\-_]/gi, "_")}`;
             const { error: upErr } = await supabase.storage.from("garment-images").upload(path, file, { upsert: true });
             if (upErr) { toast({ title: "Upload failed", description: upErr.message, variant: "destructive" }); return null; }
             const { data } = supabase.storage.from("garment-images").getPublicUrl(path);
