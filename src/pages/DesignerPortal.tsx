@@ -745,6 +745,7 @@ const WebsiteTab = ({
   subscriptionActive,
   onSubscribe,
   subscribing,
+  profile,
 }: {
   userId: string;
   profile: any;
