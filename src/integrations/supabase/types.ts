@@ -6645,6 +6645,189 @@ export type Database = {
           },
         ]
       }
+      org_template_publish_history: {
+        Row: {
+          id: string
+          note: string | null
+          org_id: string
+          published_at: string
+          published_by: string | null
+          snapshot: Json
+          template_key: string
+          was_rollback: boolean
+        }
+        Insert: {
+          id?: string
+          note?: string | null
+          org_id: string
+          published_at?: string
+          published_by?: string | null
+          snapshot?: Json
+          template_key: string
+          was_rollback?: boolean
+        }
+        Update: {
+          id?: string
+          note?: string | null
+          org_id?: string
+          published_at?: string
+          published_by?: string | null
+          snapshot?: Json
+          template_key?: string
+          was_rollback?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_template_publish_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_template_publish_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_template_publish_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_template_segment_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          org_id: string
+          priority: number
+          segment_type: string
+          segment_value: string
+          template_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          org_id: string
+          priority?: number
+          segment_type: string
+          segment_value?: string
+          template_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          org_id?: string
+          priority?: number
+          segment_type?: string
+          segment_value?: string
+          template_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_template_segment_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_template_segment_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_template_segment_rules_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_template_staging: {
+        Row: {
+          compatibility_report: Json
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          org_id: string
+          preview_token: string
+          segment_type: string | null
+          segment_value: string | null
+          status: string
+          template_key: string
+          updated_at: string
+        }
+        Insert: {
+          compatibility_report?: Json
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          org_id: string
+          preview_token?: string
+          segment_type?: string | null
+          segment_value?: string | null
+          status?: string
+          template_key: string
+          updated_at?: string
+        }
+        Update: {
+          compatibility_report?: Json
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          org_id?: string
+          preview_token?: string
+          segment_type?: string | null
+          segment_value?: string | null
+          status?: string
+          template_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_template_staging_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_template_staging_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_template_staging_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_webhook_deliveries: {
         Row: {
           attempt: number
@@ -11850,6 +12033,19 @@ export type Database = {
           title: string
         }[]
       }
+      get_staging_template_by_token: {
+        Args: { _token: string }
+        Returns: {
+          compatibility_report: Json
+          expires_at: string
+          id: string
+          org_id: string
+          segment_type: string
+          segment_value: string
+          status: string
+          template_key: string
+        }[]
+      }
       has_promotional_grant: {
         Args: { _grant_type: string; _user_id: string }
         Returns: boolean
@@ -11902,6 +12098,7 @@ export type Database = {
         Args: { _grant_type: string; _org_id: string }
         Returns: boolean
       }
+      promote_staging_template: { Args: { _staging_id: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -11910,6 +12107,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      rollback_org_template: { Args: { _org_id: string }; Returns: Json }
       rotate_org_api_key: {
         Args: { _key_id: string; _new_hash: string; _new_prefix: string }
         Returns: Json
