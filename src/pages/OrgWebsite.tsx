@@ -488,11 +488,15 @@ const OrgWebsite = () => {
                 Featured
               </h2>
               <FeaturedShowcase
-                items={catalogue.slice(0, 12).map((c: any) => ({
+                items={catalogue.map((c: any) => ({
                   id: c.id, name: c.name, image_url: c.image_url, price: c.price, currency: c.currency,
                 }))}
                 variant={((website as any).featured_showcase_variant ?? "infinite-scroll") as ShowcaseVariant}
                 speed={((website as any).featured_showcase_speed ?? "medium") as ShowcaseSpeed}
+                itemLimit={Number((website as any).featured_showcase_item_limit ?? 8)}
+                pauseOnHover={Boolean((website as any).featured_showcase_pause_on_hover ?? true)}
+                mobileSpeed={((website as any).featured_showcase_mobile_speed ?? "medium") as ShowcaseSpeed}
+                respectReducedMotion={Boolean((website as any).featured_showcase_respect_reduced_motion ?? true)}
               />
             </div>
           </section>

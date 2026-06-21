@@ -6953,6 +6953,10 @@ export type Database = {
           facebook_url: string | null
           favicon_url: string | null
           featured_showcase_enabled: boolean
+          featured_showcase_item_limit: number
+          featured_showcase_mobile_speed: string
+          featured_showcase_pause_on_hover: boolean
+          featured_showcase_respect_reduced_motion: boolean
           featured_showcase_speed: string
           featured_showcase_variant: string
           font_body: string
@@ -6995,6 +6999,10 @@ export type Database = {
           facebook_url?: string | null
           favicon_url?: string | null
           featured_showcase_enabled?: boolean
+          featured_showcase_item_limit?: number
+          featured_showcase_mobile_speed?: string
+          featured_showcase_pause_on_hover?: boolean
+          featured_showcase_respect_reduced_motion?: boolean
           featured_showcase_speed?: string
           featured_showcase_variant?: string
           font_body?: string
@@ -7037,6 +7045,10 @@ export type Database = {
           facebook_url?: string | null
           favicon_url?: string | null
           featured_showcase_enabled?: boolean
+          featured_showcase_item_limit?: number
+          featured_showcase_mobile_speed?: string
+          featured_showcase_pause_on_hover?: boolean
+          featured_showcase_respect_reduced_motion?: boolean
           featured_showcase_speed?: string
           featured_showcase_variant?: string
           font_body?: string
@@ -11761,6 +11773,10 @@ export type Database = {
           facebook_url: string | null
           favicon_url: string | null
           featured_showcase_enabled: boolean | null
+          featured_showcase_item_limit: number | null
+          featured_showcase_mobile_speed: string | null
+          featured_showcase_pause_on_hover: boolean | null
+          featured_showcase_respect_reduced_motion: boolean | null
           featured_showcase_speed: string | null
           featured_showcase_variant: string | null
           font_body: string | null
@@ -11791,6 +11807,10 @@ export type Database = {
           facebook_url?: string | null
           favicon_url?: string | null
           featured_showcase_enabled?: boolean | null
+          featured_showcase_item_limit?: number | null
+          featured_showcase_mobile_speed?: string | null
+          featured_showcase_pause_on_hover?: boolean | null
+          featured_showcase_respect_reduced_motion?: boolean | null
           featured_showcase_speed?: string | null
           featured_showcase_variant?: string | null
           font_body?: string | null
@@ -11821,6 +11841,10 @@ export type Database = {
           facebook_url?: string | null
           favicon_url?: string | null
           featured_showcase_enabled?: boolean | null
+          featured_showcase_item_limit?: number | null
+          featured_showcase_mobile_speed?: string | null
+          featured_showcase_pause_on_hover?: boolean | null
+          featured_showcase_respect_reduced_motion?: boolean | null
           featured_showcase_speed?: string | null
           featured_showcase_variant?: string | null
           font_body?: string | null

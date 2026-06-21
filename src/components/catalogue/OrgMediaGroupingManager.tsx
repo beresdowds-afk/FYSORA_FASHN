@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useOrgMediaGroups, NodeType, MediaAsset, GroupNode } from "@/hooks/useOrgMediaGroups";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Plus, Trash2, Layers, FolderTree, Album, Image as ImageIcon, ChevronRight, Send, FilePlus2 } from "lucide-react";
@@ -26,7 +26,7 @@ const childOptionsFor = (t: Exclude<NodeType, "image">): NodeType[] =>
 const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
   const { toast } = useToast();
   const g = useOrgMediaGroups(orgId);
-  const [tab, setTab] = useState<"library" | "sets" | "collections" | "albums">("library");
+  // All four sections stay accessible simultaneously via an accordion (open by default).
   const [selection, setSelection] = useState<Array<{ type: NodeType; id: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; label: string }>>([]);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -66,7 +66,6 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
     setDragActive(false);
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      setTab("library");
       await onUpload(files);
     }
   };
@@ -173,7 +172,9 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
                   <Input type="number" value={publishPrice} onChange={e => setPublishPrice(e.target.value)} placeholder={`e.g. 25000 ${currency}`} />
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Items appear in the platform catalogue ordered by publish time (your selection order is preserved).
+                  Once you publish, items appear immediately on your organisation Catalogue and on the general
+                  platform Catalogue (ordered by publish time — your selection order is preserved). This action
+                  serves as your final approval.
                 </p>
               </div>
               <DialogFooter>
@@ -185,15 +186,14 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={v => setTab(v as any)}>
-        <TabsList>
-          <TabsTrigger value="library"><ImageIcon size={12} className="mr-1" />Images</TabsTrigger>
-          <TabsTrigger value="sets"><Layers size={12} className="mr-1" />Design Sets</TabsTrigger>
-          <TabsTrigger value="collections"><FolderTree size={12} className="mr-1" />Collections</TabsTrigger>
-          <TabsTrigger value="albums"><Album size={12} className="mr-1" />Albums</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="library" className="space-y-3">
+      <Accordion type="multiple" defaultValue={["library", "sets", "collections", "albums"]} className="space-y-2">
+        <AccordionItem value="library" className="border rounded-lg px-3">
+          <AccordionTrigger className="hover:no-underline">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <ImageIcon size={14} /> Images <Badge variant="outline" className="ml-1">{g.images.length}</Badge>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3 pt-2">
           <div
             onClick={() => fileInputRef.current?.click()}
             className="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-border hover:border-primary/60 rounded-lg p-6 cursor-pointer text-center transition-colors"
@@ -212,7 +212,7 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
               onChange={(e) => { onUpload(e.target.files); e.target.value = ""; }}
             />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-h-[420px] overflow-y-auto pr-1">
             {g.images.map(img => (
               <SelectableCard key={img.id} selected={isSel("image", img.id)}
                 onToggle={() => toggleSel("image", img.id)}
@@ -221,12 +221,42 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
             ))}
           </div>
           {g.images.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No images yet.</p>}
-        </TabsContent>
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="sets"><GroupSection kind="design_set" hook={g} toggleSel={toggleSel} isSel={isSel} /></TabsContent>
-        <TabsContent value="collections"><GroupSection kind="collection" hook={g} toggleSel={toggleSel} isSel={isSel} /></TabsContent>
-        <TabsContent value="albums"><GroupSection kind="album" hook={g} toggleSel={toggleSel} isSel={isSel} /></TabsContent>
-      </Tabs>
+        <AccordionItem value="sets" className="border rounded-lg px-3">
+          <AccordionTrigger className="hover:no-underline">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Layers size={14} /> Design Sets <Badge variant="outline" className="ml-1">{g.sets.length}</Badge>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="pt-2">
+            <GroupSection kind="design_set" hook={g} toggleSel={toggleSel} isSel={isSel} />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="collections" className="border rounded-lg px-3">
+          <AccordionTrigger className="hover:no-underline">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <FolderTree size={14} /> Collections <Badge variant="outline" className="ml-1">{g.collections.length}</Badge>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="pt-2">
+            <GroupSection kind="collection" hook={g} toggleSel={toggleSel} isSel={isSel} />
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="albums" className="border rounded-lg px-3">
+          <AccordionTrigger className="hover:no-underline">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Album size={14} /> Albums <Badge variant="outline" className="ml-1">{g.albums.length}</Badge>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="pt-2">
+            <GroupSection kind="album" hook={g} toggleSel={toggleSel} isSel={isSel} />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
   );
 };
