@@ -1,96 +1,108 @@
-## Goal
-Extend the website template workflow with segment targeting, an automatic compatibility checker, a time-boxed staging preview, and one-click rollback with audit logging.
 
-## 1. Database (single migration)
+# Scope
 
-New tables (all in `public`, RLS on, GRANTs for `authenticated` + `service_role`, org-scoped policies via `is_org_admin` / `has_role('super_admin')`):
+Six interlocking changes spanning DNS, the public site renderer, the website-builder UX, the branding portal, PWA sync, and the premium/finance pipeline.
 
-- **`org_template_segment_rules`** — segment-based template targeting
-  - `org_id`, `template_key`, `segment_type` (`location` | `category` | `default`),
-    `segment_value` (text, e.g. country code, category slug, or `*`), `priority` (int), `is_active` (bool)
-  - Unique `(org_id, segment_type, segment_value)` so each segment maps to exactly one template
-  - The website renderer resolves the visitor's template by matching segment_type/value in priority order, falling back to `default`
+---
 
-- **`org_template_staging`** — staging/preview drafts
-  - `org_id`, `template_key`, `created_by`, `preview_token` (uuid, unique), `expires_at` (default `now() + interval '72 hours'`), `status` (`active` | `expired` | `promoted` | `discarded`), `compatibility_report` jsonb
-  - Trigger sets `status='expired'` on read when past `expires_at`
-  - Public read by token via SECURITY DEFINER RPC `get_staging_template_by_token(_token uuid)` so unauthenticated preview links work without exposing the table
+## 1. Domain routing — gabulkfashionstudio.org.ng + fs-africa.org.ng access
 
-- **`org_template_publish_history`** — published-version log enabling rollback
-  - `org_id`, `template_key`, `published_by`, `published_at`, `snapshot` jsonb (full template config snapshot at publish time), `was_rollback` bool
-  - On publish (in `org_websites` update), trigger inserts a new history row
+**Diagnosis (to confirm with the user):**
+- `https://fs-africa.org.ng` not reachable in external browsers is almost always **publish visibility = private** OR the apex `A` record missing while only `www` resolves. Will check via `publish_settings--get_publish_settings` and DNS lookup (`dig`) before making changes.
+- `gabulkfashionstudio.org.ng` cannot point to `fs-africa.org.ng/site/gabulk-fashion-studio` because Lovable hosting cannot rewrite a path from an apex of another zone — it needs either (a) a registrar-side 301 with path, or (b) the domain connected to the project and the app resolving the hostname → org-slug.
 
-New RPCs (SECURITY DEFINER):
-- `promote_staging_template(_staging_id uuid)` — moves staging to live, writes publish history, requires org admin
-- `rollback_org_template(_org_id uuid)` — picks the row before the current one in `org_template_publish_history`, applies its `template_key` + `snapshot` to `org_websites`, inserts a new history row with `was_rollback=true`, writes to `audit_logs`
+**Implementation:**
+- Add `gabulkfashionstudio.org.ng` (and `www.`) as a connected custom domain entry — instruct via UI; agent cannot itself add the DNS at the user's registrar but will surface the exact records (A 185.158.133.1 + TXT `_lovable`).
+- Add app-level **hostname → org slug** resolver:
+  - New table `org_custom_hostnames` (hostname unique, org_id, verified bool, primary bool).
+  - Edge function-free: read on first paint via a tiny RPC `resolve_org_by_hostname(host)`.
+  - `App.tsx`/`OrgWebsite.tsx`: when `window.location.hostname` matches a row, mount the org site at `/` (and 301 `/site/:slug` → `/` to dedupe).
+- `resolvePublicSiteUrl()` updated to prefer the org's verified custom hostname when present, so links across the platform open the branded domain.
+- Add a Super Admin "Custom Hostnames" panel under Domains for verification + primary toggle.
+- Document the apex-A-record fix for `fs-africa.org.ng` and flip publish visibility to public if needed.
 
-## 2. Compatibility checker (client-side, pure TS)
+---
 
-`src/lib/templateCompatibility.ts`:
+## 2. New homepage layout for all native templates
 
-```ts
-export type CompatIssue = {
-  severity: 'breaking' | 'warning' | 'info';
-  code: 'missing_asset' | 'unsupported_widget' | 'layout_break' | 'feature_loss';
-  message: string;
-};
-export function checkTemplateCompatibility(
-  current: TemplateDef, next: TemplateDef, websiteState: OrgWebsiteState
-): { issues: CompatIssue[]; canProceed: boolean }
+```text
+┌────────────────────────────────────────┐
+│ Header (sticky)                        │
+├────────────────────────────────────────┤
+│ ▾ Featured Showcase (collapsible, ¼)   │  ← infinite scroll, dropdown tab
+├────────────────────────────────────────┤
+│ Org Catalogue iframe  (¾)              │  ← /site/:slug/catalogue
+├────────────────────────────────────────┤
+│ Hero / Landing  (multimedia bg)        │  ← moved BELOW (toggleable per template)
+│ … rest of sections                     │
+└────────────────────────────────────────┘
 ```
 
-Rules covered:
-- **Missing assets**: next template requires hero/logo/gallery slots that aren't populated in `websiteState`
-- **Unsupported widgets**: widgets enabled in `org_websites` that the next template doesn't render (e.g., cultural story, featured products, officers)
-- **Layout break risks**: aspect-ratio mismatch on existing gallery, hero image orientation, category count exceeded
-- Returns aggregated issues; `canProceed=false` only if breaking issues exist and user hasn't acknowledged
+- Featured Showcase wrapped in a `<details>`-style collapsible (`HeaderShowcaseDrawer`) with a small "Featured ▾" tab, defaulting open, remembering state in localStorage. Reduced-motion + keyboard rules from the existing showcase carry over.
+- `OrgCatalogueIframe` component renders `<iframe src="/site/:slug/catalogue?embed=1" />` at `h-[75vh]`. Catalogue page gets an `?embed=1` mode that hides nav/footer.
+- `OrgWebsite.tsx` re-orders sections; new template config flag `hero_position: "below_catalogue" | "above"` (default `below_catalogue`) so designers can flip back. Toggle lives in `WebsiteBuilderTab` → Layout.
 
-## 3. UI changes
+---
 
-- **`OrgTemplatePublishPanel.tsx`**
-  - Replace ad-hoc `diffTemplates` with `checkTemplateCompatibility`
-  - Consent dialog now shows three sections: Breaking / Warnings / Info, plus a "View compatibility report" expander
-  - Consent always required (already true); checkbox label dynamic to severity
-  - Add **"Save as preview (72h)"** button that calls the staging RPC and shows a copyable preview URL (`/preview/template/:token`)
-  - Add **"Rollback to previous"** button (visible only if `publish_history.count > 1`) with confirm dialog
-  - Add **Segment Rules** subsection: list current rules, "Add rule" form (segment type + value + template), delete/toggle
+## 3 + 4. Multimedia hero background editor in Branding portal
 
-- **New page `src/pages/TemplatePreviewPage.tsx`** at route `/preview/template/:token`
-  - Calls `get_staging_template_by_token` RPC
-  - Renders the existing `BrandingLivePreview` with the staged template_key
-  - Shows banner: "Preview expires in Xh — not visible to customers"
+- New `OrgHeroBackgroundPanel.tsx` inside `OrgBrandingPanel`:
+  - Drag-and-drop zone (images + videos, ≤ 25MB), reuses existing `MediaDropzone`.
+  - Stores list in `org_websites.hero_media` JSONB: `[{url, type, poster_url, focal_point, duration_ms}]`.
+  - Supports image slideshow, single video, or mixed playlist; controls for autoplay, loop, mute, overlay opacity.
+- `Hero` template component reads `hero_media` and renders `<video>` or `<img>` background with the configured overlay. Falls back to existing `hero_image_url`.
+- This is exposed in the Website Builder as a feature toggle `hero_media_editor_enabled` so templates can advertise it as a feature.
 
-- **`DesignerPortal.tsx`** — already embeds `OrgTemplatePublishPanel`, so new features surface automatically
+---
 
-## 4. Renderer integration
+## 5. Cross-PWA catalogue sync worker
 
-`src/lib/resolveTemplateForVisitor.ts` (used by public website route):
-- Loads `org_template_segment_rules` for the org
-- Resolves visitor country (existing geo helper) and active category context
-- Returns the highest-priority matching rule's `template_key`, falling back to `org_websites.template_key`
+- New edge function `sync-platform-catalogue` (cron every 10 min via `pg_cron` + `pg_net`):
+  - Pulls newly approved items from `org_catalogue_items`, `tailor_catalogue_items`, designer items.
+  - Upserts into a unified `platform_catalogue_feed` materialized table.
+- Client-side `usePlatformCatalogueSync` hook: subscribes via `supabase.channel('platform_catalogue_feed')` and posts a `BroadcastChannel('fsa-catalogue')` message so all open PWAs (org + platform) refresh in lockstep.
+- Service-worker safe — uses NetworkFirst for the feed endpoint, never cache-first.
 
-## 5. Audit logging
+---
 
-- `rollback_org_template` writes `audit_logs` entry: `action='website_template_rollback'`, `entity_type='org_website'`, with `old_data` (current template) and `new_data` (restored template)
-- `promote_staging_template` writes `action='website_template_promoted'`
-- Segment rule changes already covered by existing `org_website_template_events` table — extend trigger to log segment rule inserts/updates/deletes
+## 6. Image capacity premium (50-image packs, Super Admin approval, fee-gated)
 
-## Files
+**Schema:**
+- `org_website_image_capacity` (org_id, website_id, base_limit, granted_packs int, image_count int, updated_at).
+- `image_capacity_requests` (org_id, website_id, packs_requested, status: pending/approved/awaiting_payment/active/rejected, price_total, currency, approved_by, invoice_id, paid_at).
+- Trigger on `org_catalogue_items` insert: blocks when `image_count + new_images > base_limit + granted_packs*50`, raises clear error.
 
-**New**
-- `supabase/migrations/<ts>_template_targeting_staging_rollback.sql`
-- `src/lib/templateCompatibility.ts`
-- `src/lib/resolveTemplateForVisitor.ts`
-- `src/pages/TemplatePreviewPage.tsx`
-- `src/components/website-builder/SegmentRulesPanel.tsx`
+**Workflow:**
+1. Org Admin in Catalogue → "Request more capacity (×50)" → row in `image_capacity_requests` (pending).
+2. Super Admin Finance → new "Capacity Requests" tab → Approve → generates `custom_invoice` (reuses existing invoicing pipeline) → status `awaiting_payment`.
+3. On payment verification webhook (`payments.status='success'` linked to invoice) → trigger flips request to `active` and increments `granted_packs`.
+4. Audit log entry at each step.
 
-**Edit**
-- `src/components/website-builder/OrgTemplatePublishPanel.tsx`
-- `src/App.tsx` (add `/preview/template/:token` route)
-- `src/integrations/supabase/types.ts` (regenerated after migration)
+**Pricing:**
+- New row in `platform_settings` / `website_pricing_config`: `image_pack_price_ngn` (default 5000) and `image_pack_price_usd`. Editable from Pricing & Products section of Super Admin.
 
-## Constraints honored
-- Consent dialog still mandatory before every template change (existing behavior preserved)
-- No CHECK constraints on time-dependent expiry; staging expiry enforced via trigger + RPC filter
-- All new public-schema tables get GRANTs in the same migration
-- Roles unchanged; org_admin / manager / designer guarded via existing `is_org_admin` and `has_role` helpers
+**UI surfaces:**
+- Catalogue uploader shows live `used / limit` meter + "Request more" button.
+- Super Admin Finance → "Capacity Requests" list + approve dialog.
+- Super Admin Pricing → editable pack price.
+
+---
+
+# Technical Notes
+
+- All new tables follow the GRANT-then-RLS pattern; capacity tables are org-scoped via `has_org_access()`.
+- The hero-media JSONB keeps schema flexible; size-limited by storage bucket quota.
+- Custom-hostname resolution runs once per page-load and caches in `sessionStorage` for 5 min.
+- Catalogue iframe uses `loading="lazy"` and a `postMessage` handshake so the parent can resize it.
+- The premium image-capacity trigger is enforced server-side so it cannot be bypassed by the client.
+
+---
+
+# Delivery order
+
+1. Migration: `org_custom_hostnames`, `org_website_image_capacity`, `image_capacity_requests`, hero_media column, hero_position column, image_pack pricing.
+2. Backend: RPCs (`resolve_org_by_hostname`, capacity check trigger), payment-verification trigger, cron for catalogue sync, `sync-platform-catalogue` edge function.
+3. Frontend: hostname resolver in App shell, new homepage layout + collapsible drawer + iframe, hero-media editor in branding, capacity meter + request flow, Super Admin Finance + Pricing tabs.
+4. Verify: DNS instructions surfaced, Playwright pass on homepage layout, capacity trigger blocks overage.
+
+This is a large batch — I'll ship it as one coordinated change but can pause between phases if you want to review each one before continuing.

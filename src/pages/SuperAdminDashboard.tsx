@@ -4,6 +4,7 @@ import KeysSecretsPanel from "@/components/super-admin/KeysSecretsPanel";
 import ExchangeRatesPanel from "@/components/super-admin/ExchangeRatesPanel";
 import PlatformRevenuePanel from "@/components/super-admin/PlatformRevenuePanel";
 import WebsitePricingPanel from "@/components/super-admin/WebsitePricingPanel";
+import CapacityRequestsPanel from "@/components/super-admin/CapacityRequestsPanel";
 import UnifiedPricingPanel from "@/components/super-admin/UnifiedPricingPanel";
 import DataBackupPanel from "@/components/super-admin/DataBackupPanel";
 import FeatureFlagsPanel from "@/components/super-admin/FeatureFlagsPanel";
@@ -342,7 +343,12 @@ const SuperAdminDashboard = () => {
             {activeTab === "users" && <UsersPanel />}
             {activeTab === "accounts" && <AccountManagementPanel />}
             {activeTab === "accounts_health" && <AccountsHealthPanel />}
-            {activeTab === "revenue" && <PlatformRevenuePanel />}
+            {activeTab === "revenue" && (
+              <div className="space-y-8">
+                <PlatformRevenuePanel />
+                <CapacityRequestsPanel />
+              </div>
+            )}
             {activeTab === "invoicing" && <AdminInvoicingPaymentsPanel />}
             {activeTab === "invoice_manager" && <InvoiceManagerPanel isSuperAdmin currency="USD" />}
             {activeTab === "sub_rates" && isSuperAdmin && <SubscriptionRatesPanel />}
@@ -354,7 +360,12 @@ const SuperAdminDashboard = () => {
             {activeTab === "unified_pricing" && isSuperAdmin && <UnifiedPricingPanel />}
             {activeTab === "monetization_switches" && isSuperAdmin && <MonetizationSwitchesPanel />}
             {activeTab === "fee_exemptions" && isSuperAdmin && <FeeExemptionsPanel />}
-            {activeTab === "pricing" && isSuperAdmin && <WebsitePricingPanel />}
+            {activeTab === "pricing" && isSuperAdmin && (
+              <div className="space-y-8">
+                <WebsitePricingPanel />
+                <CapacityRequestsPanel />
+              </div>
+            )}
             {activeTab === "keys" && <KeysSecretsPanel />}
             {activeTab === "rates" && <ExchangeRatesPanel />}
             {activeTab === "backups" && <DataBackupPanel />}

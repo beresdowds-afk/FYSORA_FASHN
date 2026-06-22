@@ -12,6 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useOrgMediaGroups, NodeType, MediaAsset, GroupNode } from "@/hooks/useOrgMediaGroups";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Plus, Trash2, Layers, FolderTree, Album, Image as ImageIcon, ChevronRight, Send, FilePlus2 } from "lucide-react";
+import ImageCapacityPanel from "@/components/catalogue/ImageCapacityPanel";
 
 interface Props { orgId: string; currency?: string }
 
@@ -187,6 +188,7 @@ const OrgMediaGroupingManager = ({ orgId, currency = "NGN" }: Props) => {
       </div>
 
       <Accordion type="multiple" defaultValue={["library", "sets", "collections", "albums"]} className="space-y-2">
+        <ImageCapacityPanel orgId={orgId} />
         <AccordionItem value="library" className="border rounded-lg px-3">
           <AccordionTrigger className="hover:no-underline">
             <span className="flex items-center gap-2 text-sm font-medium">

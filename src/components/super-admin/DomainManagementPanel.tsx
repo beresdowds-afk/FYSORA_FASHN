@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
+import CustomHostnamesPanel from "@/components/super-admin/CustomHostnamesPanel";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DomainRequest {
@@ -1676,6 +1677,11 @@ const DomainManagementPanel = () => {
           <NativeWebsitePublishingPanel />
         </TabsContent>
       </Tabs>
+
+      {/* Branded custom hostnames (e.g. gabulkfashionstudio.org.ng → org site) */}
+      <div className="mt-10">
+        <CustomHostnamesPanel />
+      </div>
     </motion.div>
   );
 };

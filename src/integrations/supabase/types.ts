@@ -3350,6 +3350,106 @@ export type Database = {
         }
         Relationships: []
       }
+      image_capacity_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          org_id: string
+          packs_requested: number
+          paid_at: string | null
+          price_total: number | null
+          rejection_reason: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string
+          website_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          org_id: string
+          packs_requested: number
+          paid_at?: string | null
+          price_total?: number | null
+          rejection_reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          website_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          org_id?: string
+          packs_requested?: number
+          paid_at?: string | null
+          price_total?: number | null
+          rejection_reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          website_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "image_capacity_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "custom_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_capacity_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_capacity_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_capacity_requests_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_capacity_requests_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "org_websites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_capacity_requests_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "org_websites_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbound_messages: {
         Row: {
           body: string | null
@@ -5939,6 +6039,64 @@ export type Database = {
           },
         ]
       }
+      org_custom_hostnames: {
+        Row: {
+          created_at: string
+          hostname: string
+          id: string
+          is_primary: boolean
+          is_verified: boolean
+          notes: string | null
+          org_id: string
+          updated_at: string
+          verification_token: string | null
+        }
+        Insert: {
+          created_at?: string
+          hostname: string
+          id?: string
+          is_primary?: boolean
+          is_verified?: boolean
+          notes?: string | null
+          org_id: string
+          updated_at?: string
+          verification_token?: string | null
+        }
+        Update: {
+          created_at?: string
+          hostname?: string
+          id?: string
+          is_primary?: boolean
+          is_verified?: boolean
+          notes?: string | null
+          org_id?: string
+          updated_at?: string
+          verification_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_custom_hostnames_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_custom_hostnames_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_custom_hostnames_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_design_sets: {
         Row: {
           cover_url: string | null
@@ -6906,6 +7064,75 @@ export type Database = {
           },
         ]
       }
+      org_website_image_capacity: {
+        Row: {
+          base_limit: number
+          created_at: string
+          granted_packs: number
+          id: string
+          image_count: number
+          org_id: string
+          updated_at: string
+          website_id: string | null
+        }
+        Insert: {
+          base_limit?: number
+          created_at?: string
+          granted_packs?: number
+          id?: string
+          image_count?: number
+          org_id: string
+          updated_at?: string
+          website_id?: string | null
+        }
+        Update: {
+          base_limit?: number
+          created_at?: string
+          granted_packs?: number
+          id?: string
+          image_count?: number
+          org_id?: string
+          updated_at?: string
+          website_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_website_image_capacity_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_image_capacity_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_image_capacity_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_image_capacity_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "org_websites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_image_capacity_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "org_websites_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_website_template_events: {
         Row: {
           action: string
@@ -6963,6 +7190,13 @@ export type Database = {
           font_heading: string
           hero_description: string | null
           hero_image_url: string | null
+          hero_media: Json
+          hero_media_autoplay: boolean
+          hero_media_interval_ms: number
+          hero_media_loop: boolean
+          hero_media_muted: boolean
+          hero_overlay_opacity: number
+          hero_position: string
           id: string
           instagram_url: string | null
           is_enabled: boolean
@@ -7009,6 +7243,13 @@ export type Database = {
           font_heading?: string
           hero_description?: string | null
           hero_image_url?: string | null
+          hero_media?: Json
+          hero_media_autoplay?: boolean
+          hero_media_interval_ms?: number
+          hero_media_loop?: boolean
+          hero_media_muted?: boolean
+          hero_overlay_opacity?: number
+          hero_position?: string
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
@@ -7055,6 +7296,13 @@ export type Database = {
           font_heading?: string
           hero_description?: string | null
           hero_image_url?: string | null
+          hero_media?: Json
+          hero_media_autoplay?: boolean
+          hero_media_interval_ms?: number
+          hero_media_loop?: boolean
+          hero_media_muted?: boolean
+          hero_overlay_opacity?: number
+          hero_position?: string
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
@@ -7757,6 +8005,60 @@ export type Database = {
           slug?: string
           sort_order?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_catalogue_feed: {
+        Row: {
+          category: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean
+          org_id: string | null
+          owner_user_id: string | null
+          price: number | null
+          source_id: string
+          source_table: string
+          synced_at: string
+          tags: string[] | null
+          title: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          org_id?: string | null
+          owner_user_id?: string | null
+          price?: number | null
+          source_id: string
+          source_table: string
+          synced_at?: string
+          tags?: string[] | null
+          title?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          org_id?: string | null
+          owner_user_id?: string | null
+          price?: number | null
+          source_id?: string
+          source_table?: string
+          synced_at?: string
+          tags?: string[] | null
+          title?: string | null
         }
         Relationships: []
       }
@@ -11588,6 +11890,9 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          image_pack_price_ngn: number
+          image_pack_price_usd: number
+          image_pack_size: number
           version: number
         }
         Insert: {
@@ -11595,6 +11900,9 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          image_pack_price_ngn?: number
+          image_pack_price_usd?: number
+          image_pack_size?: number
           version?: number
         }
         Update: {
@@ -11602,6 +11910,9 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          image_pack_price_ngn?: number
+          image_pack_price_usd?: number
+          image_pack_size?: number
           version?: number
         }
         Relationships: []
@@ -12147,6 +12458,14 @@ export type Database = {
           message: Json
           msg_id: number
           read_ct: number
+        }[]
+      }
+      resolve_org_by_hostname: {
+        Args: { _host: string }
+        Returns: {
+          name: string
+          org_id: string
+          slug: string
         }[]
       }
       rollback_org_template: { Args: { _org_id: string }; Returns: Json }

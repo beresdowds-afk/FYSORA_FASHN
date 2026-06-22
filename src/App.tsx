@@ -43,8 +43,31 @@ import TourSyncWorker from "@/components/platform/TourSyncWorker";
 import PaymentReturnHandler from "@/components/payments/PaymentReturnHandler";
 import CookieConsent from "@/components/landing/CookieConsent";
 import PersistentChrome from "@/components/layout/PersistentChrome";
+import { useCustomHostname } from "@/hooks/useCustomHostname";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
+
+/**
+ * When the user lands on a custom hostname (e.g. gabulkfashionstudio.org.ng),
+ * forward `/` to that org's `/site/:slug` automatically — so the branded
+ * domain mounts the org's website without the registrar having to handle
+ * a path-aware redirect.
+ */
+const CustomHostnameRouter = () => {
+  const { resolved } = useCustomHostname();
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!resolved) return;
+    // Only auto-route from the root; respect any deep links the visitor used.
+    if (location.pathname === "/" || location.pathname === "/platform-catalogue") {
+      navigate(`/site/${resolved.slug}`, { replace: true });
+    }
+  }, [resolved, location.pathname, navigate]);
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -53,6 +76,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <CustomHostnameRouter />
           <PlatformUpdateWatcher audience="all" />
           <TourSyncWorker />
           <PaymentReturnHandler />
