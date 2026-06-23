@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,7 +7,7 @@ import {
   Instagram, MessageCircle, Phone, Mail, MapPin, ExternalLink, Scissors, Calendar, BookOpen,
   Home, Menu, X, Sparkles, Lock, Facebook, Twitter, Linkedin, Youtube, Users, Download,
   PhoneCall, MessageSquare, Send, Map, ChevronUp, Info, Globe, Heart, ShoppingBag,
-  Leaf, Eye
+  Leaf, Eye, ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getTemplate, isLightTemplate } from "@/config/websiteTemplates";
