@@ -478,7 +478,7 @@ const OrgWebsite = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </nav>
+      </nav>}
 
       {/* ─── Page Content ─── */}
       <div className={embed ? "" : "pt-[calc(4rem+1.75rem)]"}>
