@@ -225,14 +225,18 @@ const OrgWebsite = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const embed = searchParams.get("embed") === "1";
+  const embedPage = searchParams.get("page") as "home" | "about" | "catalogue" | "booking" | "tailors" | null;
   const [org, setOrg] = useState<OrgData | null>(null);
   const [website, setWebsite] = useState<OrgWebsiteData | null>(null);
   const [catalogue, setCatalogue] = useState<CatalogueItem[]>([]);
   const [officers, setOfficers] = useState<OfficerData[]>([]);
   const [tailors, setTailors] = useState<TailorData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activePage, setActivePage] = useState<"home" | "about" | "catalogue" | "booking" | "tailors">("home");
+  const [activePage, setActivePage] = useState<"home" | "about" | "catalogue" | "booking" | "tailors">(embedPage || "home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showcaseOpen, setShowcaseOpen] = useState(true);
 
   const requireAuth = (action: string) => {
     if (!user) {
