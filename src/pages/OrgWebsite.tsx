@@ -375,7 +375,7 @@ const OrgWebsite = () => {
   return (
     <div className="min-h-screen" style={{ backgroundColor: td.bgBase, color: td.textPrimary, fontFamily: `'${fontBody}', sans-serif` }}>
       {/* ─── Editorial Navigation ─── */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b ${borderStyle}`}
+      {!embed && <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b ${borderStyle}`}
         style={{ backgroundColor: isLight ? `${td.bgBase}ee` : `${td.bgBase}ee` }}>
         {/* FSA Banner */}
         <div className="text-center py-1.5 text-[11px] tracking-[0.15em] uppercase" style={{ background: isLight ? `${brandColor}08` : `${brandColor}15`, color: accentColor }}>
