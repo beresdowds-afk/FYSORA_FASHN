@@ -44,8 +44,9 @@ import PaymentReturnHandler from "@/components/payments/PaymentReturnHandler";
 import CookieConsent from "@/components/landing/CookieConsent";
 import PersistentChrome from "@/components/layout/PersistentChrome";
 import { useCustomHostname } from "@/hooks/useCustomHostname";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { TENANT_HOSTNAMES, lookupTenantHost } from "@/config/tenantHostnames";
 
 const queryClient = new QueryClient();
 
@@ -56,9 +57,21 @@ const queryClient = new QueryClient();
  * a path-aware redirect.
  */
 const CustomHostnameRouter = () => {
-  const { resolved } = useCustomHostname();
+  const { resolved, loading, resolveError } = useCustomHostname();
   const location = useLocation();
   const navigate = useNavigate();
+  const [countdown, setCountdown] = useState(5);
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const isPlatformHost =
+    !host ||
+    host === "localhost" ||
+    host.endsWith(".lovable.app") ||
+    host.endsWith(".lovableproject.com") ||
+    host.endsWith(".lovableproject-dev.com") ||
+    host === "fs-africa.org.ng" ||
+    host === "www.fs-africa.org.ng" ||
+    host === "fashionstitchesafrica.lovable.app";
+
   useEffect(() => {
     if (!resolved) return;
     // Only auto-route from the root; respect any deep links the visitor used.
@@ -66,7 +79,54 @@ const CustomHostnameRouter = () => {
       navigate(`/site/${resolved.slug}`, { replace: true });
     }
   }, [resolved, location.pathname, navigate]);
-  return null;
+
+  // Fallback UI: tenant host known to us but DB resolver returned nothing
+  // (or errored). Show a countdown that auto-forwards to the platform site
+  // for the tenant slug, so the visitor is never stranded on a blank page.
+  const staticHit = lookupTenantHost(host);
+  const shouldShowFallback =
+    !isPlatformHost &&
+    !loading &&
+    !resolved &&
+    (resolveError !== null || staticHit !== null) &&
+    (location.pathname === "/" || location.pathname === "/platform-catalogue");
+
+  useEffect(() => {
+    if (!shouldShowFallback) return;
+    if (countdown <= 0) {
+      const fallbackSlug = staticHit?.slug ?? TENANT_HOSTNAMES[0]?.slug;
+      if (fallbackSlug) {
+        window.location.href = `https://www.fs-africa.org.ng/site/${fallbackSlug}`;
+      }
+      return;
+    }
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [shouldShowFallback, countdown, staticHit]);
+
+  if (!shouldShowFallback) return null;
+
+  const fallbackSlug = staticHit?.slug;
+  const fallbackName = staticHit?.name ?? "this organisation";
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-sm p-6">
+      <div className="max-w-md w-full rounded-xl border bg-card p-6 shadow-lg text-center">
+        <h1 className="text-xl font-semibold mb-2">Redirecting to {fallbackName}</h1>
+        <p className="text-sm text-muted-foreground mb-4">
+          The custom domain <code className="font-mono">{host}</code> is being routed through
+          FYSORA FASHN. You will be forwarded in <strong>{countdown}s</strong>.
+        </p>
+        {fallbackSlug && (
+          <a
+            href={`https://www.fs-africa.org.ng/site/${fallbackSlug}`}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            Continue now
+          </a>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const App = () => (
