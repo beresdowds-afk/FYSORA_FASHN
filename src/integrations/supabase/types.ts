@@ -6041,6 +6041,14 @@ export type Database = {
       }
       org_custom_hostnames: {
         Row: {
+          cf_hostname_id: string | null
+          cf_last_checked_at: string | null
+          cf_last_synced_at: string | null
+          cf_ownership_verification: Json | null
+          cf_ssl_status: string | null
+          cf_status: string | null
+          cf_validation_records: Json | null
+          cf_verification_errors: Json | null
           created_at: string
           hostname: string
           id: string
@@ -6052,6 +6060,14 @@ export type Database = {
           verification_token: string | null
         }
         Insert: {
+          cf_hostname_id?: string | null
+          cf_last_checked_at?: string | null
+          cf_last_synced_at?: string | null
+          cf_ownership_verification?: Json | null
+          cf_ssl_status?: string | null
+          cf_status?: string | null
+          cf_validation_records?: Json | null
+          cf_verification_errors?: Json | null
           created_at?: string
           hostname: string
           id?: string
@@ -6063,6 +6079,14 @@ export type Database = {
           verification_token?: string | null
         }
         Update: {
+          cf_hostname_id?: string | null
+          cf_last_checked_at?: string | null
+          cf_last_synced_at?: string | null
+          cf_ownership_verification?: Json | null
+          cf_ssl_status?: string | null
+          cf_status?: string | null
+          cf_validation_records?: Json | null
+          cf_verification_errors?: Json | null
           created_at?: string
           hostname?: string
           id?: string
