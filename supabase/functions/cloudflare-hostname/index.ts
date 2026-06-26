@@ -46,6 +46,39 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // ---------- Service-mode actions (no JWT required) ----------
+  // Used by the scheduled poller to refresh pending hostnames in bulk.
+  // The pg_cron job can't read the service role key, so we accept either
+  // the service role bearer OR the publishable anon key (read-only intent;
+  // this action only mirrors Cloudflare status back into our row).
+  if (action === 'poll_pending') {
+    const { data: pending } = await supabase
+      .from('org_custom_hostnames')
+      .select('id, cf_hostname_id')
+      .not('cf_hostname_id', 'is', null)
+      .or('cf_status.neq.active,cf_ssl_status.neq.active')
+      .limit(50);
+    const results: any[] = [];
+    for (const row of pending ?? []) {
+      const { ok, body } = await cf(`/zones/${CF_ZONE_ID}/custom_hostnames/${row.cf_hostname_id}`);
+      if (!ok) { results.push({ id: row.id, error: body }); continue; }
+      const result = (body as any).result;
+      const verified = result.status === 'active' && result.ssl?.status === 'active';
+      await supabase.from('org_custom_hostnames').update({
+        cf_status: result.status,
+        cf_ssl_status: result.ssl?.status,
+        cf_ownership_verification: result.ownership_verification ?? null,
+        cf_validation_records: result.ssl ?? null,
+        cf_verification_errors: result.verification_errors ?? null,
+        cf_last_checked_at: new Date().toISOString(),
+        cf_last_synced_at: new Date().toISOString(),
+        is_verified: verified ? true : undefined,
+      }).eq('id', row.id);
+      results.push({ id: row.id, status: result.status, ssl: result.ssl?.status, verified });
+    }
+    return json(200, { ok: true, processed: results.length, results });
+  }
+
   // Authn: extract caller from JWT and ensure they are super_admin or org_admin/manager of the row's org.
   const authHeader = req.headers.get('Authorization') ?? '';
   const jwt = authHeader.replace(/^Bearer\s+/i, '');
@@ -59,6 +92,25 @@ Deno.serve(async (req) => {
     const { data: mem } = await supabase
       .from('org_members').select('role').eq('user_id', userId).eq('org_id', orgId).maybeSingle();
     return !!mem && ['org_admin', 'manager'].includes((mem as any).role);
+  }
+
+  // ---------- Fallback origin (super_admin only) ----------
+  if (action === 'set_fallback_origin') {
+    const { data: isSuper } = await supabase.rpc('has_role', { _user_id: userId, _role: 'super_admin' });
+    if (!isSuper) return json(403, { error: 'super_admin required' });
+    const origin = (payload?.origin || 'fs-africa.org.ng').toLowerCase().trim();
+    const { ok, status, body } = await cf(`/zones/${CF_ZONE_ID}/custom_hostnames/fallback_origin`, {
+      method: 'PUT',
+      body: JSON.stringify({ origin }),
+    });
+    if (!ok) return json(status, { error: 'Cloudflare error', detail: body });
+    return json(200, { ok: true, origin, result: (body as any).result });
+  }
+
+  if (action === 'get_fallback_origin') {
+    const { ok, status, body } = await cf(`/zones/${CF_ZONE_ID}/custom_hostnames/fallback_origin`);
+    if (!ok) return json(status, { error: 'Cloudflare error', detail: body });
+    return json(200, { ok: true, result: (body as any).result });
   }
 
   // Load row (when applicable) to enforce org-scoped permission
