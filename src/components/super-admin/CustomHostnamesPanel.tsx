@@ -140,6 +140,23 @@ const CustomHostnamesPanel = () => {
       <div className="flex items-center gap-2">
         <Globe size={20} className="text-primary" />
         <h2 className="font-heading font-bold text-2xl">Custom Hostnames</h2>
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={async () => {
+            const { data, error } = await supabase.functions.invoke("cloudflare-hostname", {
+              body: { action: "set_fallback_origin", origin: "fs-africa.org.ng" },
+            });
+            if (error || (data as any)?.error) {
+              toast({ title: "Fallback origin failed", description: (data as any)?.error ?? error?.message, variant: "destructive" });
+            } else {
+              toast({ title: "Fallback origin set", description: "fs-africa.org.ng" });
+            }
+          }}
+        >
+          <Cloud size={14} className="mr-1" /> Set fallback origin
+        </Button>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-4 space-y-3">
