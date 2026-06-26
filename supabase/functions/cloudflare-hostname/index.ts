@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       // Create a CF custom hostname for the row's domain.
       const host = (hostname || row?.hostname || '').toLowerCase().trim();
       if (!host) return json(400, { error: 'hostname is required' });
-      const { ok, status, body } = await cf(`/zones/${CF_ZONE_ID}/custom_hostnames`, {
+      let { ok, status, body } = await cf(`/zones/${CF_ZONE_ID}/custom_hostnames`, {
         method: 'POST',
         body: JSON.stringify({
           hostname: host,
@@ -89,7 +89,19 @@ Deno.serve(async (req) => {
           },
         }),
       });
-      if (!ok) return json(status, { error: 'Cloudflare error', detail: body });
+      // If duplicate exists on CF, look it up and adopt it.
+      if (!ok && (body as any)?.errors?.some?.((e: any) => e.code === 1406)) {
+        const lookup = await cf(`/zones/${CF_ZONE_ID}/custom_hostnames?hostname=${encodeURIComponent(host)}`);
+        const found = (lookup.body as any)?.result?.[0];
+        if (lookup.ok && found) {
+          ok = true; status = 200;
+          body = { result: found } as any;
+        } else {
+          return json(status, { error: 'Cloudflare error', detail: body });
+        }
+      } else if (!ok) {
+        return json(status, { error: 'Cloudflare error', detail: body });
+      }
       const result = (body as any).result;
       if (row) {
         await supabase.from('org_custom_hostnames').update({
