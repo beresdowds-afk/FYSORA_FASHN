@@ -187,13 +187,13 @@ const CustomHostnamesPanel = () => {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-x-auto">
         {loading ? (
           <div className="p-6 text-sm text-muted-foreground">Loading…</div>
         ) : rows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">No custom hostnames yet.</div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-2">Hostname</th>
@@ -251,8 +251,9 @@ const CustomHostnamesPanel = () => {
                         <Trash2 size={14} />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
+                        className="h-7 px-2 text-xs"
                         title="Provision Cloudflare Worker route for edge URL rewriting"
                         onClick={async () => {
                           setBusyId(r.id);
@@ -284,10 +285,9 @@ const CustomHostnamesPanel = () => {
                         }}
                       >
                         {busyId === r.id ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          "WR"
-                        )}
+                          <Loader2 size={12} className="animate-spin mr-1" />
+                        ) : null}
+                        WR route
                       </Button>
                     </td>
                   </tr>
