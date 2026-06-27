@@ -247,6 +247,22 @@ async function getAuthHeaders(orgId?: string | null): Promise<{
   }
 
   // 2. Platform-level fine-grained token in platform_api_keys
+  //    Prefer a freshly-set GITHUB_PAT env secret over the DB row so an
+  //    expired/revoked DB token can be bypassed without a DB write.
+  const envPat = Deno.env.get("GITHUB_PAT");
+  if (envPat) {
+    console.log("Using GITHUB_PAT env secret (overrides platform_api_keys)");
+    return {
+      headers: {
+        Authorization: `Bearer ${envPat}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      source: "env_pat",
+    };
+  }
+
   const platformToken = await resolvePlatformGithubToken();
   if (platformToken) {
     console.log("Using platform GitHub fine-grained token from platform_api_keys");
