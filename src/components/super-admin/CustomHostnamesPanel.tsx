@@ -320,8 +320,14 @@ const CustomHostnamesPanel = () => {
                     body: { action: "create_validation_records", hostname_id: dnsDialog.id },
                   });
                   setBusyId(null);
-                  if (error || (data as any)?.error) {
-                    toast({ title: "Auto-create failed", description: (data as any)?.error ?? error?.message, variant: "destructive" });
+                  const d: any = data;
+                  if (error || d?.error) {
+                    toast({ title: "Auto-create failed", description: d?.error ?? error?.message, variant: "destructive" });
+                  } else if (d?.manual_required) {
+                    toast({
+                      title: "Manual DNS required",
+                      description: `${d.message} Records shown above must be added at the customer's DNS provider.`,
+                    });
                   } else {
                     toast({ title: "TXT records created on Cloudflare", description: JSON.stringify((data as any)?.records?.map((r: any) => r.status)) });
                     checkStatus(dnsDialog.id);

@@ -137,18 +137,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Find the customer's zone by walking apex labels.
+    // Build the validation records first so we can always return them for manual setup.
     const host: string = (r as any).hostname;
-    const parts = host.split('.');
-    let zoneId: string | null = null;
-    for (let i = 0; i < parts.length - 1; i++) {
-      const candidate = parts.slice(i).join('.');
-      const z = await cf(`/zones?name=${encodeURIComponent(candidate)}&status=active`);
-      const found = (z.body as any)?.result?.[0];
-      if (z.ok && found) { zoneId = found.id; break; }
-    }
-    if (!zoneId) return json(400, { error: 'No Cloudflare zone accessible for this hostname; ensure the apex domain is on the same Cloudflare account as the API token.' });
-
     const records: Array<{ name: string; content: string; type: 'TXT' }> = [];
     const own = (r as any).cf_ownership_verification;
     if (own?.type === 'txt' && own?.name && own?.value) {
@@ -160,6 +150,28 @@ Deno.serve(async (req) => {
       records.push({ type: 'TXT', name: sslRec.txt_name, content: sslRec.txt_value });
     }
     if (records.length === 0) return json(400, { error: 'No validation records present yet — re-provision first.' });
+
+    // Find the customer's zone by walking apex labels — only works if the apex
+    // is on the same Cloudflare account as our API token.
+    const parts = host.split('.');
+    let zoneId: string | null = null;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const candidate = parts.slice(i).join('.');
+      const z = await cf(`/zones?name=${encodeURIComponent(candidate)}&status=active`);
+      const found = (z.body as any)?.result?.[0];
+      if (z.ok && found) { zoneId = found.id; break; }
+    }
+    if (!zoneId) {
+      // Apex is on a different Cloudflare account (or not on Cloudflare at all).
+      // Return the records so the operator/customer can add them manually.
+      return json(200, {
+        ok: false,
+        manual_required: true,
+        reason: 'apex_not_on_this_cf_account',
+        message: `The apex of ${host} is not on the same Cloudflare account as the platform API token, so TXT records must be added manually at the customer's DNS provider.`,
+        records: records.map((rec) => ({ type: 'TXT', name: rec.name, content: rec.content, ttl: 60 })),
+      });
+    }
 
     const results: any[] = [];
     for (const rec of records) {
