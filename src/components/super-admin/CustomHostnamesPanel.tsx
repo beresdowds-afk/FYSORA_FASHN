@@ -230,13 +230,22 @@ const CustomHostnamesPanel = () => {
                         </Button>
                       )}
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => r.cf_hostname_id ? checkStatus(r.id) : provisionCf(r.id)}
+                        className="mr-1 h-7 px-2 text-xs"
+                        onClick={() => (r.cf_hostname_id ? checkStatus(r.id) : provisionCf(r.id))}
                         disabled={busyId === r.id}
                         title={r.cf_hostname_id ? "Refresh Cloudflare status" : "Provision then refresh"}
                       >
-                        {busyId === r.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        {busyId === r.id ? (
+                          <>
+                            <Loader2 size={12} className="animate-spin mr-1" /> Refreshing…
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw size={12} className="mr-1" /> Refresh
+                          </>
+                        )}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => remove(r)}>
                         <Trash2 size={14} />
