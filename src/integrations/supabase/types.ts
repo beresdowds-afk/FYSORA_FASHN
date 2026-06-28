@@ -7157,6 +7157,52 @@ export type Database = {
           },
         ]
       }
+      org_website_secrets: {
+        Row: {
+          api_key: string | null
+          api_secret: string | null
+          created_at: string
+          org_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string
+          org_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string | null
+          api_secret?: string | null
+          created_at?: string
+          org_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_website_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_secrets_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_website_template_events: {
         Row: {
           action: string
@@ -7196,8 +7242,6 @@ export type Database = {
       org_websites: {
         Row: {
           accent_color: string | null
-          api_key: string | null
-          api_secret: string | null
           brand_color: string | null
           color_palette: Json
           created_at: string
@@ -7249,8 +7293,6 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
-          api_key?: string | null
-          api_secret?: string | null
           brand_color?: string | null
           color_palette?: Json
           created_at?: string
@@ -7302,8 +7344,6 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
-          api_key?: string | null
-          api_secret?: string | null
           brand_color?: string | null
           color_palette?: Json
           created_at?: string
