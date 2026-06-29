@@ -201,6 +201,113 @@ Deno.serve(async (req) => {
     if (!(await canManage(row.org_id))) return json(403, { error: 'Forbidden' });
   }
 
+  // ---------- Flatten customer apex to SaaS CNAME (super_admin only) ----------
+  // For when the customer apex is on the SAME Cloudflare account as our token.
+  // Removes existing A/AAAA records on `@` and `www`, then creates a PROXIED
+  // CNAME on both pointing to the SaaS zone (default: fs-africa.org.ng).
+  // This is what Cloudflare for SaaS requires when the customer zone is also
+  // on Cloudflare — TXT/HTTP ownership validation is skipped in that case.
+  if (action === 'flatten_to_saas') {
+    const { data: isSuper } = await supabase.rpc('has_role', { _user_id: userId, _role: 'super_admin' });
+    if (!isSuper) return json(403, { error: 'super_admin required' });
+    if (!hostname_id) return json(400, { error: 'hostname_id required' });
+    const { data: r } = await supabase
+      .from('org_custom_hostnames').select('*').eq('id', hostname_id).maybeSingle();
+    if (!r) return json(404, { error: 'row not found' });
+
+    const host: string = (r as any).hostname.toLowerCase();
+    const target = (payload?.target || 'fs-africa.org.ng').toLowerCase().trim();
+
+    // Resolve customer apex and the apex zone on the same CF account.
+    const labels = host.split('.');
+    const apex = labels.length >= 2 ? labels.slice(-2).join('.') : host;
+    let zoneId: string | null = null;
+    for (let i = 0; i < labels.length - 1; i++) {
+      const candidate = labels.slice(i).join('.');
+      const z = await cf(`/zones?name=${encodeURIComponent(candidate)}&status=active`);
+      const found = (z.body as any)?.result?.[0];
+      if (z.ok && found) { zoneId = found.id; break; }
+    }
+    if (!zoneId) {
+      return json(400, {
+        error: 'apex_not_on_this_cf_account',
+        message: `The apex of ${host} is not on the same Cloudflare account as the platform API token; flatten must be done manually in the customer's DNS panel.`,
+      });
+    }
+
+    const namesToFix = [apex, `www.${apex}`];
+    const results: any[] = [];
+
+    for (const name of namesToFix) {
+      // 1) List existing records for this name.
+      const list = await cf(`/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}&per_page=100`);
+      const existing: any[] = (list.body as any)?.result ?? [];
+
+      // 2) Delete conflicting A / AAAA / CNAME(non-matching) records.
+      for (const rec of existing) {
+        const isConflict =
+          rec.type === 'A' ||
+          rec.type === 'AAAA' ||
+          (rec.type === 'CNAME' && (rec.content || '').toLowerCase() !== target);
+        if (!isConflict) continue;
+        const del = await cf(`/zones/${zoneId}/dns_records/${rec.id}`, { method: 'DELETE' });
+        results.push({ name, op: 'delete', type: rec.type, content: rec.content, ok: del.ok });
+      }
+
+      // 3) Ensure a proxied CNAME → target exists.
+      const already = existing.find(
+        (x) => x.type === 'CNAME' && (x.content || '').toLowerCase() === target,
+      );
+      if (already) {
+        if (!already.proxied) {
+          const upd = await cf(`/zones/${zoneId}/dns_records/${already.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ proxied: true }),
+          });
+          results.push({ name, op: 'patch_proxied', ok: upd.ok, detail: upd.body });
+        } else {
+          results.push({ name, op: 'skip_existing_cname' });
+        }
+        continue;
+      }
+      const create = await cf(`/zones/${zoneId}/dns_records`, {
+        method: 'POST',
+        body: JSON.stringify({ type: 'CNAME', name, content: target, ttl: 1, proxied: true }),
+      });
+      results.push({ name, op: 'create_cname', ok: create.ok, detail: create.ok ? undefined : create.body });
+    }
+
+    // 4) Optionally drop the no-longer-needed validation TXTs.
+    for (const txtName of [`_cf-custom-hostname.${apex}`, `_cf-custom-hostname.www.${apex}`]) {
+      const list = await cf(`/zones/${zoneId}/dns_records?type=TXT&name=${encodeURIComponent(txtName)}`);
+      for (const rec of ((list.body as any)?.result ?? [])) {
+        const del = await cf(`/zones/${zoneId}/dns_records/${rec.id}`, { method: 'DELETE' });
+        results.push({ name: txtName, op: 'delete_txt', ok: del.ok });
+      }
+    }
+
+    // 5) Re-poll CF custom hostname status so the row reflects the new state.
+    if ((r as any).cf_hostname_id) {
+      const s = await cf(`/zones/${CF_ZONE_ID}/custom_hostnames/${(r as any).cf_hostname_id}`);
+      if (s.ok) {
+        const res = (s.body as any).result;
+        const verified = res.status === 'active' && res.ssl?.status === 'active';
+        await supabase.from('org_custom_hostnames').update({
+          cf_status: res.status,
+          cf_ssl_status: res.ssl?.status,
+          cf_ownership_verification: res.ownership_verification ?? null,
+          cf_validation_records: res.ssl ?? null,
+          cf_verification_errors: res.verification_errors ?? null,
+          cf_last_checked_at: new Date().toISOString(),
+          cf_last_synced_at: new Date().toISOString(),
+          is_verified: verified ? true : (r as any).is_verified,
+        }).eq('id', (r as any).id);
+      }
+    }
+
+    return json(200, { ok: true, zone_id: zoneId, apex, target, results });
+  }
+
   try {
     if (action === 'create') {
       // Create a CF custom hostname for the row's domain.

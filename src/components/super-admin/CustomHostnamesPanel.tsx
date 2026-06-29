@@ -349,6 +349,35 @@ const CustomHostnamesPanel = () => {
                 }}>
                   <Cloud size={14} className="mr-1" /> Auto-create TXT on Cloudflare
                 </Button>
+                <Button variant="secondary" size="sm" onClick={async () => {
+                  if (!dnsDialog) return;
+                  if (!confirm(
+                    `Flatten ${dnsDialog.hostname} apex and www to a PROXIED CNAME → fs-africa.org.ng?\n\n` +
+                    `This will DELETE existing A / AAAA records on @ and www in the customer's Cloudflare zone, ` +
+                    `then create proxied CNAMEs pointing to the SaaS zone.`
+                  )) return;
+                  setBusyId(dnsDialog.id);
+                  const { data, error } = await supabase.functions.invoke("cloudflare-hostname", {
+                    body: { action: "flatten_to_saas", hostname_id: dnsDialog.id, target: "fs-africa.org.ng" },
+                  });
+                  setBusyId(null);
+                  const d: any = data;
+                  if (error || d?.error) {
+                    toast({
+                      title: "Flatten failed",
+                      description: d?.message ?? d?.error ?? error?.message,
+                      variant: "destructive",
+                    });
+                  } else {
+                    toast({
+                      title: "Apex flattened to SaaS CNAME",
+                      description: `${d.apex} + www → ${d.target} (${d.results?.length ?? 0} DNS ops)`,
+                    });
+                    checkStatus(dnsDialog.id);
+                  }
+                }}>
+                  <Cloud size={14} className="mr-1" /> Flatten apex → SaaS CNAME
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => dnsDialog && checkStatus(dnsDialog.id)}>
                   <RefreshCw size={14} className="mr-1" /> Check status
                 </Button>
