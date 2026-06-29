@@ -43,6 +43,7 @@ import TourSyncWorker from "@/components/platform/TourSyncWorker";
 import PaymentReturnHandler from "@/components/payments/PaymentReturnHandler";
 import CookieConsent from "@/components/landing/CookieConsent";
 import PersistentChrome from "@/components/layout/PersistentChrome";
+import RouteAuthGuard from "@/components/auth/RouteAuthGuard";
 import { useCustomHostname } from "@/hooks/useCustomHostname";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -141,6 +142,7 @@ const App = () => (
           <TourSyncWorker />
           <PaymentReturnHandler />
           <PersistentChrome>
+          <RouteAuthGuard>
           <Routes>
             {/* Single canonical mount of the platform catalogue at /platform-catalogue.
                 `/` redirects to avoid two duplicate platform-catalogue pages. */}
@@ -182,6 +184,7 @@ const App = () => (
             <Route path="/super-admin/claims" element={<AdminClaimsReviewPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </RouteAuthGuard>
           </PersistentChrome>
           <CookieConsent />
         </AuthProvider>
