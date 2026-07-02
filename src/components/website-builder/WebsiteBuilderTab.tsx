@@ -61,6 +61,9 @@ interface CatalogueItem {
   is_available: boolean;
   sort_order: number;
   tags: string[] | null;
+  size_chart_standard?: string | null;
+  available_sizes?: string[] | null;
+  size_chart?: Record<string, string> | null;
 }
 
 interface WebsiteSubscription {
@@ -1625,6 +1628,9 @@ const CatalogueItemForm = ({ item, orgId, currency, onSave, onCancel }: {
     tags: item?.tags?.join(", ") || "",
     image_url: item?.image_url || "",
     sort_order: item?.sort_order || 0,
+    size_chart_standard: item?.size_chart_standard || "UK",
+    available_sizes: (item?.available_sizes || []).join(", "),
+    size_chart_json: item?.size_chart ? JSON.stringify(item.size_chart, null, 2) : "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -1643,6 +1649,14 @@ const CatalogueItemForm = ({ item, orgId, currency, onSave, onCancel }: {
       tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : null,
       image_url: form.image_url || null,
       sort_order: form.sort_order,
+      size_chart_standard: form.size_chart_standard || "UK",
+      available_sizes: form.available_sizes
+        ? form.available_sizes.split(",").map((s) => s.trim()).filter(Boolean)
+        : [],
+      size_chart: (() => {
+        if (!form.size_chart_json.trim()) return {};
+        try { return JSON.parse(form.size_chart_json); } catch { return {}; }
+      })(),
     };
 
     const { error } = item
@@ -1746,6 +1760,51 @@ const CatalogueItemForm = ({ item, orgId, currency, onSave, onCancel }: {
             className="rounded" />
           <span className="text-sm">Available / Visible on website</span>
         </label>
+      </div>
+
+      <div className="rounded-lg border bg-background/50 p-4 space-y-3">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Size Chart (UK / US / EU / CN)
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Primary size standard</label>
+            <select
+              value={form.size_chart_standard}
+              onChange={(e) => setForm({ ...form, size_chart_standard: e.target.value })}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="UK">UK</option>
+              <option value="US">US</option>
+              <option value="EU">EU</option>
+              <option value="CN">CN</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Available sizes (comma-separated)</label>
+            <input
+              value={form.available_sizes}
+              onChange={(e) => setForm({ ...form, available_sizes: e.target.value })}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              placeholder="e.g. 8, 10, 12, 14"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground">
+            Optional: measurement notes per size (JSON — key = size, value = description)
+          </label>
+          <textarea
+            rows={3}
+            value={form.size_chart_json}
+            onChange={(e) => setForm({ ...form, size_chart_json: e.target.value })}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs font-mono"
+            placeholder={`{\n  "10": "Bust 88cm · Waist 70cm",\n  "12": "Bust 92cm · Waist 74cm"\n}`}
+          />
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Customers see a UK/US/EU/CN comparison table automatically. Leave sizes blank for made-to-measure items.
+        </p>
       </div>
 
       <div className="flex gap-2">
