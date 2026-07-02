@@ -11,6 +11,8 @@ interface CartLine {
   source: "org_catalogue" | "tailor_catalogue";
   quantity: number;
   client_unit_price?: number;
+  selected_size?: string | null;
+  size_standard?: string | null;
 }
 
 interface Body {
@@ -134,6 +136,7 @@ Deno.serve(async (req) => {
   const unavailable: string[] = [];
   const mismatches: { id: string; client: number; server: number }[] = [];
   const finalLines: { id: string; name: string; quantity: number; unit_price: number; currency: string }[] = [];
+  const sizeByKey = new Map<string, { selected_size: string | null; size_standard: string | null }>();
 
   for (const it of body.items) {
     const key = `${it.source}:${it.id}`;
@@ -151,6 +154,10 @@ Deno.serve(async (req) => {
       quantity: it.quantity,
       unit_price: server.unit_price,
       currency: server.currency,
+    });
+    sizeByKey.set(`${it.source}:${it.id}`, {
+      selected_size: it.selected_size ?? null,
+      size_standard: it.size_standard ?? null,
     });
   }
 
@@ -206,12 +213,17 @@ Deno.serve(async (req) => {
     return json(500, { ok: false, error: orderErr?.message || "Failed to create order" });
   }
 
-  const itemRows = finalLines.map((l) => ({
-    order_id: order.id,
-    name: l.name,
-    quantity: l.quantity,
-    unit_price: l.unit_price,
-  }));
+  const itemRows = finalLines.map((l) => {
+    const sz = sizeByKey.get(`org_catalogue:${l.id}`) || sizeByKey.get(`tailor_catalogue:${l.id}`);
+    return {
+      order_id: order.id,
+      name: sz?.selected_size ? `${l.name} — Size ${sz.selected_size}${sz.size_standard ? ` (${sz.size_standard})` : ""}` : l.name,
+      quantity: l.quantity,
+      unit_price: l.unit_price,
+      selected_size: sz?.selected_size ?? null,
+      size_standard: sz?.size_standard ?? null,
+    };
+  });
   await admin.from("order_items").insert(itemRows);
 
   // Audit log — full snapshot of who submitted what at what price
