@@ -1033,9 +1033,9 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
         </div>
       )}
 
-      {/* Section tabs */}
-      <div className="flex gap-1 bg-muted/50 p-1 rounded-lg w-fit mb-6 overflow-x-auto">
-        {[
+      {/* Section switcher — consolidated dropdown so the builder area can render full-screen. */}
+      {(() => {
+        const sectionList = [
           { id: "plans" as const, icon: Crown, label: "Plans" },
           { id: "general" as const, icon: Globe, label: "General" },
           { id: "branding" as const, icon: Palette, label: "Branding" },
@@ -1045,19 +1045,47 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
           { id: "templates" as const, icon: Sparkles, label: "Templates" },
           { id: "integration" as const, icon: Link2, label: "Integration" },
           { id: "guide" as const, icon: Book, label: "User Guide" },
-        ].map((s) => (
-          <button
-            key={s.id}
-            onClick={() => setActiveSection(s.id)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeSection === s.id ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            <s.icon size={14} /> {s.label}
-            {s.id === "plans" && (subscription || proRequest) && (
-              <span className="w-1.5 h-1.5 rounded-full bg-primary ml-0.5" />
-            )}
-          </button>
-        ))}
-      </div>
+        ];
+        const active = sectionList.find((s) => s.id === activeSection) ?? sectionList[0];
+        const ActiveIcon = active.icon;
+        return (
+          <div className="mb-6 flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Menu size={14} />
+                  <ActiveIcon size={14} />
+                  <span className="font-medium">{active.label}</span>
+                  <ChevronDown size={14} className="opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 z-50 bg-popover">
+                <DropdownMenuLabel>Website Builder</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {sectionList.map((s) => {
+                  const Icon = s.icon;
+                  const isActive = s.id === activeSection;
+                  return (
+                    <DropdownMenuItem
+                      key={s.id}
+                      onSelect={() => setActiveSection(s.id)}
+                      className={isActive ? "bg-accent" : ""}
+                    >
+                      <Icon size={14} className="mr-2" /> {s.label}
+                      {s.id === "plans" && (subscription || proRequest) && (
+                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              Choose a section — the editor fills the screen for a full‑width workspace.
+            </span>
+          </div>
+        );
+      })()}
 
       {/* ── Plans ─────────────────────────────────────────────── */}
       {activeSection === "plans" && (
