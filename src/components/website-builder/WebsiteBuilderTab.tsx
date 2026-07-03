@@ -831,6 +831,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
         tagline: ws.tagline || "",
         hero_description: ws.hero_description || "",
         hero_image_url: ws.hero_image_url || "",
+        hero_poster_url: (ws as any).hero_poster_url || "",
         api_key: secrets.api_key || "",
         api_secret: secrets.api_secret || "",
         webhook_url: ws.webhook_url || "",
