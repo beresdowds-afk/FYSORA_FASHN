@@ -26,6 +26,7 @@ interface OrgWebsiteData {
   tagline: string | null;
   hero_description: string | null;
   hero_image_url: string | null;
+  hero_poster_url?: string | null;
   brand_color: string;
   accent_color: string;
   theme: string;
@@ -687,6 +688,7 @@ const HomePage = ({ org, website, brandColor, accentColor, fontHeading, officers
             {/\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(website.hero_image_url) ? (
               <video
                 src={website.hero_image_url}
+                poster={website.hero_poster_url || undefined}
                 autoPlay
                 muted
                 loop
