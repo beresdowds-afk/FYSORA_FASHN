@@ -224,7 +224,7 @@ const UnifiedPricingPanel = () => {
 
     const { error } = await supabase
       .from("subscription_plans")
-      .update(update)
+      .update(update as any)
       .eq("id", editPlan.plan.id);
 
     if (error) {
