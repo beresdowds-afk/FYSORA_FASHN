@@ -494,7 +494,7 @@ const OrgAppsSection = () => {
 
     await supabase
       .from("org_app_configs")
-      .update(autoUpdates)
+      .update(autoUpdates as any)
       .eq("id", id);
 
     setOrgApps(prev => prev.map(a => a.id === id ? { ...a, ...autoUpdates } : a));
