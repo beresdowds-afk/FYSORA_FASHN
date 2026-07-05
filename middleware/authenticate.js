@@ -1,5 +1,10 @@
 // middleware/authenticate.js
-const { verifyAccessToken } = require('../utils/jwt');
+const { authenticate, checkAppAccessMiddleware } = require('../middleware/authenticate');
+
+// Example: only customers can access certain endpoints
+router.get('/customer-data', authenticate, checkAppAccessMiddleware(['customer']), (req, res) => {
+  res.json({ data: 'Customer only' });
+});const { verifyAccessToken } = require('../utils/jwt');
 
 function authenticate(req, res, next) {
   const token = req.cookies.access_token;
