@@ -12400,6 +12400,10 @@ export type Database = {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
       }
+      can_manage_org_website: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       claim_promotional_grant: {
         Args: { _grant_type: string; _org_id?: string }
         Returns: Json
