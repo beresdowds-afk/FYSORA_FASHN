@@ -43,7 +43,7 @@ export function PasskeysPanel() {
         body: { action: "begin" },
       });
       if (e1 || !begin?.options) throw new Error(e1?.message ?? "Failed to start enrollment");
-      const attResp = await startRegistration({ optionsJSON: begin.options });
+      const attResp = await startRegistration(begin.options);
       const { error: e2 } = await supabase.functions.invoke("passkey-register", {
         body: { action: "finish", response: attResp, nickname: nickname || null },
       });
@@ -64,7 +64,7 @@ export function PasskeysPanel() {
         body: { action: "begin" },
       });
       if (e1 || !begin?.options) throw new Error(e1?.message ?? "No passkeys available");
-      const asResp = await startAuthentication({ optionsJSON: begin.options });
+      const asResp = await startAuthentication(begin.options);
       const { data: fin, error: e2 } = await supabase.functions.invoke("passkey-authenticate", {
         body: { action: "finish", response: asResp },
       });
