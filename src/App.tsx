@@ -146,7 +146,15 @@ const App = () => (
           <Routes>
             {/* Single canonical mount of the platform catalogue at /platform-catalogue.
                 `/` redirects to avoid two duplicate platform-catalogue pages. */}
-            <Route path="/" element={<Navigate to="/platform-catalogue" replace />} />
+            <Route
+              path="/"
+              element={
+                <Navigate
+                  to={{ pathname: "/platform-catalogue", search: typeof window !== "undefined" ? window.location.search : "" }}
+                  replace
+                />
+              }
+            />
             <Route path="/landing" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />

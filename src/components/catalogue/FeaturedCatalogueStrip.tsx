@@ -47,7 +47,7 @@ export default function FeaturedCatalogueStrip() {
         const { data: recent } = await (supabase as any)
           .from("org_catalogue_items")
           .select("id, name, image_url, category, organizations(name)")
-          .eq("is_published", true)
+          .eq("is_available", true)
           .order("created_at", { ascending: false })
           .limit(12);
         deduped = (recent || []).map((it: any) => ({
@@ -87,7 +87,9 @@ export default function FeaturedCatalogueStrip() {
       params.set("source_id", it.source_id);
     }
     params.set("focus", it.id);
-    navigate(`/?${params.toString()}`);
+    // Navigate directly to /platform-catalogue so the query params survive
+    // (the `/` route redirects with <Navigate> which strips search params).
+    navigate(`/platform-catalogue?${params.toString()}`);
   };
 
   return (
