@@ -52,7 +52,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star, ShoppingBag, Download, Settings, LifeBuoy, Banknote, MapPin, MessageSquare, Menu, Video, ClipboardList, Scale, Truck, Palette, Radio, ShieldCheck } from "lucide-react";
+import { DollarSign, Smartphone, ScrollText, HelpCircle, UserX, Search, Trash2, Star, ShoppingBag, Download, Settings, LifeBuoy, Banknote, MapPin, MessageSquare, Menu, Video, ClipboardList, Scale, Truck, Palette, Radio, ShieldCheck, AlertTriangle } from "lucide-react";
 import LocationMapFooter from "@/components/shared/LocationMapFooter";
 import TourGuide from "@/components/shared/TourGuide";
 import ManualPwaUpdateButton from "@/components/platform/ManualPwaUpdateButton";
@@ -321,6 +321,9 @@ const SuperAdminDashboard = () => {
                 </Button>
                 <Button variant="ghost" size="sm" className="text-ivory/70 hover:text-ivory text-xs hidden xl:flex" onClick={() => navigate("/admin-install")}>
                   <Download size={14} className="mr-1" /> Admin App
+                </Button>
+                <Button variant="ghost" size="sm" className="text-ivory/70 hover:text-ivory text-xs hidden lg:flex" onClick={() => navigate("/super-admin/schema-alerts")} title="Daily schema-health alerts">
+                  <AlertTriangle size={14} className="mr-1" /> Schema Alerts
                 </Button>
                 <Button variant="ghost" size="icon" onClick={tour.restart} title="Restart tour guide" className="text-ivory/70 hover:text-ivory h-8 w-8">
                   <HelpCircle size={16} />

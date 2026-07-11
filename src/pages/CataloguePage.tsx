@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { reportSchemaError } from "@/lib/schemaErrorReporter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,8 @@ const CataloguePage = () => {
         supabase.from("org_websites_public" as any).select("instagram_url, facebook_url, whatsapp_number, twitter_url, linkedin_url, tiktok_url, youtube_url, brand_color, public_website_url").eq("org_id", orgId).single(),
         supabase.from("org_members").select("user_id, role, profiles(id, display_name, specialty)").eq("org_id", orgId).eq("role", "tailor").eq("is_active", true),
       ]);
+      if (websiteRes.error) reportSchemaError(websiteRes.error, { table: "org_websites_public", route: "/catalogue" });
+      if (itemsRes.error) reportSchemaError(itemsRes.error, { table: "garment_catalog", route: "/catalogue" });
       setOrg(orgRes.data);
       setItems(itemsRes.data || []);
       setWebsite(websiteRes.data);

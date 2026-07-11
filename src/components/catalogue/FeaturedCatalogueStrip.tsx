@@ -44,13 +44,17 @@ export default function FeaturedCatalogueStrip() {
       // recent published catalogue items so the marquee + pull-down still
       // showcase products.
       if (deduped.length === 0) {
-        const { data: recent } = await (supabase as any)
+        const recentRes = await (supabase as any)
           .from("org_catalogue_items")
           .select("id, name, image_url, category, organizations(name)")
           .eq("is_available", true)
           .order("created_at", { ascending: false })
           .limit(12);
-        deduped = (recent || []).map((it: any) => ({
+        if (recentRes.error) {
+          const { reportSchemaError } = await import("@/lib/schemaErrorReporter");
+          reportSchemaError(recentRes.error, { table: "org_catalogue_items", route: "/" });
+        }
+        deduped = (recentRes.data || []).map((it: any) => ({
           id: it.id,
           name: it.name,
           image_url: it.image_url,
