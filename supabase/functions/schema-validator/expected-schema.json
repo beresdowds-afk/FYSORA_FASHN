@@ -1,0 +1,30 @@
+{
+  "$comment": "Hardcoded allowlist of {object -> required columns} that the client relies on. Regenerate with scripts/scan-schema-usage.mjs to append auto-scanned entries.",
+  "objects": [
+    {
+      "type": "view",
+      "name": "org_websites_public",
+      "columns": ["id", "org_id", "template_key", "public_website_url", "brand_primary_color", "brand_secondary_color", "logo_url"],
+      "grants": { "anon": ["SELECT"], "authenticated": ["SELECT"] }
+    },
+    {
+      "type": "table",
+      "name": "org_catalogue_items",
+      "columns": ["id", "org_id", "title", "is_available", "price", "currency"],
+      "rls_enabled": true,
+      "grants": { "authenticated": ["SELECT", "INSERT", "UPDATE", "DELETE"] }
+    },
+    {
+      "type": "table",
+      "name": "organizations",
+      "columns": ["id", "name", "slug", "is_active", "country", "currency"],
+      "rls_enabled": true
+    },
+    {
+      "type": "table",
+      "name": "org_websites",
+      "columns": ["id", "org_id", "template_key"],
+      "rls_enabled": true
+    }
+  ]
+}
