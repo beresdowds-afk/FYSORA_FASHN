@@ -301,7 +301,7 @@ const Auth = () => {
         setPasskeyStep(true);
         const result = await verifyPasskeyForCurrentSession();
         setPasskeyStep(false);
-        if (!result.ok) {
+        if (result.ok === false) {
           await supabase.auth.signOut();
           toast({
             title: "Passkey required",
