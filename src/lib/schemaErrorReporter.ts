@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // Fingerprints already reported this session, to avoid RPC flooding on repeated renders.
 const reported = new Set<string>();
@@ -20,6 +21,20 @@ export async function reportSchemaError(
   const fp = `${context.table}|${column}`;
   if (reported.has(fp)) return;
   reported.add(fp);
+  // User-facing toast so admins know a schema alert was auto-filed
+  try {
+    toast.warning("Schema issue detected", {
+      description: `Missing column "${column}" on ${context.table}. Auto-filed to Schema Alerts.`,
+      action: {
+        label: "View",
+        onClick: () => {
+          if (typeof window !== "undefined") {
+            window.location.href = "/super-admin/schema-alerts";
+          }
+        },
+      },
+    });
+  } catch { /* noop */ }
   try {
     await supabase.rpc("capture_missing_column_error", {
       _object_name: context.table,
