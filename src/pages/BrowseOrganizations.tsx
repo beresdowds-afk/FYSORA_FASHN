@@ -88,11 +88,12 @@ const BrowseOrganizations = () => {
           if (!categoryMap[c.org_id]) categoryMap[c.org_id] = new Set();
           if (c.category) categoryMap[c.org_id].add(c.category);
         });
-        const { data: sites } = await (supabase
+        const sitesRes = await (supabase
           .from("org_websites_public" as any)
           .select("org_id, public_website_url")
           .in("org_id", orgIds) as any);
-        (sites || []).forEach((s: any) => { publicUrlMap[s.org_id] = s.public_website_url || null; });
+        if (sitesRes.error) reportSchemaError(sitesRes.error, { table: "org_websites_public", route: "/browse" });
+        (sitesRes.data || []).forEach((s: any) => { publicUrlMap[s.org_id] = s.public_website_url || null; });
       }
 
       setOrgs(orgsData.map((o: any) => ({
