@@ -12183,6 +12183,7 @@ export type Database = {
           mission_statement: string | null
           mode: string | null
           org_id: string | null
+          public_website_url: string | null
           tagline: string | null
           theme: string | null
           tiktok_url: string | null
@@ -12217,6 +12218,7 @@ export type Database = {
           mission_statement?: string | null
           mode?: string | null
           org_id?: string | null
+          public_website_url?: string | null
           tagline?: string | null
           theme?: string | null
           tiktok_url?: string | null
@@ -12251,6 +12253,7 @@ export type Database = {
           mission_statement?: string | null
           mode?: string | null
           org_id?: string | null
+          public_website_url?: string | null
           tagline?: string | null
           theme?: string | null
           tiktok_url?: string | null
