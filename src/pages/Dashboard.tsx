@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, CreditCard, Crown, MessageCircle, Video, Globe, Sparkles, Truck, FileText, Download, Receipt, Star, Wallet } from "lucide-react";
+import { LogOut, User, Users, Settings, BarChart3, ShoppingBag, Palette, Plus, Trash2, Shield, Package, Clock, UserCheck, CreditCard, Crown, MessageCircle, Video, Globe, Sparkles, Truck, FileText, Download, Receipt, Star, Wallet, ShieldCheck } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import OrgDashboardSidebar, { type OrgTabId } from "@/components/dashboard/OrgDashboardSidebar";
 import OrgIntegrationsPanel from "@/components/integrations/OrgIntegrationsPanel";
@@ -178,6 +178,7 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => navigate("/super-admin")}>{isSuperAdmin ? "Super Admin" : "Admin"} Panel</Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/account/security")} title="Account & Security (passkeys)"><ShieldCheck size={16} /></Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut}><LogOut size={16} /></Button>
             </div>
           </div>
@@ -264,6 +265,9 @@ const Dashboard = () => {
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => navigate("/platform-catalogue")} title="Platform Catalogue" className="text-primary">
                   <ShoppingBag size={16} className="mr-1" /> <span className="hidden sm:inline text-xs">Catalogue</span>
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/account/security")} title="Account & Security (passkeys)" className="text-primary">
+                  <ShieldCheck size={16} className="mr-1" /> <span className="hidden sm:inline text-xs">Security</span>
                 </Button>
                 <span className="text-sm text-muted-foreground hidden sm:block">
                   {profile?.display_name || user.email}
