@@ -16,7 +16,7 @@ import TailorCatalogueManager from "@/components/catalogue/TailorCatalogueManage
 import {
   LogOut, Package, Clock, BarChart3, Scissors, FileText,
   Wallet, User, ShoppingBag, CheckCircle2, ArrowRight,
-  Shield, DollarSign, TrendingUp, Save, Globe, Download, Star, CreditCard, MapPin
+  Shield, DollarSign, TrendingUp, Save, Globe, Download, Star, CreditCard, MapPin, ShieldCheck
 } from "lucide-react";
 import LocationPicker from "@/components/shared/LocationPicker";
 import LocationMapFooter from "@/components/shared/LocationMapFooter";
@@ -197,6 +197,9 @@ const TailorDashboard = () => {
               <span className="text-sm text-muted-foreground hidden md:block">
                 {profile?.display_name || user.email}
               </span>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/account/security")} title="Account & Security (passkeys)">
+                <ShieldCheck size={16} />
+              </Button>
               <Button variant="ghost" size="sm" onClick={handleSignOut}>
                 <LogOut size={16} />
               </Button>
