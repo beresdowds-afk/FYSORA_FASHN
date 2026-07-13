@@ -302,15 +302,45 @@ const Auth = () => {
         const result = await verifyPasskeyForCurrentSession();
         setPasskeyStep(false);
         if (result.ok === false) {
-          await supabase.auth.signOut();
-          toast({
-            title: "Passkey required",
-            description: result.message + " You've been signed out — please try again.",
-            variant: "destructive",
+          // Give the user a recovery path with a backup code before signing them out.
+          const useBackup = window.confirm(
+            `${result.message}\n\nDo you want to use a one-time backup code to sign in instead? (Cancel = sign out)`
+          );
+          if (!useBackup) {
+            await supabase.auth.signOut();
+            toast({
+              title: "Passkey required",
+              description: result.message + " You've been signed out — please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+          const code = window.prompt("Enter one of your backup codes (format XXXXX-XXXXX):") ?? "";
+          if (!code.trim()) {
+            await supabase.auth.signOut();
+            toast({ title: "Sign-in cancelled", variant: "destructive" });
+            return;
+          }
+          const { data: rec, error: recErr } = await supabase.functions.invoke("passkey-recovery", {
+            body: { action: "redeem", code: code.trim() },
           });
-          return;
+          if (recErr || (rec as any)?.error) {
+            await supabase.auth.signOut();
+            toast({
+              title: "Backup code rejected",
+              description: (rec as any)?.error ?? recErr?.message ?? "Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+          toast({
+            title: "Recovered with backup code",
+            description: "Passkey 2FA has been disabled so you can get back in. Please enroll a new passkey in Account & Security.",
+          });
         }
-        toast({ title: "Passkey verified", description: "Second-factor confirmed." });
+        else {
+          toast({ title: "Passkey verified", description: "Second-factor confirmed." });
+        }
       }
 
       // Use prefetched cache if available; otherwise fetch fresh.
