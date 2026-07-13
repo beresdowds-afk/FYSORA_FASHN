@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogIn, Download } from "lucide-react";
+import { Menu, X, LogIn, Download, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import fsaLogo from "@/assets/fsa-logo.png";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navLinks = [
   { label: "Visit landing page", href: "/landing", isRoute: true },
@@ -24,6 +25,7 @@ const mobileExtraLinks = [
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { settings } = usePlatformSettings();
+  const { user } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-ebony/90 backdrop-blur-md border-b border-primary/10">
@@ -75,6 +77,14 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3 justify-end">
+          {user && (
+            <Link to="/account/security" title="Account & Security">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-ivory/80 hover:text-primary">
+                <ShieldCheck size={15} />
+                <span className="hidden lg:inline">Security</span>
+              </Button>
+            </Link>
+          )}
           <Link to="/auth">
             <Button variant="hero" size="sm" className="gap-1.5">
               <LogIn size={15} />
@@ -134,6 +144,14 @@ const Navbar = () => {
                 </Link>
               ))}
               <div className="flex flex-col gap-2 mt-2">
+                {user && (
+                  <Link to="/account/security" onClick={() => setIsOpen(false)}>
+                    <Button variant="heroOutline" className="w-full gap-1.5">
+                      <ShieldCheck size={15} />
+                      Account &amp; Security
+                    </Button>
+                  </Link>
+                )}
                 <Link to="/install" onClick={() => setIsOpen(false)}>
                   <Button variant="heroOutline" className="w-full gap-1.5">
                     <Download size={15} />
