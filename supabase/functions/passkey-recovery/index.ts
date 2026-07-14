@@ -6,17 +6,23 @@
 //                     valid unused code we mark it used and flip
 //                     `passkey_second_factor_required` to false so the user
 //                     can re-enter their account and re-enroll a passkey.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { z } from "npm:zod@3.25.76";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+
+const BodySchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("health") }),
+  z.object({ action: z.literal("status") }),
+  z.object({ action: z.literal("generate") }),
+  z.object({
+    action: z.literal("redeem"),
+    code: z.string().trim().min(10).max(11),
+  }),
+]);
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -47,6 +53,23 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+    const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) return json({ error: "Invalid recovery action or request data." }, 400);
+    const body = parsed.data;
+
+    // Public, read-only deploy probe. The RPC itself is service-role-only and
+    // returns object-presence booleans without exposing credential data.
+    if (body.action === "health") {
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data, error } = await admin.rpc("passkey_deployment_health_check");
+      if (error) return json({ ok: false, error: error.message }, 503);
+      return json(data, data?.ok === true ? 200 : 503);
+    }
+
     const authHeader = req.headers.get("authorization") ?? "";
     if (!authHeader.toLowerCase().startsWith("bearer ")) {
       return json({ error: "Authentication required" }, 401);
@@ -60,8 +83,7 @@ Deno.serve(async (req) => {
     const user = userData.user;
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const body = await req.json().catch(() => ({}));
-    const action = body.action as "generate" | "redeem" | "status";
+    const action = body.action;
 
     if (action === "status") {
       const { count } = await admin
@@ -88,7 +110,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "redeem") {
-      const raw = String(body.code ?? "").trim().toUpperCase();
+      const raw = body.code.trim().toUpperCase();
       if (!/^[A-Z0-9]{5}-?[A-Z0-9]{5}$/.test(raw)) {
         return json({ error: "Enter a backup code in the format XXXXX-XXXXX." }, 400);
       }

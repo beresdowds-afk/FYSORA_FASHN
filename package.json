@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/check-passkey-deployment-health.mjs",
     "build": "vite build",
+    "deploy:health": "node scripts/check-passkey-deployment-health.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
