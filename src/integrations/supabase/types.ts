@@ -7257,7 +7257,6 @@ export type Database = {
       org_websites: {
         Row: {
           accent_color: string | null
-          api_key: string | null
           brand_color: string | null
           color_palette: Json
           created_at: string
@@ -7281,7 +7280,6 @@ export type Database = {
           hero_media_muted: boolean
           hero_overlay_opacity: number
           hero_position: string
-          hero_poster_url: string | null
           id: string
           instagram_url: string | null
           is_enabled: boolean
@@ -7310,7 +7308,6 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
-          api_key?: string | null
           brand_color?: string | null
           color_palette?: Json
           created_at?: string
@@ -7334,7 +7331,6 @@ export type Database = {
           hero_media_muted?: boolean
           hero_overlay_opacity?: number
           hero_position?: string
-          hero_poster_url?: string | null
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
@@ -7363,7 +7359,6 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
-          api_key?: string | null
           brand_color?: string | null
           color_palette?: Json
           created_at?: string
@@ -7387,7 +7382,6 @@ export type Database = {
           hero_media_muted?: boolean
           hero_overlay_opacity?: number
           hero_position?: string
-          hero_poster_url?: string | null
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
@@ -8822,7 +8816,6 @@ export type Database = {
           latitude: number | null
           linkedin_url: string | null
           longitude: number | null
-          passkey_second_factor_required: boolean
           physical_address: string | null
           portfolio_url: string | null
           promo_consent: boolean
@@ -8832,7 +8825,6 @@ export type Database = {
           tiktok_url: string | null
           twitter_url: string | null
           updated_at: string
-          username: string | null
           youtube_url: string | null
         }
         Insert: {
@@ -8861,7 +8853,6 @@ export type Database = {
           latitude?: number | null
           linkedin_url?: string | null
           longitude?: number | null
-          passkey_second_factor_required?: boolean
           physical_address?: string | null
           portfolio_url?: string | null
           promo_consent?: boolean
@@ -8871,7 +8862,6 @@ export type Database = {
           tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
-          username?: string | null
           youtube_url?: string | null
         }
         Update: {
@@ -8900,7 +8890,6 @@ export type Database = {
           latitude?: number | null
           linkedin_url?: string | null
           longitude?: number | null
-          passkey_second_factor_required?: boolean
           physical_address?: string | null
           portfolio_url?: string | null
           promo_consent?: boolean
@@ -8910,7 +8899,6 @@ export type Database = {
           tiktok_url?: string | null
           twitter_url?: string | null
           updated_at?: string
-          username?: string | null
           youtube_url?: string | null
         }
         Relationships: [
@@ -9305,66 +9293,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      schema_validation_alerts: {
-        Row: {
-          column_name: string | null
-          created_at: string
-          dashboard_url: string | null
-          details: Json
-          fingerprint: string
-          first_seen_at: string
-          id: string
-          last_seen_at: string
-          message: string
-          object_name: string
-          object_type: string
-          occurrence_count: number
-          resolved_at: string | null
-          resolved_by: string | null
-          severity: string
-          source: string
-          updated_at: string
-        }
-        Insert: {
-          column_name?: string | null
-          created_at?: string
-          dashboard_url?: string | null
-          details?: Json
-          fingerprint: string
-          first_seen_at?: string
-          id?: string
-          last_seen_at?: string
-          message: string
-          object_name: string
-          object_type: string
-          occurrence_count?: number
-          resolved_at?: string | null
-          resolved_by?: string | null
-          severity?: string
-          source: string
-          updated_at?: string
-        }
-        Update: {
-          column_name?: string | null
-          created_at?: string
-          dashboard_url?: string | null
-          details?: Json
-          fingerprint?: string
-          first_seen_at?: string
-          id?: string
-          last_seen_at?: string
-          message?: string
-          object_name?: string
-          object_type?: string
-          occurrence_count?: number
-          resolved_at?: string | null
-          resolved_by?: string | null
-          severity?: string
-          source?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       sentinel_agent_incidents: {
         Row: {
@@ -11766,102 +11694,6 @@ export type Database = {
           },
         ]
       }
-      webauthn_backup_codes: {
-        Row: {
-          code_hash: string
-          created_at: string
-          id: string
-          used_at: string | null
-          user_id: string
-        }
-        Insert: {
-          code_hash: string
-          created_at?: string
-          id?: string
-          used_at?: string | null
-          user_id: string
-        }
-        Update: {
-          code_hash?: string
-          created_at?: string
-          id?: string
-          used_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      webauthn_challenges: {
-        Row: {
-          challenge: string
-          created_at: string
-          expires_at: string
-          id: string
-          purpose: string
-          user_id: string | null
-        }
-        Insert: {
-          challenge: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          purpose: string
-          user_id?: string | null
-        }
-        Update: {
-          challenge?: string
-          created_at?: string
-          expires_at?: string
-          id?: string
-          purpose?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      webauthn_credentials: {
-        Row: {
-          backed_up: boolean
-          counter: number
-          created_at: string
-          credential_id: string
-          device_type: string | null
-          id: string
-          last_used_at: string | null
-          nickname: string | null
-          public_key: string
-          transports: string[]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          backed_up?: boolean
-          counter?: number
-          created_at?: string
-          credential_id: string
-          device_type?: string | null
-          id?: string
-          last_used_at?: string | null
-          nickname?: string | null
-          public_key: string
-          transports?: string[]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          backed_up?: boolean
-          counter?: number
-          created_at?: string
-          credential_id?: string
-          device_type?: string | null
-          id?: string
-          last_used_at?: string | null
-          nickname?: string | null
-          public_key?: string
-          transports?: string[]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       webhook_event_log: {
         Row: {
           call_sid: string | null
@@ -12348,7 +12180,6 @@ export type Database = {
           mission_statement: string | null
           mode: string | null
           org_id: string | null
-          public_website_url: string | null
           tagline: string | null
           theme: string | null
           tiktok_url: string | null
@@ -12383,7 +12214,6 @@ export type Database = {
           mission_statement?: string | null
           mode?: string | null
           org_id?: string | null
-          public_website_url?: string | null
           tagline?: string | null
           theme?: string | null
           tiktok_url?: string | null
@@ -12418,7 +12248,6 @@ export type Database = {
           mission_statement?: string | null
           mode?: string | null
           org_id?: string | null
-          public_website_url?: string | null
           tagline?: string | null
           theme?: string | null
           tiktok_url?: string | null
@@ -12568,19 +12397,6 @@ export type Database = {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
       }
-      can_manage_org_website: {
-        Args: { _org_id: string; _user_id: string }
-        Returns: boolean
-      }
-      capture_missing_column_error: {
-        Args: {
-          _column_name: string
-          _message: string
-          _object_name: string
-          _route?: string
-        }
-        Returns: string
-      }
       claim_promotional_grant: {
         Args: { _grant_type: string; _org_id?: string }
         Returns: Json
@@ -12606,6 +12422,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -12714,7 +12531,6 @@ export type Database = {
         Args: { _grant_type: string; _org_id: string }
         Returns: boolean
       }
-      passkey_deployment_health_check: { Args: never; Returns: Json }
       promote_staging_template: { Args: { _staging_id: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
@@ -12723,19 +12539,6 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
-      }
-      record_schema_alert: {
-        Args: {
-          _column_name: string
-          _dashboard_url?: string
-          _details?: Json
-          _message: string
-          _object_name: string
-          _object_type: string
-          _severity: string
-          _source: string
-        }
-        Returns: string
       }
       resolve_org_by_hostname: {
         Args: { _host: string }
