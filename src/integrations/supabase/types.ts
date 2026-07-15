@@ -12651,6 +12651,7 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_org_website_redirect: { Args: { _org_id: string }; Returns: string }
       get_public_org_officers: {
         Args: { _org_id: string }
         Returns: {
