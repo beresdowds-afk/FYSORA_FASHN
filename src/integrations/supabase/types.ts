@@ -12719,6 +12719,10 @@ export type Database = {
         Args: { _function_name: string }
         Returns: undefined
       }
+      log_org_website_redirect_failure: {
+        Args: { _org_id: string; _reason?: string }
+        Returns: undefined
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
