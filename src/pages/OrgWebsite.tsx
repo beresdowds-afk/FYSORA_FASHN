@@ -266,7 +266,17 @@ const OrgWebsite = () => {
         .eq("org_id", (orgData as any).id)
         .single();
 
-      if (websiteData) setWebsite(websiteData as unknown as OrgWebsiteData);
+      if (websiteData) {
+        let merged = websiteData as any;
+        if (merged.mode === "custom_integration") {
+          const { data: redirectUrl } = await supabase.rpc(
+            "get_org_website_redirect" as any,
+            { _org_id: (orgData as any).id }
+          );
+          merged = { ...merged, webhook_url: (redirectUrl as unknown as string) ?? null };
+        }
+        setWebsite(merged as OrgWebsiteData);
+      }
 
       const [catalogueResult, officersResult, tailorsResult] = await Promise.all([
         supabase.from("org_catalogue_items").select("*").eq("org_id", orgData.id).eq("is_available", true).order("sort_order"),
