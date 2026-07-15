@@ -158,7 +158,20 @@ export async function initializeGatewayPayment(opts: {
   productName?: string;
   customerName?: string;
   customerPhone?: string;
-}): Promise<{ checkoutUrl: string; reference: string }> {
+  webhookUrl?: string;
+}): Promise<{
+  checkoutUrl: string;
+  reference: string;
+  bankTransfer?: {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    amount: number;
+    currency: string;
+    expiresAt?: string;
+    orderNo?: string;
+  };
+}> {
   const { gateway, keys, amount, currency, reference, callbackUrl, email, metadata, productName, customerName, customerPhone } = opts;
 
   if (gateway === "paystack") {
