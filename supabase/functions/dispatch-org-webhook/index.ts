@@ -122,6 +122,24 @@ Deno.serve(async (req) => {
       } else {
         deliveryStatus = "dead_letter";
       }
+      // Structured log so failures are searchable in Cloud logs.
+      console.error(JSON.stringify({
+        level: "error",
+        source: "dispatch-org-webhook",
+        event,
+        org_id,
+        webhook_id: hook.id,
+        webhook_url: hook.url,
+        request_id: requestId,
+        idempotency_key: idempotencyKey,
+        attempt,
+        max_attempts: MAX_ATTEMPTS,
+        response_status: status,
+        duration_ms: duration,
+        error: errMsg,
+        response_body_preview: respText.slice(0, 500),
+        outcome: deliveryStatus,
+      }));
     }
 
     await admin.from("org_webhook_deliveries").insert({
