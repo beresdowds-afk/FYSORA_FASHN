@@ -80,7 +80,7 @@ export default function CheckoutPage() {
     setActiveGateway(gateway);
     setBank(null);
     try {
-      const callback = `${window.location.origin}/receipt/pending`;
+      const callback = `${window.location.origin}/receipt/pending?gateway=${gateway}`;
       const { data, error } = await supabase.functions.invoke("initialize-payment", {
         body: { order_id: order.id, gateway, callback_url: callback },
       });

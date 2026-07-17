@@ -71,13 +71,14 @@ const MediaGroupPanel = ({ orgId }: MediaGroupPanelProps) => {
 
   const createGroup = useMutation({
     mutationFn: async () => {
-      if (!user) return;
-      await supabase.from("media_groups").insert({
+      if (!user) throw new Error("You must be signed in to create a media group.");
+      const { error } = await supabase.from("media_groups").insert({
         user_id: user.id,
         org_id: orgId,
         name: form.name,
         description: form.description || null,
       } as any);
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["media-groups"] });
@@ -85,16 +86,27 @@ const MediaGroupPanel = ({ orgId }: MediaGroupPanelProps) => {
       setAddOpen(false);
       toast({ title: "Media group created" });
     },
+    onError: (err: any) => {
+      toast({
+        title: "Could not create media group",
+        description: err?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteGroup = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from("media_groups").delete().eq("id", id);
+      const { error } = await supabase.from("media_groups").delete().eq("id", id);
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["media-groups"] });
       setSelectedGroup(null);
       toast({ title: "Group deleted" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Delete failed", description: err?.message || "", variant: "destructive" });
     },
   });
 

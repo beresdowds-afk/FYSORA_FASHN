@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ interface PaymentRow {
 export default function ReceiptPage() {
   const { paymentId } = useParams<{ paymentId: string }>();
   const [search] = useSearchParams();
+  const navigate = useNavigate();
   const [payment, setPayment] = useState<PaymentRow | null>(null);
   const [order, setOrder] = useState<{ order_number: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,12 +32,19 @@ export default function ReceiptPage() {
   useEffect(() => {
     const paypalToken = search.get("token") || search.get("reference");
     const gateway = search.get("gateway");
-    if (gateway === "paypal" && paypalToken && !capturing) {
+    if (gateway === "paypal" && paypalToken && !capturing && (!paymentId || paymentId === "pending")) {
       setCapturing(true);
-      supabase.functions.invoke("paypal-capture-order", { body: { order_id: paypalToken } })
+      supabase.functions
+        .invoke("paypal-capture-order", { body: { order_id: paypalToken } })
+        .then(({ data }) => {
+          const pid = (data as any)?.payment_id;
+          if (pid) {
+            navigate(`/receipt/${pid}`, { replace: true });
+          }
+        })
         .finally(() => setCapturing(false));
     }
-  }, [search, capturing]);
+  }, [search, capturing, paymentId, navigate]);
 
   useEffect(() => {
     if (!paymentId || paymentId === "pending") { setLoading(false); return; }
