@@ -7280,6 +7280,7 @@ export type Database = {
           hero_media_muted: boolean
           hero_overlay_opacity: number
           hero_position: string
+          hero_poster_url: string | null
           id: string
           instagram_url: string | null
           is_enabled: boolean
@@ -7331,6 +7332,7 @@ export type Database = {
           hero_media_muted?: boolean
           hero_overlay_opacity?: number
           hero_position?: string
+          hero_poster_url?: string | null
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
@@ -7382,6 +7384,7 @@ export type Database = {
           hero_media_muted?: boolean
           hero_overlay_opacity?: number
           hero_position?: string
+          hero_poster_url?: string | null
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
