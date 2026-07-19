@@ -7257,6 +7257,7 @@ export type Database = {
       org_websites: {
         Row: {
           accent_color: string | null
+          api_key: string | null
           brand_color: string | null
           color_palette: Json
           created_at: string
@@ -7281,6 +7282,7 @@ export type Database = {
           hero_overlay_opacity: number
           hero_position: string
           hero_poster_url: string | null
+          hero_video_url: string | null
           id: string
           instagram_url: string | null
           is_enabled: boolean
@@ -7309,6 +7311,7 @@ export type Database = {
         }
         Insert: {
           accent_color?: string | null
+          api_key?: string | null
           brand_color?: string | null
           color_palette?: Json
           created_at?: string
@@ -7333,6 +7336,7 @@ export type Database = {
           hero_overlay_opacity?: number
           hero_position?: string
           hero_poster_url?: string | null
+          hero_video_url?: string | null
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
@@ -7361,6 +7365,7 @@ export type Database = {
         }
         Update: {
           accent_color?: string | null
+          api_key?: string | null
           brand_color?: string | null
           color_palette?: Json
           created_at?: string
@@ -7385,6 +7390,7 @@ export type Database = {
           hero_overlay_opacity?: number
           hero_position?: string
           hero_poster_url?: string | null
+          hero_video_url?: string | null
           id?: string
           instagram_url?: string | null
           is_enabled?: boolean
