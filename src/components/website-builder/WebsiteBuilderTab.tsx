@@ -53,6 +53,8 @@ interface WebsiteSettings {
   tiktok_url: string;
   youtube_url: string;
   public_website_url: string;
+  show_size_chart: boolean;
+  size_chart_standards: string[];
 }
 
 interface CatalogueItem {
@@ -126,6 +128,8 @@ const defaultSettings = (orgId: string): WebsiteSettings => ({
   tiktok_url: "",
   youtube_url: "",
   public_website_url: "",
+  show_size_chart: false,
+  size_chart_standards: ["UK", "US", "CN"],
 });
 
 // ── Tier Banner with Usage ────────────────────────────────────────────────────
@@ -915,6 +919,10 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       mission_statement: (settings as any).mission_statement || null,
       our_story: (settings as any).our_story || null,
       public_website_url: ((settings as any).public_website_url || "").trim() || null,
+      show_size_chart: !!(settings as any).show_size_chart,
+      size_chart_standards: (settings as any).size_chart_standards?.length
+        ? (settings as any).size_chart_standards
+        : ["UK", "US", "CN"],
     };
 
     // Save org details if changed
