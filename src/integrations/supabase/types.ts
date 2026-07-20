@@ -7299,6 +7299,8 @@ export type Database = {
           published_template_id: string | null
           published_template_version: number
           selected_template_id: string | null
+          show_size_chart: boolean
+          size_chart_standards: string[]
           tagline: string | null
           theme: string
           tiktok_url: string | null
@@ -7353,6 +7355,8 @@ export type Database = {
           published_template_id?: string | null
           published_template_version?: number
           selected_template_id?: string | null
+          show_size_chart?: boolean
+          size_chart_standards?: string[]
           tagline?: string | null
           theme?: string
           tiktok_url?: string | null
@@ -7407,6 +7411,8 @@ export type Database = {
           published_template_id?: string | null
           published_template_version?: number
           selected_template_id?: string | null
+          show_size_chart?: boolean
+          size_chart_standards?: string[]
           tagline?: string | null
           theme?: string
           tiktok_url?: string | null
