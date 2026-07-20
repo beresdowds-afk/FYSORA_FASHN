@@ -46,6 +46,8 @@ interface OrgWebsiteData {
   mission_statement?: string | null;
   our_story?: string | null;
   template_id?: string | null;
+  show_size_chart?: boolean | null;
+  size_chart_standards?: string[] | null;
 }
 
 interface OfficerData {
