@@ -12406,6 +12406,8 @@ export type Database = {
           font_heading: string | null
           hero_description: string | null
           hero_image_url: string | null
+          hero_poster_url: string | null
+          hero_video_url: string | null
           id: string | null
           instagram_url: string | null
           is_enabled: boolean | null
@@ -12413,6 +12415,9 @@ export type Database = {
           mission_statement: string | null
           mode: string | null
           org_id: string | null
+          public_website_url: string | null
+          show_size_chart: boolean | null
+          size_chart_standards: string[] | null
           tagline: string | null
           theme: string | null
           tiktok_url: string | null
@@ -12440,6 +12445,8 @@ export type Database = {
           font_heading?: string | null
           hero_description?: string | null
           hero_image_url?: string | null
+          hero_poster_url?: string | null
+          hero_video_url?: string | null
           id?: string | null
           instagram_url?: string | null
           is_enabled?: boolean | null
@@ -12447,6 +12454,9 @@ export type Database = {
           mission_statement?: string | null
           mode?: string | null
           org_id?: string | null
+          public_website_url?: string | null
+          show_size_chart?: boolean | null
+          size_chart_standards?: string[] | null
           tagline?: string | null
           theme?: string | null
           tiktok_url?: string | null
@@ -12474,6 +12484,8 @@ export type Database = {
           font_heading?: string | null
           hero_description?: string | null
           hero_image_url?: string | null
+          hero_poster_url?: string | null
+          hero_video_url?: string | null
           id?: string | null
           instagram_url?: string | null
           is_enabled?: boolean | null
@@ -12481,6 +12493,9 @@ export type Database = {
           mission_statement?: string | null
           mode?: string | null
           org_id?: string | null
+          public_website_url?: string | null
+          show_size_chart?: boolean | null
+          size_chart_standards?: string[] | null
           tagline?: string | null
           theme?: string | null
           tiktok_url?: string | null
