@@ -11,6 +11,46 @@ export type SizeStandard = "UK" | "US" | "EU" | "CN";
 
 export const SIZE_STANDARDS: SizeStandard[] = ["UK", "US", "EU", "CN"];
 
+/**
+ * Validate a `size_chart_standards` value before saving. Ensures it is an
+ * array of allowed standards with no duplicates. Returns a normalized array
+ * or an error message describing why the value is invalid.
+ *
+ * Mirrors the server-side trigger `validate_org_website_size_chart` on
+ * `public.org_websites` so client and DB agree on the accepted shape.
+ */
+export function validateSizeChartStandards(
+  value: unknown,
+  opts: { showSizeChart?: boolean } = {},
+): { ok: true; value: SizeStandard[] } | { ok: false; error: string } {
+  if (value == null) {
+    return opts.showSizeChart
+      ? { ok: true, value: [...SIZE_STANDARDS] }
+      : { ok: true, value: [] };
+  }
+  if (!Array.isArray(value)) {
+    return { ok: false, error: "Size chart standards must be a list." };
+  }
+  const seen = new Set<string>();
+  const out: SizeStandard[] = [];
+  for (const raw of value) {
+    if (typeof raw !== "string") {
+      return { ok: false, error: "Each size chart standard must be a string." };
+    }
+    const s = raw.trim().toUpperCase();
+    if (!(SIZE_STANDARDS as string[]).includes(s)) {
+      return { ok: false, error: `Unsupported size chart standard "${raw}". Allowed: ${SIZE_STANDARDS.join(", ")}.` };
+    }
+    if (seen.has(s)) continue;
+    seen.add(s);
+    out.push(s as SizeStandard);
+  }
+  if (opts.showSizeChart && out.length === 0) {
+    return { ok: true, value: [...SIZE_STANDARDS] };
+  }
+  return { ok: true, value: out };
+}
+
 // Womenswear reference — most common for fashion catalogues.
 // Row order matches across standards so lookups can be done positionally.
 export const WOMEN_SIZE_TABLE: Record<SizeStandard, string[]> = {

@@ -28,6 +28,7 @@ import type { AppRole } from "@/hooks/useOrganization";
 import { useOrgSync } from "@/hooks/useOrgSync";
 import { getTierFeatures, getTierLimits, checkFeatureAccess, calculateUpgradeCost, isActiveStatus } from "./tierConfig";
 import { resolvePublicSiteUrl, isExternalSiteUrl } from "@/lib/publicSiteUrl";
+import { validateSizeChartStandards } from "@/lib/sizeCharts";
 
 
 interface WebsiteSettings {

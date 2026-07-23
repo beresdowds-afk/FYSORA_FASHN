@@ -4,7 +4,7 @@
     {
       "type": "view",
       "name": "org_websites_public",
-      "columns": ["id", "org_id", "template_key", "public_website_url", "brand_primary_color", "brand_secondary_color", "logo_url"],
+      "columns": ["id", "org_id", "template_key", "public_website_url", "brand_primary_color", "brand_secondary_color", "logo_url", "show_size_chart", "size_chart_standards"],
       "grants": { "anon": ["SELECT"], "authenticated": ["SELECT"] }
     },
     {
