@@ -902,7 +902,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       (settings as any).size_chart_standards,
       { showSizeChart: !!(settings as any).show_size_chart },
     );
-    if (!scValidation.ok) {
+    if (scValidation.ok === false) {
       setSaving(false);
       toast({
         title: "Invalid size chart selection",
