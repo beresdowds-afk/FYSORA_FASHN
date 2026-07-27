@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     let serverUrl: string | null = mcpConfig?.mcp_server_url || null;
-    const authMethod: string = mcpConfig?.auth_method || "bearer";
+    let authMethod: string = mcpConfig?.auth_method || "bearer";
     const routingConfig: Record<string, unknown> = mcpConfig?.event_routing || {};
 
     if (!serverUrl) {
@@ -348,6 +348,9 @@ Deno.serve(async (req) => {
     const useInboundEnvelope =
       /\/inbound\/execute\/?$/.test(serverUrl) ||
       (mcpConfig?.metadata as any)?.envelope === "inbound_execute";
+    if (useInboundEnvelope && !mcpConfig?.auth_method) {
+      authMethod = "api_key"; // integration-worker uses X-Api-Key
+    }
 
     const toolArgs = {
       org_id: event.org_id,
@@ -407,6 +410,7 @@ Deno.serve(async (req) => {
     const defaultTenantKey =
       (mcpConfig?.metadata as any)?.tenant_key ||
       (mcpConfig as any)?.tenant_key ||
+      Deno.env.get("SENTINEL_MCP_TENANT_KEY") ||
       null;
     const outboundTenantKey = tenantRecord?.tenant_key || defaultTenantKey;
     if (outboundTenantKey) {
