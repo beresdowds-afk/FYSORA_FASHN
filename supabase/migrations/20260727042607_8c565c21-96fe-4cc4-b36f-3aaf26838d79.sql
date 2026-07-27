@@ -1,0 +1,1 @@
+UPDATE public.platform_settings SET sentinel_mcp_url = 'https://udubdzlzofzdemonluor.supabase.co/functions/v1/integration-worker/inbound/execute';
