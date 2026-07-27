@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     let serverUrl: string | null = mcpConfig?.mcp_server_url || null;
-    const authMethod: string = mcpConfig?.auth_method || "bearer";
+    let authMethod: string = mcpConfig?.auth_method || "bearer";
     const routingConfig: Record<string, unknown> = mcpConfig?.event_routing || {};
 
     if (!serverUrl) {
@@ -344,24 +344,40 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: `Unknown event type: ${event.event_type}` }, 400);
     }
 
-    // Build MCP request
-    const mcpRequest: McpToolCall = {
-      jsonrpc: "2.0",
-      id: crypto.randomUUID(),
-      method: "tools/call",
-      params: {
-        name: toolName,
-        arguments: {
-          org_id: event.org_id,
-          tenant_key: tenantRecord?.tenant_key || "fsa_platform",
-          event_type: event.event_type,
-          priority: event.priority || "normal",
-          timestamp: new Date().toISOString(),
-          source: event.source || "fsa_platform",
-          ...event.data,
-        },
-      },
+    // Detect integration-worker envelope (rentmaikar / FYSORA companion style)
+    const useInboundEnvelope =
+      /\/inbound\/execute\/?$/.test(serverUrl) ||
+      (mcpConfig?.metadata as any)?.envelope === "inbound_execute";
+    if (useInboundEnvelope && !mcpConfig?.auth_method) {
+      authMethod = "api_key"; // integration-worker uses X-Api-Key
+    }
+
+    const toolArgs = {
+      org_id: event.org_id,
+      tenant_key: tenantRecord?.tenant_key || "fsa_platform",
+      event_type: event.event_type,
+      priority: event.priority || "normal",
+      timestamp: new Date().toISOString(),
+      source: event.source || "fsa_platform",
+      ...event.data,
     };
+
+    // Build MCP request (JSON-RPC or inbound-execute envelope)
+    const mcpRequest: Record<string, unknown> = useInboundEnvelope
+      ? {
+          toolName,
+          input: toolArgs,
+          subTenantId:
+            (event.data as any)?.sub_tenant_id ??
+            (mcpConfig?.metadata as any)?.sub_tenant_id ??
+            null,
+        }
+      : {
+          jsonrpc: "2.0",
+          id: crypto.randomUUID(),
+          method: "tools/call",
+          params: { name: toolName, arguments: toolArgs },
+        };
 
     // Build fetch headers
     const mcpHeaders: Record<string, string> = {
@@ -369,7 +385,16 @@ Deno.serve(async (req) => {
       Accept: "application/json, text/event-stream",
     };
 
-    if (authMethod === "bearer") {
+    if (authMethod === "api_key") {
+      const { data: apiKeyRow } = await adminClient
+        .from("platform_api_keys")
+        .select("key_value")
+        .eq("key_name", "sentinel_mcp_api_key")
+        .eq("is_active", true)
+        .maybeSingle();
+      const apiKey = apiKeyRow?.key_value || Deno.env.get("SENTINEL_MCP_API_KEY");
+      if (apiKey) mcpHeaders["X-Api-Key"] = apiKey;
+    } else if (authMethod === "bearer") {
       const { data: mcpAuthKey } = await adminClient
         .from("platform_api_keys")
         .select("key_value")
@@ -381,9 +406,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // If tenant, forward their tenant key to the MCP server
-    if (tenantRecord) {
-      mcpHeaders["X-Tenant-Key"] = tenantRecord.tenant_key;
+    // Forward tenant key: prefer per-tenant record, else configured default (e.g. "rentmaikar-prod")
+    const defaultTenantKey =
+      (mcpConfig?.metadata as any)?.tenant_key ||
+      (mcpConfig as any)?.tenant_key ||
+      Deno.env.get("SENTINEL_MCP_TENANT_KEY") ||
+      null;
+    const outboundTenantKey = tenantRecord?.tenant_key || defaultTenantKey;
+    if (outboundTenantKey) {
+      mcpHeaders["X-Tenant-Key"] = outboundTenantKey;
     }
 
     // Call MCP server
