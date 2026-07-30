@@ -4,6 +4,11 @@ import { HelmetProvider } from "react-helmet-async";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App.tsx";
 import "./index.css";
+import { assertSupabaseEnv } from "./lib/supabaseEnv";
+
+// Fail fast (with a readable message) if the backend env vars are missing or
+// malformed at build time — otherwise every request dies with "Failed to fetch".
+assertSupabaseEnv();
 
 // Register service worker for PWA auto-update
 const updateSW = registerSW({
