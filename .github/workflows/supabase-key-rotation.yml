@@ -1,0 +1,69 @@
+name: Supabase Key Rotation
+
+on:
+  workflow_dispatch:
+    inputs:
+      publishable_key:
+        description: "New Supabase publishable (anon) key"
+        required: false
+      supabase_url:
+        description: "New Supabase URL (https://<ref>.supabase.co)"
+        required: false
+      project_ref:
+        description: "New Supabase project ref"
+        required: false
+      dry_run:
+        description: "Validate only, do not commit"
+        type: boolean
+        default: false
+
+# Serialize rotations so two runs can never race on .env
+concurrency:
+  group: supabase-key-rotation
+  cancel-in-progress: false
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Rotate credentials (verifies, rolls back on failure)
+        env:
+          NEW_SUPABASE_PUBLISHABLE_KEY: ${{ github.event.inputs.publishable_key || secrets.SUPABASE_PUBLISHABLE_KEY }}
+          NEW_SUPABASE_URL: ${{ github.event.inputs.supabase_url }}
+          NEW_SUPABASE_PROJECT_ID: ${{ github.event.inputs.project_ref }}
+        run: |
+          node scripts/rotate-supabase-keys.mjs \
+            ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+
+      - name: Build with rotated credentials
+        if: github.event.inputs.dry_run != 'true'
+        run: bun run build
+
+      - name: Commit rotated .env
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          if git diff --quiet -- .env; then
+            echo "No .env change to commit."
+            exit 0
+          fi
+          git config user.name "fysora-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add .env
+          git commit -m "chore(security): rotate Supabase credentials [skip ci]"
+          git push
+
+      - name: Rollback notice
+        if: failure()
+        run: |
+          echo "::error::Key rotation failed verification. .env was restored to the previous credentials and nothing was published."
