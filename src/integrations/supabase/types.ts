@@ -12780,6 +12780,17 @@ export type Database = {
         Args: { _org_id: string; _reason?: string }
         Returns: undefined
       }
+      log_supabase_failure: {
+        Args: {
+          _category: string
+          _details?: Json
+          _message: string
+          _object_name: string
+          _pg_code: string
+          _route?: string
+        }
+        Returns: string
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
