@@ -276,7 +276,16 @@ const OrgWebsite = () => {
             "get_org_website_redirect" as any,
             { _org_id: (orgData as any).id }
           );
-          const url = (redirectUrl as unknown as string) ?? null;
+          const raw = (redirectUrl as unknown as string) ?? null;
+          // Defense in depth: a schemeless value ("example.org.ng") would be
+          // treated as a relative path by the browser and the portal link
+          // would silently navigate nowhere.
+          const url =
+            raw && raw.trim()
+              ? /^https?:\/\//i.test(raw.trim())
+                ? raw.trim()
+                : `https://${raw.trim()}`
+              : null;
           merged = { ...merged, webhook_url: url };
           if (!url) {
             // Site is set to custom_integration but the RPC returned no redirect.
