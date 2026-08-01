@@ -1,0 +1,569 @@
+# Safe TypeScript Error Handling & `any` Usage Standard
+Version: 1.0
+Status: Mandatory Platform Architecture Rule
+
+## Purpose
+
+This standard prevents platform crashes caused by:
+
+- `any` typed values
+- `unknown` errors
+- failed API responses
+- failed database calls
+- failed Edge Functions
+- invalid JSON
+- unexpected null values
+- runtime exceptions
+- uncaught Promise rejections
+
+No component, hook, page, provider, service, Edge Function, or utility may be capable of crashing the application because of an improperly handled error or unsafe type.
+
+---
+
+# Core Rule
+
+Platform availability is more important than feature availability.
+
+If a feature fails:
+
+- the feature fails safely
+- the page continues rendering
+- the application continues functioning
+- the user receives an appropriate notification
+- the error is logged
+- the platform never crashes
+
+---
+
+# Rule 1 — Never Trust `any`
+
+Avoid:
+
+```ts
+const result = response as any;
+```
+
+Instead:
+
+```ts
+const result = response as Partial<MyResponse>;
+```
+
+or
+
+```ts
+const result = response as unknown;
+```
+
+Validate before use.
+
+Example
+
+```ts
+if (
+    result &&
+    typeof result === "object" &&
+    "status" in result
+) {
+
+}
+```
+
+---
+
+# Rule 2 — Never Assume Error Shape
+
+Avoid
+
+```ts
+catch (error: any) {
+    toast.error(error.message);
+}
+```
+
+Use
+
+```ts
+catch (error: unknown) {
+
+    console.error(error);
+
+    const message =
+        error instanceof Error
+            ? error.message
+            : "Unexpected error";
+
+    toast.error(message);
+
+}
+```
+
+---
+
+# Rule 3 — Every Catch Must Return Safe State
+
+Every catch block must restore application stability.
+
+Example
+
+```ts
+catch (error) {
+
+    console.error(error);
+
+    setLoading(false);
+
+    setData([]);
+
+    toast.error("Unable to load data");
+
+}
+```
+
+Never leave
+
+- loading=true
+- submitting=true
+- disabled=true
+
+after failure.
+
+---
+
+# Rule 4 — Never Throw During Rendering
+
+Forbidden
+
+```tsx
+const value = data.items[0].name;
+```
+
+Safe
+
+```tsx
+const value =
+    data?.items?.[0]?.name ??
+    "Unavailable";
+```
+
+Rendering must never throw.
+
+---
+
+# Rule 5 — Never Crash From Missing Data
+
+Always provide defaults.
+
+Example
+
+```ts
+const users = response?.users ?? [];
+```
+
+```ts
+const total = response?.total ?? 0;
+```
+
+```ts
+const name = profile?.name ?? "";
+```
+
+---
+
+# Rule 6 — Validate External Data
+
+Everything received from
+
+- Supabase
+- REST APIs
+- Edge Functions
+- Browser APIs
+- Local Storage
+- Session Storage
+- JSON
+- URL Parameters
+
+must be validated.
+
+Never assume structure.
+
+---
+
+# Rule 7 — Promise Safety
+
+Never write
+
+```ts
+loadData();
+```
+
+Write
+
+```ts
+void loadData().catch(console.error);
+```
+
+or
+
+```ts
+await loadData();
+```
+
+inside try/catch.
+
+No Promise rejection may remain unhandled.
+
+---
+
+# Rule 8 — Safe Async Effects
+
+Every async effect must support cancellation.
+
+Example
+
+```ts
+useEffect(() => {
+
+    let mounted = true;
+
+    async function load(){
+
+        try{
+
+            ...
+
+            if(!mounted) return;
+
+            setData(data);
+
+        }
+
+        catch(error){
+
+            console.error(error);
+
+        }
+
+    }
+
+    void load();
+
+    return () => {
+
+        mounted = false;
+
+    };
+
+}, []);
+```
+
+---
+
+# Rule 9 — Never Assume Database Success
+
+Always check
+
+```ts
+const { data, error } =
+await supabase...
+
+if(error){
+
+    throw error;
+
+}
+```
+
+Never access
+
+```ts
+data.users
+```
+
+without verifying
+
+```ts
+data
+```
+
+exists.
+
+---
+
+# Rule 10 — Safe Array Access
+
+Never
+
+```ts
+users[0]
+```
+
+Use
+
+```ts
+users?.[0]
+```
+
+---
+
+# Rule 11 — Safe Object Access
+
+Never
+
+```ts
+user.profile.name
+```
+
+Use
+
+```ts
+user?.profile?.name
+```
+
+---
+
+# Rule 12 — Safe Date Handling
+
+Never
+
+```ts
+format(new Date(date))
+```
+
+Use
+
+```ts
+const parsed =
+new Date(date);
+
+if(!isNaN(parsed.getTime())){
+
+    format(parsed);
+
+}
+```
+
+---
+
+# Rule 13 — Safe JSON Parsing
+
+Never
+
+```ts
+JSON.parse(value)
+```
+
+without protection.
+
+Always
+
+```ts
+try{
+
+    return JSON.parse(value);
+
+}
+
+catch{
+
+    return {};
+}
+```
+
+---
+
+# Rule 14 — Safe Storage Access
+
+Never assume
+
+```ts
+localStorage
+```
+
+exists.
+
+Check
+
+```ts
+if(typeof window !== "undefined")
+```
+
+before use.
+
+---
+
+# Rule 15 — Safe Component Rendering
+
+A component must never throw.
+
+If required data is unavailable
+
+display
+
+- Skeleton
+- Loading State
+- Empty State
+- Error State
+
+instead of throwing.
+
+---
+
+# Rule 16 — Global Error Boundary
+
+All pages must be protected by
+
+```
+<AppErrorBoundary>
+```
+
+Component failures must never terminate the application.
+
+---
+
+# Rule 17 — React Query
+
+Every query
+
+must include
+
+- retry policy
+- staleTime
+- error state
+- loading state
+
+Never assume
+
+```ts
+data
+```
+
+exists.
+
+---
+
+# Rule 18 — Logging
+
+Every unexpected error must be logged.
+
+Minimum
+
+```ts
+console.error(error);
+```
+
+Preferred
+
+Central logging service.
+
+---
+
+# Rule 19 — Feature Isolation
+
+Failure of
+
+- Payments
+
+- Messaging
+
+- Notifications
+
+- Maps
+
+- GPS
+
+- Telemetry
+
+- Analytics
+
+- Reports
+
+must never stop
+
+- authentication
+
+- routing
+
+- dashboards
+
+- navigation
+
+- platform startup
+
+---
+
+# Rule 20 — Startup Protection
+
+During application initialization
+
+every provider
+
+must fail independently.
+
+One provider
+
+must never stop
+
+another provider.
+
+---
+
+# Rule 21 — Forbidden Patterns
+
+Never use
+
+```ts
+catch(error:any)
+```
+
+Never use
+
+```ts
+throw error;
+```
+
+inside rendering.
+
+Never access
+
+```ts
+foo.bar.baz
+```
+
+without validation.
+
+Never ignore Promise rejections.
+
+Never leave loading states active.
+
+Never trust API responses.
+
+Never trust database responses.
+
+Never trust browser APIs.
+
+---
+
+# Mandatory Compliance
+
+Every pull request must verify:
+
+- No uncaught exceptions
+- No unsafe `any`
+- No unvalidated API response
+- No unsafe property access
+- No rendering exceptions
+- No infinite loading states
+- No unhandled Promise rejection
+- No provider capable of crashing application startup
+- Every catch restores a valid UI state
+- Every error is logged
+- Every feature degrades gracefully
+
+---
+
+# Platform Stability Guarantee
+
+The platform architecture must always favor graceful degradation over application failure.
+
+If any feature encounters an error, the feature shall fail safely, provide appropriate user feedback, log diagnostic information, restore a stable application state, and allow the remainder of the platform to continue operating without interruption. Under no circumstances shall an unhandled `any`, uncaught exception, rejected Promise, or malformed external data be permitted to terminate rendering, prevent application startup, or cause a platform-wide crash.
