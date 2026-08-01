@@ -291,10 +291,6 @@ const OrgWebsite = () => {
           // this org's own branded hostname would bounce the visitor in a
           // circle. Fall back to rendering the native site instead.
           if (url && isSelfReferentialSiteUrl(url, { slug })) {
-            void supabase.rpc("log_org_website_redirect_failure" as any, {
-              _org_id: (orgData as any).id,
-              _reason: "self_referential_redirect",
-            });
             console.warn("[OrgWebsite] ignoring self-referential redirect", { url, slug });
             url = null;
             merged = { ...merged, mode: "auto_builder" };
