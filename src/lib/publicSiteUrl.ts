@@ -21,6 +21,43 @@ export const isExternalSiteUrl = (url: string): boolean =>
   /^https?:\/\//i.test(url);
 
 /**
+ * True when a "custom integration" redirect target would send the visitor
+ * back to FYSORA FASHN (or to this org's own page / own branded hostname),
+ * which creates an endless redirect loop instead of opening a real website.
+ */
+export const isSelfReferentialSiteUrl = (
+  target: string | null | undefined,
+  opts: { slug?: string | null; ownHostnames?: string[] } = {}
+): boolean => {
+  const raw = (target || "").trim();
+  if (!raw) return false;
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    return false;
+  }
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+
+  if (isPlatformHostname(host)) return true;
+
+  // The org's own branded hostname is just an alias of its FYSORA page.
+  const own = (opts.ownHostnames || []).map(h =>
+    (h || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "")
+  );
+  if (own.includes(host)) return true;
+
+  // A tenant host we statically map back to a FYSORA org page.
+  if (lookupTenantHost(host) || lookupTenantHost(`www.${host}`)) return true;
+
+  // Same-origin link straight back to this org's native page.
+  if (opts.slug && url.pathname.replace(/\/+$/, "") === `/site/${opts.slug}`) return true;
+
+  return false;
+};
+
+/**
  * Resolve a custom hostname for a given org slug from org_custom_hostnames.
  * Used by `resolvePublicSiteUrlAsync` so cross-platform links to the org's
  * site honor the org's branded domain when present.
