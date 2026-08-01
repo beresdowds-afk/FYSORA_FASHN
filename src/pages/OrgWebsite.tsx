@@ -17,6 +17,7 @@ import { addToCart } from "@/lib/cartFlow";
 import { AddToCartDialog } from "@/components/catalogue/AddToCartDialog";
 import { supabase as _sb } from "@/integrations/supabase/client";
 import { WOMEN_SIZE_TABLE, type SizeStandard } from "@/lib/sizeCharts";
+import { isSelfReferentialSiteUrl } from "@/lib/publicSiteUrl";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface OrgWebsiteData {
@@ -280,14 +281,22 @@ const OrgWebsite = () => {
           // Defense in depth: a schemeless value ("example.org.ng") would be
           // treated as a relative path by the browser and the portal link
           // would silently navigate nowhere.
-          const url =
+          let url =
             raw && raw.trim()
               ? /^https?:\/\//i.test(raw.trim())
                 ? raw.trim()
                 : `https://${raw.trim()}`
               : null;
+          // Loop guard: a redirect that points back at FYSORA FASHN or at
+          // this org's own branded hostname would bounce the visitor in a
+          // circle. Fall back to rendering the native site instead.
+          if (url && isSelfReferentialSiteUrl(url, { slug })) {
+            console.warn("[OrgWebsite] ignoring self-referential redirect", { url, slug });
+            url = null;
+            merged = { ...merged, mode: "auto_builder" };
+          }
           merged = { ...merged, webhook_url: url };
-          if (!url) {
+          if (!url && merged.mode === "custom_integration") {
             // Site is set to custom_integration but the RPC returned no redirect.
             // Fire-and-forget diagnostic so the schema alerts panel picks it up.
             void supabase.rpc("log_org_website_redirect_failure" as any, {

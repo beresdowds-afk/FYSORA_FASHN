@@ -29,3 +29,21 @@ export const TENANT_HOSTNAMES: TenantHostname[] = [
 
 export const lookupTenantHost = (host: string): TenantHostname | null =>
   TENANT_HOSTNAMES.find(t => t.host.toLowerCase() === host.toLowerCase()) ?? null;
+
+/**
+ * Hostnames that serve the FYSORA FASHN platform itself (as opposed to a
+ * tenant's own external website). Kept in one place so the custom-hostname
+ * router and the redirect loop guard always agree.
+ */
+export const isPlatformHostname = (host: string): boolean => {
+  const h = (host || "").toLowerCase().replace(/^www\./, "");
+  if (!h) return true;
+  return (
+    h === "localhost" ||
+    h.endsWith(".lovable.app") ||
+    h.endsWith(".lovableproject.com") ||
+    h.endsWith(".lovableproject-dev.com") ||
+    h === "fs-africa.org.ng" ||
+    h === "fashionstitchesafrica.lovable.app"
+  );
+};

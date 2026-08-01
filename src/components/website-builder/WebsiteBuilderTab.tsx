@@ -27,7 +27,7 @@ import { usePaymentFlow } from "@/hooks/usePaymentFlow";
 import type { AppRole } from "@/hooks/useOrganization";
 import { useOrgSync } from "@/hooks/useOrgSync";
 import { getTierFeatures, getTierLimits, checkFeatureAccess, calculateUpgradeCost, isActiveStatus } from "./tierConfig";
-import { resolvePublicSiteUrl, isExternalSiteUrl } from "@/lib/publicSiteUrl";
+import { resolvePublicSiteUrl, isExternalSiteUrl, isSelfReferentialSiteUrl } from "@/lib/publicSiteUrl";
 import { validateSizeChartStandards } from "@/lib/sizeCharts";
 
 
@@ -911,6 +911,27 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       });
       setActiveSection("branding");
       return;
+    }
+    // Loop guard: a custom-integration address that points back at FYSORA
+    // FASHN (or at this org's own branded hostname) would bounce visitors in
+    // a circle and never open a real website.
+    if (settings.mode === "custom_integration" && settings.webhook_url) {
+      const { data: ownHosts } = await supabase
+        .from("org_custom_hostnames" as any)
+        .select("hostname")
+        .eq("org_id", org.id);
+      const ownHostnames = ((ownHosts as any[]) || []).map(h => h.hostname);
+      if (isSelfReferentialSiteUrl(settings.webhook_url, { slug: org.slug, ownHostnames })) {
+        setSaving(false);
+        toast({
+          title: "That address would create a redirect loop",
+          description:
+            "The custom integration address points back to your FYSORA FASHN page or your own branded domain. Use your external website's address, or switch the mode to Auto Builder to serve the native page.",
+          variant: "destructive",
+        });
+        setActiveSection("integration");
+        return;
+      }
     }
     const payload: Record<string, any> = {
       org_id: org.id,
