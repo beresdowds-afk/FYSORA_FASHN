@@ -1,186 +1,240 @@
-Website Editor Resolution & Public Website Management Policy
+# Website Editor Resolution, Rendering & Multi-Tenant Website Policy
 
-Purpose
-
-This document defines the architecture, rendering behavior, routing rules, entitlement rules, and recovery requirements for the FYSORA FASHN Website Builder.
-
-The objective is to ensure that every Organization and Designer can reliably access and manage their website editor when entitled, while preventing rendering failures, routing conflicts, incorrect hostname resolution, and cross-tenant data leakage.
-
----
-
-Scope
-
-This policy applies to:
-
-- Organization Websites
-- Designer Websites
-- Native Platform Websites
-- External / Non-Native Websites
+**Document Version:** 1.0
+**Status:** Engineering Specification
+**Priority:** Critical
+**Applies To:**
+- FYSORA FASHN (Fashion Stitches Africa)
+- Organization Dashboard
+- Designer Dashboard
+- Native Websites
+- External (Non-Native) Websites
 - Website Builder
 - Website Editor
-- Public Website Routing
-- Tenant Hostname Resolution
-- Custom Domain Resolution
-- Premium Website Services
+- Public Website Resolution
 
 ---
 
-Website Types
+# Purpose
+
+This document defines the architecture, rendering rules, routing policies, entitlement requirements, and recovery procedures for all organization and designer websites within the FYSORA FASHN platform.
+
+The objective is to ensure that every eligible organization or designer can reliably create, edit, publish, and maintain a public website without affecting platform stability.
+
+This specification also addresses the internal rendering issues affecting the Website Editor.
+
+---
+
+# Website Service Classification
+
+Website Builder is a Premium Platform Service.
+
+Website creation, editing, publishing, hosting, custom domains, and public website management are premium capabilities.
+
+Access shall be controlled by:
+
+- Active subscription
+- Approved payment exemption
+- Administrative entitlement
+- Platform promotional access
+- Trial rules where applicable
+
+Users without entitlement shall not lose existing websites but shall have editing disabled until entitlement is restored.
+
+---
+
+# Website Types
 
 The platform shall support two website categories.
 
-1. Native Platform Website
+## 1. Native Platform Website
 
-A native website is fully hosted by the FYSORA FASHN platform.
+A native website is fully hosted and rendered by the FYSORA platform.
+
+Example:
+
+https://fs-africa.org.ng/site/{slug}
+
+or
+
+https://fysorafashn.com/site/{slug}
+
+Characteristics:
+
+- Built using the integrated Website Builder
+- Managed from the Website Editor
+- Hosted by the platform
+- Supports themes
+- Supports catalogue
+- Supports bookings
+- Supports AI features
+- Supports payments
+- Supports analytics
+- Supports SEO
+
+---
+
+## 2. Non-Native Website
+
+A non-native website is an externally hosted website.
 
 Examples:
 
-- https://fs-africa.org.ng/site/{organization-slug}
-- https://fs-africa.org.ng/designer/{designer-slug}
+https://gabulkfashionstudio.org.ng
 
-These websites are rendered entirely by the platform Website Builder.
+https://designername.com
 
-Features include:
+Characteristics:
 
-- Catalogue
-- Booking
-- Tailors
-- AI Services
-- Payment Integration
-- Communication
-- Portfolio
-- Organization Profile
-- SEO Metadata
+- Managed outside FYSORA
+- Can be linked to an organization profile
+- Can integrate with FYSORA APIs
+- Can embed FYSORA catalogue
+- Can embed bookings
+- Can embed payments
+- Can synchronize selected data
 
 ---
 
-2. Non-Native Website
+# Website Resolution Priority
 
-A non-native website is externally hosted.
+Whenever the platform needs to determine an organization's public website, resolution shall occur in this order.
 
-Examples:
+Priority 1
 
-- https://gabulkfashionstudio.org.ng
-- https://designerbrand.com
+Verified Primary Custom Hostname
 
-The platform stores the public URL and may optionally synchronize data with the external website.
+Example
 
-The Website Builder should continue to manage metadata and integrations unless disabled by the owner.
+https://gabulkfashionstudio.org.ng
 
----
+Priority 2
 
-Premium Service Policy
+Verified Public Website URL
 
-Website Builder is a premium platform service.
+Example
 
-Access shall only be granted when at least one of the following conditions is true:
+https://designerbrand.com
 
-- Premium subscription is active.
-- Enterprise subscription is active.
-- Promotional exemption exists.
-- Administrative exemption exists.
-- Legacy grandfathered entitlement exists.
-- Platform-approved sponsorship exists.
+Priority 3
 
-Organizations or Designers without entitlement shall not lose existing website data.
+Native Platform Website
 
-Instead:
+Example
 
-- Website editing shall be disabled.
-- Public website availability shall remain configurable according to subscription policy.
-- Users shall be informed how to upgrade or request an exemption.
+https://fs-africa.org.ng/site/{slug}
+
+No organization shall ever inherit another organization's hostname.
+
+Hostname resolution must always be organization-specific.
 
 ---
 
-Website Request Workflow
+# Website Editor Availability
 
-Organizations and Designers may request website services through:
+The Website Editor shall be accessible from:
 
-- Organization Dashboard
-- Designer Dashboard
-- Premium Features Portal
-- Administrative Approval
-- Platform Promotions
+Organization Dashboard
 
-The workflow must support:
+Website Button
 
-Pending
+Designer Dashboard
 
-↓
+Website Button
 
-Review
-
-↓
-
-Approval
-
-↓
-
-Provision Website
-
-↓
-
-Activate Website Builder
-
-↓
-
-Publish Website
+The editor shall not be available through any unrelated navigation path.
 
 ---
 
-Rendering Requirements
+# Website Editor Access Rules
 
-The Website Editor must never fail because of:
+Access shall require:
 
-- missing optional fields
-- invalid templates
-- missing images
-- empty catalogues
-- missing officers
-- missing tailors
-- missing social links
-- missing branding assets
+Authenticated user
 
-Default values shall always be used where appropriate.
+AND
 
----
+Ownership or authorized membership
 
-Rendering Recovery
+AND
 
-If rendering fails:
+Premium entitlement OR approved exemption
 
-The platform shall:
+If entitlement is missing:
 
-1. Log the exception.
+Display the Premium Upgrade page.
 
-2. Identify the failing component.
+Do not display rendering errors.
 
-3. Continue rendering unaffected sections.
-
-4. Display meaningful fallback content.
-
-5. Never present a blank page.
-
-Error Boundaries shall isolate:
-
-- Hero
-- Catalogue
-- Navigation
-- Footer
-- Featured Showcase
-- Tailors
-- Booking
-- Contact Section
+Do not crash.
 
 ---
 
-Template Resolution
+# Existing Payment Exemptions
 
-Template resolution must never throw an exception.
+If an organization or designer qualifies under an approved exemption policy:
 
-If an unknown template is encountered:
+The Website button shall remain enabled.
 
-Use the default platform template.
+The Website Editor shall remain accessible.
+
+No additional payment prompt shall appear.
+
+---
+
+# Rendering Requirements
+
+The Website Editor shall always render.
+
+Rendering failures shall never produce:
+
+Blank pages
+
+Infinite loading
+
+React crashes
+
+White screens
+
+Unhandled exceptions
+
+---
+
+# Rendering Validation
+
+Before rendering:
+
+Validate:
+
+Organization
+
+Designer
+
+Website record
+
+Template
+
+Brand settings
+
+Permissions
+
+Subscription
+
+If any component is missing:
+
+Display a recoverable interface.
+
+Never terminate rendering.
+
+---
+
+# Template Resolution
+
+If template_id is invalid:
+
+Automatically fall back to the platform default template.
+
+Never throw exceptions.
 
 Log a warning.
 
@@ -188,210 +242,290 @@ Continue rendering.
 
 ---
 
-Public Website Resolution
+# Font Loading
 
-Each Organization and Designer shall resolve only its own website.
+Dynamic font loading shall execute inside useEffect.
 
-The resolution priority shall be:
+No DOM manipulation shall occur during React rendering.
 
-1. Verified Custom Domain
+---
 
-Example:
+# Component Isolation
 
-https://gabulkfashionstudio.org.ng
+The following components shall be isolated.
 
-↓
+Catalogue
 
-2. Valid Public Website URL
+Booking
 
-↓
+Featured Showcase
 
-3. Native Platform Website
+Gallery
 
-Example:
+Testimonials
+
+Newsletter
+
+Cart
+
+Analytics
+
+Failure of one component shall not stop the Website Editor.
+
+---
+
+# Error Boundaries
+
+All major Website Builder sections shall be protected by Error Boundaries.
+
+Each boundary shall display:
+
+Friendly recovery message
+
+Reload option
+
+Diagnostic information
+
+---
+
+# Database Validation
+
+Validate:
+
+organizations_public
+
+organizations_summary
+
+org_websites_public
+
+org_custom_hostnames
+
+profiles
+
+designer profiles
+
+RPC functions
+
+Failure shall produce recoverable messages.
+
+Never crash rendering.
+
+---
+
+# Hostname Resolution
+
+Hostname lookup must always be filtered by:
+
+Organization ID
+
+or
+
+Designer ID
+
+Never return the first hostname in the table.
+
+Never return another tenant's hostname.
+
+---
+
+# Public Website URL
+
+Public URLs shall always be absolute.
+
+Correct
+
+https://fs-africa.org.ng/site/gabulk-fashion
+
+Incorrect
+
+/site/gabulk-fashion
+
+---
+
+# Native Website Fallback
+
+When no custom hostname exists:
+
+Automatically resolve
 
 https://fs-africa.org.ng/site/{slug}
 
-No tenant shall ever receive another tenant's hostname.
+---
+
+# Custom Domain Validation
+
+Validate:
+
+HTTPS
+
+Verification status
+
+DNS ownership
+
+Primary designation
+
+Inactive domains shall automatically fall back to native hosting.
 
 ---
 
-Tenant Isolation
+# Website Modes
 
-Hostname resolution shall always be filtered by:
+Supported modes:
 
-- Organization ID
-- Designer ID
-- Verified Hostname
+Native Builder
 
-Never perform global hostname selection.
+Custom Integration
 
-Cross-tenant routing is prohibited.
+External Website
 
----
+Embedded Website
 
-Website Editor Resolution
-
-Website Editor shall validate:
-
-- organization exists
-- designer exists
-- user permissions
-- subscription status
-- exemption status
-- website record
-- template
-- branding
-- theme
-- hostname
-- routing
-
-before rendering.
-
-Failures shall not terminate rendering.
+Each mode shall render correctly.
 
 ---
 
-Database Requirements
-
-Queries must tolerate:
-
-null
-
-empty results
-
-missing optional records
-
-Permission denied errors
-
-Network failures
-
-The Website Editor shall continue rendering using available data.
-
----
-
-Authentication
+# Authentication
 
 Authentication failures shall:
 
-redirect once
+Preserve destination
 
-preserve destination
+Avoid redirect loops
 
-avoid redirect loops
-
-restore editing session after login
+Return to Website Editor after login
 
 ---
 
-Loading Behaviour
+# Loading States
 
-Loading indicators shall always terminate.
+Every asynchronous process shall eventually terminate.
 
-Every asynchronous execution path shall eventually complete.
-
-Permanent loading states are prohibited.
+Loading indicators shall never remain indefinitely.
 
 ---
 
-Native Website Availability
+# Diagnostics
 
-Native websites shall remain publicly accessible unless:
+Temporary logging shall include:
 
-- unpublished by owner
-- disabled by administrator
-- suspended for policy reasons
+Template resolution
 
-Subscription expiration alone shall not automatically delete website content.
+Hostname resolution
 
----
+Permission validation
 
-Non-Native Website Availability
-
-External websites shall remain linked while:
-
-- hostname is verified
-- public URL is valid
-
-If an external website becomes unreachable:
-
-The platform shall automatically fall back to the native platform website whenever available.
-
----
-
-Website Builder Recovery
-
-If Website Builder configuration becomes invalid:
-
-Automatically repair:
-
-- missing template
-- missing branding
-- missing colors
-- missing fonts
-- missing favicon
-
-using platform defaults.
-
----
-
-Diagnostics
-
-The platform shall log:
-
-Website resolution
-
-Hostname lookup
-
-Template selection
-
-Website rendering
-
-RPC failures
-
-Supabase failures
-
-Routing failures
-
-Permission failures
+Premium entitlement
 
 Subscription validation
 
+Website lookup
+
+RPC failures
+
+Supabase errors
+
 Rendering exceptions
 
-Logs shall include sufficient information to diagnose issues without exposing sensitive user information.
+---
+
+# Premium Enforcement
+
+Website Builder shall respect:
+
+Subscription rules
+
+Trial rules
+
+Administrative exemptions
+
+Promotional access
+
+Institutional exemptions
+
+Existing grandfathered accounts
 
 ---
 
-Performance
+# Recovery
 
-Website rendering should minimize unnecessary network requests, avoid repeated DOM manipulation during render, and load only the resources required for the active page.
+If rendering fails:
+
+Attempt automatic recovery.
+
+Reload website configuration.
+
+Reload template.
+
+Reload branding.
+
+Retry failed RPCs.
+
+Continue rendering whenever possible.
 
 ---
 
-Regression Protection
+# Regression Protection
 
-Future changes shall not:
+Future updates shall not break:
 
-- break existing native websites
-- break custom domains
-- break website editor rendering
-- assign incorrect hostnames
-- expose another tenant's website
-- disable grandfathered website entitlements
+Organization websites
+
+Designer websites
+
+Website Builder
+
+Website Editor
+
+Native websites
+
+External websites
+
+Premium entitlement
+
+Hostname resolution
+
+Routing
+
+Catalogue
+
+Bookings
+
+SEO
+
+Analytics
 
 ---
 
-Final Validation Checklist
+# Completion Criteria
 
-Before deployment verify:
+Implementation shall be considered complete only when:
 
-- Native organization websites render correctly.
-- Native designer websites render correctly.
-- External websites resolve correctly.
-- Custom domains resolve only to their owning tenant.
-- Website Editor opens successfully for entitled users.
-- Premium entitlement and exemption rules are enforced.
-- Public websites remain available according to platform policy.
-- No blank pages occur during rendering failures.
-- All routing and rendering logic passes TypeScript compilation and application build validation.
+✓ Website button opens correctly from Organization Dashboard.
+
+✓ Website button opens correctly from Designer Dashboard.
+
+✓ Native websites render correctly.
+
+✓ External websites resolve correctly.
+
+✓ Premium entitlement functions correctly.
+
+✓ Payment exemptions function correctly.
+
+✓ Hostname resolution is tenant-specific.
+
+✓ No organization receives another organization's hostname.
+
+✓ No React rendering exceptions occur.
+
+✓ No blank pages occur.
+
+✓ No infinite loading occurs.
+
+✓ TypeScript compiles without errors.
+
+✓ Existing website functionality remains intact.
+
+---
+
+End of Specification
