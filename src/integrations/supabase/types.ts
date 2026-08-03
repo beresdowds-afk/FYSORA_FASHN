@@ -7172,6 +7172,83 @@ export type Database = {
           },
         ]
       }
+      org_website_integration_installs: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          environment: string
+          error: string | null
+          files: Json
+          id: string
+          installed_at: string
+          installed_by: string | null
+          key_prefix: string
+          org_id: string
+          status: string
+          target: string
+          updated_at: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          environment?: string
+          error?: string | null
+          files?: Json
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          key_prefix: string
+          org_id: string
+          status?: string
+          target?: string
+          updated_at?: string
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          environment?: string
+          error?: string | null
+          files?: Json
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          key_prefix?: string
+          org_id?: string
+          status?: string
+          target?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_website_integration_installs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "org_integration_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_integration_installs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_integration_installs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_website_integration_installs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations_summary"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_website_secrets: {
         Row: {
           api_key: string | null
