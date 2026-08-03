@@ -78,14 +78,32 @@ export const resolvePublicSiteUrlAsync = async (
 ): Promise<string> => {
   if (slug) {
     try {
-      const { data } = await (supabase as any)
+      export const resolvePublicSiteUrlAsync = async (
+  orgId: string | null | undefined,
+  slug: string | null | undefined,
+  publicWebsiteUrl: string | null | undefined,
+  supabase: { from: Function }
+): Promise<string> => {
+  if (orgId) {
+    try {
+      const { data, error } = await (supabase as any)
         .from("org_custom_hostnames")
-        .select("hostname, is_primary")
-        .eq("is_verified", true);
-      const match = (data || []).find((h: any) =>
-        // matched separately by caller — return first primary if available
-        h.is_primary
-      );
+        .select("hostname")
+        .eq("org_id", orgId)
+        .eq("is_verified", true)
+        .eq("is_primary", true)
+        .maybeSingle();
+
+      if (!error && data?.hostname) {
+        return `https://${data.hostname}`;
+      }
+    } catch (err) {
+      console.error("Error resolving custom hostname:", err);
+    }
+  }
+
+  return resolvePublicSiteUrl(slug, publicWebsiteUrl);
+};
       if (match?.hostname) return `https://${match.hostname}`;
     } catch {}
   }
