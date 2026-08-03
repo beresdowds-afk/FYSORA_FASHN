@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Copy, Key, Webhook, Trash2, RefreshCw, ShieldCheck, Send, Plus, Eye, EyeOff, PlayCircle, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import IntegrationAutoInstaller from "./IntegrationAutoInstaller";
 
 interface Props { orgId: string }
 
@@ -237,6 +238,7 @@ const OrgIntegrationsPanel = ({ orgId }: Props) => {
         </TabsList>
 
         <TabsContent value="keys" className="space-y-4">
+          <IntegrationAutoInstaller orgId={orgId} />
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Issue a new API key</CardTitle>
