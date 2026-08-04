@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import TabErrorBoundary from "@/components/shared/TabErrorBoundary";
 import TailorCatalogueManager from "@/components/catalogue/TailorCatalogueManager";
 import FeaturedProductsPanel from "@/components/catalogue/FeaturedProductsPanel";
 import InvoiceManagerPanel from "@/components/invoices/InvoiceManagerPanel";
