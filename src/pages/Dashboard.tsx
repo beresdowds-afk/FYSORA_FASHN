@@ -17,6 +17,7 @@ import InvoiceManagerPanel from "@/components/invoices/InvoiceManagerPanel";
 import { useOrgSubscription } from "@/hooks/useSubscription";
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import OrdersTab from "@/components/orders/OrdersTab";
+import TabErrorBoundary from "@/components/shared/TabErrorBoundary";
 import RiskScoreCard from "@/components/insurance/RiskScoreCard";
 import CustomersTab from "@/components/customers/CustomersTab";
 import InviteMemberDialog from "@/components/members/InviteMemberDialog";
@@ -293,6 +294,7 @@ const Dashboard = () => {
                 </button>
               ))}
             </div>
+            <TabErrorBoundary label="This section" resetKey={activeTab}>
             {activeTab === "overview" && role === "tailor" ? (
               <TailorWorkQueue orgId={currentOrg.id} userId={user.id} currency={currentOrg.currency || "NGN"} />
             ) : activeTab === "overview" ? (
@@ -320,6 +322,7 @@ const Dashboard = () => {
             )}
             {activeTab === "integrations" && <OrgIntegrationsPanel orgId={currentOrg.id} />}
             {activeTab === "settings" && <SettingsTab org={currentOrg} role={role} />}
+            </TabErrorBoundary>
           </main>
         </div>
       </div>
