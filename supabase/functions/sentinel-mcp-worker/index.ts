@@ -1075,33 +1075,18 @@ async function activatePlatformAgent(
   }
   if (!serverUrl) serverUrl = Deno.env.get("SENTINEL_MCP_URL") || null;
 
-  const { data: mcpAuthKey } = await adminClient
-    .from("platform_api_keys")
-    .select("key_value")
-    .eq("key_name", "sentinel_mcp_auth_key")
-    .eq("is_active", true)
-    .maybeSingle();
-
-  const requestPayload = {
-    jsonrpc: "2.0",
-    id: crypto.randomUUID(),
-    method: "tools/call",
-    params: {
-      name: (agent as any).mcp_tool_name,
-      arguments: {
-        client_email: (agent as any).client_email,
-        client_name: "FYSORA FASHN (Fashion Stitches Africa)",
-        agent: (agent as any).agent_name,
-        plan: (agent as any).plan_key,
-        tier: (agent as any).tier,
-        scope: (agent as any).scope,
-        cascades_to_users: (agent as any).cascades_to_users,
-        requested_features: (agent as any).requested_features ?? [],
-        requested_by: userId,
-        requested_at: new Date().toISOString(),
-        attempt: prevAttempts + 1,
-      },
-    },
+  const agentArgs = {
+    client_email: (agent as any).client_email,
+    client_name: "FYSORA FASHN (Fashion Stitches Africa)",
+    agent: (agent as any).agent_name,
+    plan: (agent as any).plan_key,
+    tier: (agent as any).tier,
+    scope: (agent as any).scope,
+    cascades_to_users: (agent as any).cascades_to_users,
+    requested_features: (agent as any).requested_features ?? [],
+    requested_by: userId,
+    requested_at: new Date().toISOString(),
+    attempt: prevAttempts + 1,
   };
 
   let providerResponse: unknown = null;
@@ -1112,11 +1097,12 @@ async function activatePlatformAgent(
 
   if (serverUrl) {
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        Accept: "application/json, text/event-stream",
-      };
-      if (mcpAuthKey?.key_value) headers["Authorization"] = `Bearer ${mcpAuthKey.key_value}`;
+      const { headers, body: requestPayload } = await buildSentinelRequest(
+        serverUrl,
+        String((agent as any).mcp_tool_name),
+        agentArgs,
+        adminClient,
+      );
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 15_000);
       const res = await fetch(serverUrl, {
