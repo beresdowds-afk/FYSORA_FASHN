@@ -812,7 +812,7 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
 
   const load = async () => {
     setLoading(true);
-
+    try {
     const [wsResult, catResult, subResult, reqResult] = await Promise.all([
       supabase.from("org_websites").select("*").eq("org_id", org.id).single(),
       supabase.from("org_catalogue_items").select("*").eq("org_id", org.id).order("sort_order"),
@@ -863,8 +863,16 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
     setCatalogue((catResult.data || []) as CatalogueItem[]);
     if (subResult.data) setSubscription(subResult.data as WebsiteSubscription);
     if (reqResult.data) setProRequest(reqResult.data as WebsiteRequest);
-
-    setLoading(false);
+    } catch (err) {
+      console.error("[WebsiteBuilderTab] Failed to load website settings:", err);
+      toast({
+        title: "Could not load website settings",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Pull suggested URL from approved/provisioned external domain_requests
