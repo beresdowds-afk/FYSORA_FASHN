@@ -320,6 +320,7 @@ const DesignerPortal = () => {
               upgradeLabel={subscribing ? "Starting..." : "Activate $15/mo"}
               hideWhenExpired={false}
             />
+            <TabErrorBoundary label="This section" resetKey={activeTab}>
             {activeTab === "overview" && (
               <OverviewTab
                 orders={orders}
@@ -371,6 +372,7 @@ const DesignerPortal = () => {
             {activeTab === "profile" && user && (
               <ProfileTab userId={user.id} profile={profile} setProfile={setProfile} />
             )}
+            </TabErrorBoundary>
           </main>
         </div>
       </div>
