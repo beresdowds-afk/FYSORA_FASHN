@@ -1275,18 +1275,7 @@ async function callMcpTool(
   if (!serverUrl) {
     return { ok: false, status: 0, response: null, error: "No Sentinel MCP URL configured" };
   }
-  const { data: authKey } = await client
-    .from("platform_api_keys")
-    .select("key_value")
-    .eq("key_name", "sentinel_mcp_auth_key")
-    .eq("is_active", true)
-    .maybeSingle();
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json, text/event-stream",
-  };
-  if (authKey?.key_value) headers["Authorization"] = `Bearer ${authKey.key_value}`;
+  const { headers, body } = await buildSentinelRequest(serverUrl, toolName, args, client);
 
   try {
     const ctrl = new AbortController();
@@ -1294,12 +1283,7 @@ async function callMcpTool(
     const res = await fetch(serverUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: crypto.randomUUID(),
-        method: "tools/call",
-        params: { name: toolName, arguments: args },
-      }),
+      body: JSON.stringify(body),
       signal: ctrl.signal,
     });
     clearTimeout(t);
@@ -1311,6 +1295,64 @@ async function callMcpTool(
   } catch (e) {
     return { ok: false, status: 0, response: null, error: e instanceof Error ? e.message : "MCP unreachable" };
   }
+}
+
+/**
+ * Builds the outbound envelope + auth headers for a Sentinel MCP call.
+ * When the configured URL is the integration-worker `/inbound/execute`
+ * endpoint, use the `{ toolName, input, subTenantId }` envelope with
+ * `X-Api-Key` / `X-Tenant-Key`; otherwise use standard JSON-RPC + Bearer.
+ */
+export async function buildSentinelRequest(
+  serverUrl: string,
+  toolName: string,
+  args: Record<string, unknown>,
+  client: ReturnType<typeof createClient>,
+  subTenantId: string | null = null,
+): Promise<{ headers: Record<string, string>; body: Record<string, unknown> }> {
+  const useInboundEnvelope = /\/inbound\/execute\/?$/.test(serverUrl);
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+  };
+
+  if (useInboundEnvelope) {
+    const { data: apiKeyRow } = await client
+      .from("platform_api_keys")
+      .select("key_value")
+      .eq("key_name", "sentinel_mcp_api_key")
+      .eq("is_active", true)
+      .maybeSingle();
+    const apiKey = (apiKeyRow as any)?.key_value || Deno.env.get("SENTINEL_MCP_API_KEY");
+    if (apiKey) headers["X-Api-Key"] = apiKey;
+
+    const tenantKey = Deno.env.get("SENTINEL_MCP_TENANT_KEY") || "fsa_platform";
+    headers["X-Tenant-Key"] = tenantKey;
+
+    return {
+      headers,
+      body: { toolName, input: args, subTenantId },
+    };
+  }
+
+  const { data: authKey } = await client
+    .from("platform_api_keys")
+    .select("key_value")
+    .eq("key_name", "sentinel_mcp_auth_key")
+    .eq("is_active", true)
+    .maybeSingle();
+  if ((authKey as any)?.key_value) headers["Authorization"] = `Bearer ${(authKey as any).key_value}`;
+
+  return {
+    headers,
+    body: {
+      jsonrpc: "2.0",
+      id: crypto.randomUUID(),
+      method: "tools/call",
+      params: { name: toolName, arguments: args },
+    },
+  };
 }
 
 async function resolveSentinelUrl(client: ReturnType<typeof createClient>): Promise<string | null> {
