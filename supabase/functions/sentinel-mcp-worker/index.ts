@@ -943,7 +943,7 @@ async function handleAdminAction(
             status: providerStatus,
             requested_at: nowIso,
             activated_at: providerStatus === "active" ? nowIso : null,
-            request_payload: requestPayload,
+            request_payload: shieldArgs,
             provider_response: providerResponse as any,
             last_error: lastError,
             attempt_count: providerStatus === "active" ? 0 : newAttempt,
