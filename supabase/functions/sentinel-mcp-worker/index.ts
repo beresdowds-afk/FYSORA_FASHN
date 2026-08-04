@@ -852,39 +852,23 @@ async function handleAdminAction(
         serverUrl = Deno.env.get("SENTINEL_MCP_URL") || null;
       }
 
-      // Lookup auth bearer if configured
-      const { data: mcpAuthKey } = await adminClient
-        .from("platform_api_keys")
-        .select("key_value")
-        .eq("key_name", "sentinel_mcp_auth_key")
-        .eq("is_active", true)
-        .maybeSingle();
-
-      const requestPayload = {
-        jsonrpc: "2.0",
-        id: crypto.randomUUID(),
-        method: "tools/call",
-        params: {
-          name: "sentinel_shield_activate",
-          arguments: {
-            client_email: "sentinel-mcp@eastforte.org.ng",
-            client_name: "FYSORA FASHN (Fashion Stitches Africa)",
-            plan: "SENTINEL-SHIELD",
-            tier: "non_fee_paying",
-            requested_features: [
-              "waf_baseline",
-              "ddos_shield",
-              "abuse_detection",
-              "audit_forwarding",
-              "uptime_probe",
-            ],
-            scope: "platform_only",
-            cascades_to_users: false,
-            requested_by: userId,
-            requested_at: new Date().toISOString(),
-            attempt: prevAttempts + 1,
-          },
-        },
+      const shieldArgs = {
+        client_email: "sentinel-mcp@eastforte.org.ng",
+        client_name: "FYSORA FASHN (Fashion Stitches Africa)",
+        plan: "SENTINEL-SHIELD",
+        tier: "non_fee_paying",
+        requested_features: [
+          "waf_baseline",
+          "ddos_shield",
+          "abuse_detection",
+          "audit_forwarding",
+          "uptime_probe",
+        ],
+        scope: "platform_only",
+        cascades_to_users: false,
+        requested_by: userId,
+        requested_at: new Date().toISOString(),
+        attempt: prevAttempts + 1,
       };
 
       let providerResponse: unknown = null;
@@ -895,13 +879,12 @@ async function handleAdminAction(
 
       if (serverUrl) {
         try {
-          const headers: Record<string, string> = {
-            "Content-Type": "application/json",
-            Accept: "application/json, text/event-stream",
-          };
-          if (mcpAuthKey?.key_value) {
-            headers["Authorization"] = `Bearer ${mcpAuthKey.key_value}`;
-          }
+          const { headers, body: requestPayload } = await buildSentinelRequest(
+            serverUrl,
+            "sentinel_shield_activate",
+            shieldArgs,
+            adminClient,
+          );
           // 15s timeout treated as retryable
           const ctrl = new AbortController();
           const t = setTimeout(() => ctrl.abort(), 15_000);
@@ -960,7 +943,7 @@ async function handleAdminAction(
             status: providerStatus,
             requested_at: nowIso,
             activated_at: providerStatus === "active" ? nowIso : null,
-            request_payload: requestPayload,
+            request_payload: shieldArgs,
             provider_response: providerResponse as any,
             last_error: lastError,
             attempt_count: providerStatus === "active" ? 0 : newAttempt,
@@ -1092,33 +1075,18 @@ async function activatePlatformAgent(
   }
   if (!serverUrl) serverUrl = Deno.env.get("SENTINEL_MCP_URL") || null;
 
-  const { data: mcpAuthKey } = await adminClient
-    .from("platform_api_keys")
-    .select("key_value")
-    .eq("key_name", "sentinel_mcp_auth_key")
-    .eq("is_active", true)
-    .maybeSingle();
-
-  const requestPayload = {
-    jsonrpc: "2.0",
-    id: crypto.randomUUID(),
-    method: "tools/call",
-    params: {
-      name: (agent as any).mcp_tool_name,
-      arguments: {
-        client_email: (agent as any).client_email,
-        client_name: "FYSORA FASHN (Fashion Stitches Africa)",
-        agent: (agent as any).agent_name,
-        plan: (agent as any).plan_key,
-        tier: (agent as any).tier,
-        scope: (agent as any).scope,
-        cascades_to_users: (agent as any).cascades_to_users,
-        requested_features: (agent as any).requested_features ?? [],
-        requested_by: userId,
-        requested_at: new Date().toISOString(),
-        attempt: prevAttempts + 1,
-      },
-    },
+  const agentArgs = {
+    client_email: (agent as any).client_email,
+    client_name: "FYSORA FASHN (Fashion Stitches Africa)",
+    agent: (agent as any).agent_name,
+    plan: (agent as any).plan_key,
+    tier: (agent as any).tier,
+    scope: (agent as any).scope,
+    cascades_to_users: (agent as any).cascades_to_users,
+    requested_features: (agent as any).requested_features ?? [],
+    requested_by: userId,
+    requested_at: new Date().toISOString(),
+    attempt: prevAttempts + 1,
   };
 
   let providerResponse: unknown = null;
@@ -1129,11 +1097,12 @@ async function activatePlatformAgent(
 
   if (serverUrl) {
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        Accept: "application/json, text/event-stream",
-      };
-      if (mcpAuthKey?.key_value) headers["Authorization"] = `Bearer ${mcpAuthKey.key_value}`;
+      const { headers, body: requestPayload } = await buildSentinelRequest(
+        serverUrl,
+        String((agent as any).mcp_tool_name),
+        agentArgs,
+        adminClient,
+      );
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 15_000);
       const res = await fetch(serverUrl, {
@@ -1184,7 +1153,7 @@ async function activatePlatformAgent(
       status: providerStatus,
       requested_at: nowIso,
       activated_at: providerStatus === "active" ? nowIso : (agent as any).activated_at,
-      request_payload: requestPayload,
+      request_payload: agentArgs,
       provider_response: providerResponse as any,
       last_error: lastError,
       attempt_count: providerStatus === "active" ? 0 : newAttempt,
@@ -1275,18 +1244,7 @@ async function callMcpTool(
   if (!serverUrl) {
     return { ok: false, status: 0, response: null, error: "No Sentinel MCP URL configured" };
   }
-  const { data: authKey } = await client
-    .from("platform_api_keys")
-    .select("key_value")
-    .eq("key_name", "sentinel_mcp_auth_key")
-    .eq("is_active", true)
-    .maybeSingle();
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json, text/event-stream",
-  };
-  if (authKey?.key_value) headers["Authorization"] = `Bearer ${authKey.key_value}`;
+  const { headers, body } = await buildSentinelRequest(serverUrl, toolName, args, client);
 
   try {
     const ctrl = new AbortController();
@@ -1294,12 +1252,7 @@ async function callMcpTool(
     const res = await fetch(serverUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: crypto.randomUUID(),
-        method: "tools/call",
-        params: { name: toolName, arguments: args },
-      }),
+      body: JSON.stringify(body),
       signal: ctrl.signal,
     });
     clearTimeout(t);
@@ -1311,6 +1264,64 @@ async function callMcpTool(
   } catch (e) {
     return { ok: false, status: 0, response: null, error: e instanceof Error ? e.message : "MCP unreachable" };
   }
+}
+
+/**
+ * Builds the outbound envelope + auth headers for a Sentinel MCP call.
+ * When the configured URL is the integration-worker `/inbound/execute`
+ * endpoint, use the `{ toolName, input, subTenantId }` envelope with
+ * `X-Api-Key` / `X-Tenant-Key`; otherwise use standard JSON-RPC + Bearer.
+ */
+export async function buildSentinelRequest(
+  serverUrl: string,
+  toolName: string,
+  args: Record<string, unknown>,
+  client: ReturnType<typeof createClient>,
+  subTenantId: string | null = null,
+): Promise<{ headers: Record<string, string>; body: Record<string, unknown> }> {
+  const useInboundEnvelope = /\/inbound\/execute\/?$/.test(serverUrl);
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+  };
+
+  if (useInboundEnvelope) {
+    const { data: apiKeyRow } = await client
+      .from("platform_api_keys")
+      .select("key_value")
+      .eq("key_name", "sentinel_mcp_api_key")
+      .eq("is_active", true)
+      .maybeSingle();
+    const apiKey = (apiKeyRow as any)?.key_value || Deno.env.get("SENTINEL_MCP_API_KEY");
+    if (apiKey) headers["X-Api-Key"] = apiKey;
+
+    const tenantKey = Deno.env.get("SENTINEL_MCP_TENANT_KEY") || "fsa_platform";
+    headers["X-Tenant-Key"] = tenantKey;
+
+    return {
+      headers,
+      body: { toolName, input: args, subTenantId },
+    };
+  }
+
+  const { data: authKey } = await client
+    .from("platform_api_keys")
+    .select("key_value")
+    .eq("key_name", "sentinel_mcp_auth_key")
+    .eq("is_active", true)
+    .maybeSingle();
+  if ((authKey as any)?.key_value) headers["Authorization"] = `Bearer ${(authKey as any).key_value}`;
+
+  return {
+    headers,
+    body: {
+      jsonrpc: "2.0",
+      id: crypto.randomUUID(),
+      method: "tools/call",
+      params: { name: toolName, arguments: args },
+    },
+  };
 }
 
 async function resolveSentinelUrl(client: ReturnType<typeof createClient>): Promise<string | null> {
