@@ -72,13 +72,6 @@ export const isSelfReferentialSiteUrl = (
  * `public_website_url` because hostnames are admin-verified.
  */
 export const resolvePublicSiteUrlAsync = async (
-  slug: string | null | undefined,
-  publicWebsiteUrl: string | null | undefined,
-  supabase: { from: Function }
-): Promise<string> => {
-  if (slug) {
-    try {
-      export const resolvePublicSiteUrlAsync = async (
   orgId: string | null | undefined,
   slug: string | null | undefined,
   publicWebsiteUrl: string | null | undefined,
@@ -102,10 +95,5 @@ export const resolvePublicSiteUrlAsync = async (
     }
   }
 
-  return resolvePublicSiteUrl(slug, publicWebsiteUrl);
-};
-      if (match?.hostname) return `https://${match.hostname}`;
-    } catch {}
-  }
   return resolvePublicSiteUrl(slug, publicWebsiteUrl);
 };
