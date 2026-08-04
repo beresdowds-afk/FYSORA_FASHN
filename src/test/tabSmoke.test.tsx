@@ -1,6 +1,10 @@
 import { render, waitFor } from "@testing-library/react";
 import { vi, it, expect } from "vitest";
 import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
+const qc = new QueryClient();
+const Wrap = ({ children }: any) => <QueryClientProvider client={qc}><MemoryRouter>{children}</MemoryRouter></QueryClientProvider>;
 
 const chain: any = new Proxy(function () {} as any, {
   get: (_t, p) => {
@@ -23,7 +27,7 @@ const makeQuery = () => {
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => makeQuery(),
-    channel: () => ({ on: () => ({ subscribe: () => ({}) }), subscribe: () => ({}) }),
+    channel: () => { const ch: any = { on: () => ch, subscribe: () => ch, unsubscribe: () => {} }; return ch; },
     removeChannel: () => {},
     auth: { getSession: async () => ({ data: { session: null } }), getUser: async () => ({ data: { user: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }) },
     functions: { invoke: async () => ({ data: null, error: null }) },
@@ -38,14 +42,14 @@ vi.mock("@/contexts/AuthContext", () => ({
 
 it("OrdersTab renders", async () => {
   const { default: OrdersTab } = await import("@/components/orders/OrdersTab");
-  const { container } = render(<OrdersTab orgId="o1" currency="NGN" role={"org_admin" as any} orgName="X" />);
+  const { container } = render(<Wrap><OrdersTab orgId="o1" currency="NGN" role={"org_admin" as any} orgName="X" /></Wrap>);
   await waitFor(() => expect(container.textContent).toBeTruthy());
   console.log("ORDERS_OUT:", container.textContent?.slice(0, 200));
 });
 
 it("WebsiteBuilderTab renders", async () => {
   const { default: Tab } = await import("@/components/website-builder/WebsiteBuilderTab");
-  const { container } = render(<Tab org={{ id: "o1", name: "X", slug: "x", currency: "NGN" } as any} role={"org_admin" as any} />);
+  const { container } = render(<Wrap><Tab org={{ id: "o1", name: "X", slug: "x", currency: "NGN" } as any} role={"org_admin" as any} /></Wrap>);
   await waitFor(() => expect(container.textContent).toContain("Website Builder"), { timeout: 4000 });
   console.log("WB_OUT:", container.textContent?.slice(0, 200));
 });
