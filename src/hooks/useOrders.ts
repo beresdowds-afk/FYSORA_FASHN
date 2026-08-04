@@ -103,13 +103,22 @@ export const useOrders = (orgId: string | undefined) => {
   const fetchOrders = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("org_id", orgId)
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("org_id", orgId)
+        .order("created_at", { ascending: false });
 
-    if (!error && data) {
+      if (error) {
+        console.error("[useOrders] Failed to load orders:", error);
+        setOrders([]);
+        return;
+      }
+      if (!data) {
+        setOrders([]);
+        return;
+      }
       // Fetch customer & tailor profiles
       const userIds = new Set<string>();
       data.forEach((o: any) => {
@@ -131,8 +140,12 @@ export const useOrders = (orgId: string | undefined) => {
           tailor_profile: o.assigned_tailor_id ? profileMap.get(o.assigned_tailor_id) || null : null,
         }))
       );
+    } catch (err) {
+      console.error("[useOrders] Unexpected error loading orders:", err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [orgId]);
 
   useEffect(() => {
