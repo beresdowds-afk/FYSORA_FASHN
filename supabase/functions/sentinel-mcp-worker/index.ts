@@ -1153,7 +1153,7 @@ async function activatePlatformAgent(
       status: providerStatus,
       requested_at: nowIso,
       activated_at: providerStatus === "active" ? nowIso : (agent as any).activated_at,
-      request_payload: requestPayload,
+      request_payload: agentArgs,
       provider_response: providerResponse as any,
       last_error: lastError,
       attempt_count: providerStatus === "active" ? 0 : newAttempt,
