@@ -852,39 +852,23 @@ async function handleAdminAction(
         serverUrl = Deno.env.get("SENTINEL_MCP_URL") || null;
       }
 
-      // Lookup auth bearer if configured
-      const { data: mcpAuthKey } = await adminClient
-        .from("platform_api_keys")
-        .select("key_value")
-        .eq("key_name", "sentinel_mcp_auth_key")
-        .eq("is_active", true)
-        .maybeSingle();
-
-      const requestPayload = {
-        jsonrpc: "2.0",
-        id: crypto.randomUUID(),
-        method: "tools/call",
-        params: {
-          name: "sentinel_shield_activate",
-          arguments: {
-            client_email: "sentinel-mcp@eastforte.org.ng",
-            client_name: "FYSORA FASHN (Fashion Stitches Africa)",
-            plan: "SENTINEL-SHIELD",
-            tier: "non_fee_paying",
-            requested_features: [
-              "waf_baseline",
-              "ddos_shield",
-              "abuse_detection",
-              "audit_forwarding",
-              "uptime_probe",
-            ],
-            scope: "platform_only",
-            cascades_to_users: false,
-            requested_by: userId,
-            requested_at: new Date().toISOString(),
-            attempt: prevAttempts + 1,
-          },
-        },
+      const shieldArgs = {
+        client_email: "sentinel-mcp@eastforte.org.ng",
+        client_name: "FYSORA FASHN (Fashion Stitches Africa)",
+        plan: "SENTINEL-SHIELD",
+        tier: "non_fee_paying",
+        requested_features: [
+          "waf_baseline",
+          "ddos_shield",
+          "abuse_detection",
+          "audit_forwarding",
+          "uptime_probe",
+        ],
+        scope: "platform_only",
+        cascades_to_users: false,
+        requested_by: userId,
+        requested_at: new Date().toISOString(),
+        attempt: prevAttempts + 1,
       };
 
       let providerResponse: unknown = null;
@@ -895,13 +879,12 @@ async function handleAdminAction(
 
       if (serverUrl) {
         try {
-          const headers: Record<string, string> = {
-            "Content-Type": "application/json",
-            Accept: "application/json, text/event-stream",
-          };
-          if (mcpAuthKey?.key_value) {
-            headers["Authorization"] = `Bearer ${mcpAuthKey.key_value}`;
-          }
+          const { headers, body: requestPayload } = await buildSentinelRequest(
+            serverUrl,
+            "sentinel_shield_activate",
+            shieldArgs,
+            adminClient,
+          );
           // 15s timeout treated as retryable
           const ctrl = new AbortController();
           const t = setTimeout(() => ctrl.abort(), 15_000);
