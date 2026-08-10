@@ -1654,6 +1654,18 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
         </div>
       )}
 
+      {activeSection === "catalogue" && (
+        <div className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6 space-y-3">
+          <div>
+            <h3 className="font-heading font-semibold text-base">Bulk Upload &amp; Publish</h3>
+            <p className="text-xs text-muted-foreground">
+              Drop product images to create drafts, add a price, then publish them to your public catalogue.
+            </p>
+          </div>
+          <CatalogueUploadPublishPanel orgId={org.id} currency={org.currency || "NGN"} canEdit={canEdit} />
+        </div>
+      )}
+
       {activeSection === "integration" && (
         <div className="rounded-xl bg-card border border-border p-6 space-y-6">
           <div>
