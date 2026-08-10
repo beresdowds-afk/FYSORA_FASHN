@@ -16,7 +16,7 @@ const TikTokIcon = ({ size = 16, className = "" }: { size?: number; className?: 
 );
 
 const CataloguePage = () => {
-  const { orgId } = useParams<{ orgId: string }>();
+  const { orgId, category: routeCategory, collection: routeCollection } = useParams<{ orgId: string; category?: string; collection?: string }>();
   const navigate = useNavigate();
   const [org, setOrg] = useState<any>(null);
   const [website, setWebsite] = useState<any>(null);
@@ -24,7 +24,12 @@ const CataloguePage = () => {
   const [tailors, setTailors] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setSelectedCategory(routeCategory ? decodeURIComponent(routeCategory) : "all");
+  }, [routeCategory]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -50,11 +55,23 @@ const CataloguePage = () => {
     load();
   }, [orgId]);
 
-  const categories = ["all", ...new Set(items.map(i => i.category || "general"))];
-  const filtered = items.filter(i => {
-    const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
+  const activeCollection = routeCollection ? decodeURIComponent(routeCollection) : null;
+  const scoped = activeCollection
+    ? items.filter(i => (i.metadata?.collection || i.collection || "") === activeCollection)
+    : items;
+
+  const categories = ["all", ...new Set(scoped.map(i => i.category || "general"))];
+  const allTags = [...new Set(scoped.flatMap(i => (i.tags || []) as string[]))].sort();
+  const collections = [...new Set(items.map(i => i.metadata?.collection || i.collection).filter(Boolean))] as string[];
+
+  const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
+  const filtered = scoped.filter(i => {
+    const haystack = [i.name, i.description, i.category, i.metadata?.collection || i.collection, ...(i.tags || [])]
+      .filter(Boolean).join(" ").toLowerCase();
+    const matchSearch = terms.every(t => haystack.includes(t));
     const matchCat = selectedCategory === "all" || (i.category || "general") === selectedCategory;
-    return matchSearch && matchCat;
+    const matchTags = selectedTags.length === 0 || selectedTags.every(t => (i.tags || []).includes(t));
+    return matchSearch && matchCat && matchTags;
   });
 
   const socialLinks = website ? [
@@ -137,13 +154,17 @@ const CataloguePage = () => {
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Search name, description or tags..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
           <div className="flex gap-2 overflow-x-auto">
             {categories.map(cat => (
               <button
                 key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  const base = activeCollection ? `/catalogue/${orgId}/collection/${encodeURIComponent(activeCollection)}` : `/catalogue/${orgId}`;
+                  navigate(cat === "all" ? base : `${base}${activeCollection ? "" : `/category/${encodeURIComponent(cat)}`}`, { replace: true });
+                }}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                   selectedCategory === cat ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 }`}
@@ -153,6 +174,40 @@ const CataloguePage = () => {
             ))}
           </div>
         </div>
+
+        {(collections.length > 0 || allTags.length > 0) && (
+          <div className="mb-6 space-y-3">
+            {collections.length > 0 && (
+              <nav className="flex items-center gap-2 flex-wrap" aria-label="Collections">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Collections</span>
+                <Link to={`/catalogue/${orgId}`} className={`text-xs px-2.5 py-1 rounded-full border ${!activeCollection ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>All</Link>
+                {collections.map(c => (
+                  <Link key={c} to={`/catalogue/${orgId}/collection/${encodeURIComponent(c)}`}
+                    className={`text-xs px-2.5 py-1 rounded-full border ${activeCollection === c ? "border-primary text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                    {c}
+                  </Link>
+                ))}
+              </nav>
+            )}
+            {allTags.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Tags</span>
+                {allTags.map(t => {
+                  const on = selectedTags.includes(t);
+                  return (
+                    <button key={t} onClick={() => setSelectedTags(s => on ? s.filter(x => x !== t) : [...s, t])}
+                      className={`text-[11px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1 transition-colors ${on ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                      <Tag size={9} /> {t}
+                    </button>
+                  );
+                })}
+                {selectedTags.length > 0 && (
+                  <button onClick={() => setSelectedTags([])} className="text-[11px] text-muted-foreground underline">Clear</button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {filtered.length === 0 ? (
           <div className="text-center py-20">

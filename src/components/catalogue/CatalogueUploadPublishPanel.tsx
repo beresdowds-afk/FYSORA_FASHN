@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, Loader2, Trash2, Globe, EyeOff, ImagePlus, AlertCircle } from "lucide-react";
+import { Upload, Loader2, Trash2, Globe, EyeOff, ImagePlus, AlertCircle, Eye, Lock, Gauge } from "lucide-react";
+import { optimizeImage, formatBytes, type OptimizedImage } from "@/lib/imageOptimizer";
+import CataloguePreviewDialog from "./CataloguePreviewDialog";
+import CatalogueAuditLog from "./CatalogueAuditLog";
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
 const MAX_MB = 10;
@@ -19,36 +22,61 @@ interface Row {
   image_url: string | null;
   is_available: boolean;
   published_at: string;
+  category: string | null;
+  collection: string | null;
+  tags: string[] | null;
 }
+
+interface Draft { name: string; price: string; category: string; collection: string; tags: string }
 
 interface Props {
   orgId: string;
   currency?: string;
   canEdit?: boolean;
+  /** Roles allowed to upload/edit drafts. Defaults to canEdit. */
+  canUpload?: boolean;
+  /** Roles allowed to publish/unpublish. Defaults to canEdit. */
+  canPublish?: boolean;
+  orgName?: string;
 }
 
-const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }: Props) => {
+const toDraft = (r: Row): Draft => ({
+  name: r.name,
+  price: r.price?.toString() || "",
+  category: r.category || "",
+  collection: r.collection || "",
+  tags: (r.tags || []).join(", "),
+});
+
+const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true, canUpload, canPublish, orgName }: Props) => {
   const { toast } = useToast();
+  const allowUpload = canUpload ?? canEdit;
+  const allowPublish = canPublish ?? canEdit;
+
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number; label: string } | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [drafts, setDrafts] = useState<Record<string, { name: string; price: string }>>({});
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [busy, setBusy] = useState(false);
+  const [optimizations, setOptimizations] = useState<OptimizedImage[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewIds, setPreviewIds] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("org_catalogue_items")
-      .select("id,name,price,currency,image_url,is_available,published_at")
+      .select("id,name,price,currency,image_url,is_available,published_at,category,collection,tags")
       .eq("org_id", orgId)
       .order("published_at", { ascending: false });
     if (error) toast({ title: "Could not load catalogue", description: error.message, variant: "destructive" });
-    setRows((data as Row[]) || []);
-    setDrafts(Object.fromEntries(((data as Row[]) || []).map((r) => [r.id, { name: r.name, price: r.price?.toString() || "" }])));
+    const list = ((data as any[]) || []) as Row[];
+    setRows(list);
+    setDrafts(Object.fromEntries(list.map((r) => [r.id, toDraft(r)])));
     setLoading(false);
   }, [orgId, toast]);
 
@@ -61,15 +89,28 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
   };
 
   const handleFiles = async (files: File[]) => {
-    if (!canEdit || files.length === 0) return;
+    if (!allowUpload || files.length === 0) return;
     const bad = files.map(validate).filter(Boolean) as string[];
     const good = files.filter((f) => !validate(f));
     setErrors(bad);
     if (good.length === 0) return;
 
-    setProgress({ done: 0, total: good.length });
+    const optimized: OptimizedImage[] = [];
+    setProgress({ done: 0, total: good.length, label: "Optimising" });
+    for (let i = 0; i < good.length; i += 1) {
+      try {
+        optimized.push(await optimizeImage(good[i]));
+      } catch (e: any) {
+        setErrors((prev) => [...prev, `${good[i].name}: ${e?.message || "could not optimise"}`]);
+      }
+      setProgress({ done: i + 1, total: good.length, label: "Optimising" });
+    }
+    setOptimizations(optimized);
+
+    setProgress({ done: 0, total: optimized.length, label: "Uploading" });
     let done = 0;
-    for (const file of good) {
+    for (const opt of optimized) {
+      const file = opt.file;
       const path = `${orgId}/catalogue/${Date.now()}-${file.name.replace(/[^a-z0-9.\-_]/gi, "_")}`;
       const { error: upErr } = await supabase.storage.from("garment-images").upload(path, file, { upsert: true });
       if (upErr) {
@@ -87,7 +128,7 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
         if (insErr) setErrors((e) => [...e, `${file.name}: ${insErr.message}`]);
       }
       done += 1;
-      setProgress({ done, total: good.length });
+      setProgress({ done, total: optimized.length, label: "Uploading" });
     }
     setProgress(null);
     toast({ title: "Upload complete", description: `${done} file(s) added as drafts. Set a price, then publish.` });
@@ -105,7 +146,13 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
     setBusy(true);
     const { error } = await supabase
       .from("org_catalogue_items")
-      .update({ name: d.name.trim(), price: d.price ? Number(d.price) : null })
+      .update({
+        name: d.name.trim(),
+        price: d.price ? Number(d.price) : null,
+        category: d.category.trim() || null,
+        collection: d.collection.trim() || null,
+        tags: d.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      } as any)
       .eq("id", row.id);
     setBusy(false);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
@@ -114,6 +161,10 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
 
   const setPublished = async (ids: string[], publish: boolean) => {
     if (ids.length === 0) return;
+    if (!allowPublish) {
+      toast({ title: "Not allowed", description: "Your role cannot publish or unpublish catalogue items.", variant: "destructive" });
+      return;
+    }
     if (publish) {
       const missing = rows.filter((r) => ids.includes(r.id)).filter((r) => !r.image_url || (drafts[r.id]?.price ?? "") === "");
       if (missing.length > 0) {
@@ -145,9 +196,35 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
     else load();
   };
 
+  const openPreview = (ids: string[]) => { setPreviewIds(ids); setPreviewOpen(true); };
+
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const draftsList = rows.filter((r) => !r.is_available);
   const publishedList = rows.filter((r) => r.is_available);
+
+  const previewItems = useMemo(
+    () => rows.filter((r) => previewIds.includes(r.id)).map((r) => {
+      const d = drafts[r.id];
+      return {
+        id: r.id,
+        name: d?.name ?? r.name,
+        price: d?.price ? Number(d.price) : r.price,
+        currency: r.currency,
+        image_url: r.image_url,
+        category: d?.category ?? r.category,
+        collection: d?.collection ?? r.collection,
+        tags: d ? d.tags.split(",").map((t) => t.trim()).filter(Boolean) : r.tags,
+      };
+    }),
+    [rows, drafts, previewIds],
+  );
+
+  const optSummary = useMemo(() => {
+    if (optimizations.length === 0) return null;
+    const before = optimizations.reduce((s, o) => s + o.originalBytes, 0);
+    const after = optimizations.reduce((s, o) => s + o.optimizedBytes, 0);
+    return { before, after, saved: before - after, pct: before ? Math.round(((before - after) / before) * 100) : 0 };
+  }, [optimizations]);
 
   const renderCard = (row: Row) => (
     <Card key={row.id} className="overflow-hidden">
@@ -157,7 +234,7 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground"><ImagePlus size={24} /></div>
         )}
-        {canEdit && (
+        {allowUpload && (
           <div className="absolute top-2 left-2 bg-background/90 rounded p-1">
             <Checkbox
               checked={!!selected[row.id]}
@@ -173,7 +250,7 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
       <div className="p-3 space-y-2">
         <Input
           value={drafts[row.id]?.name ?? ""}
-          disabled={!canEdit}
+          disabled={!allowUpload}
           onChange={(e) => setDrafts((d) => ({ ...d, [row.id]: { ...d[row.id], name: e.target.value } }))}
           className="h-8 text-sm"
           placeholder="Item name"
@@ -183,31 +260,68 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
             type="number"
             min="0"
             value={drafts[row.id]?.price ?? ""}
-            disabled={!canEdit}
+            disabled={!allowUpload}
             onChange={(e) => setDrafts((d) => ({ ...d, [row.id]: { ...d[row.id], price: e.target.value } }))}
             className="h-8 text-sm"
             placeholder={`Price (${row.currency || currency})`}
           />
-          <Button size="sm" variant="outline" className="h-8" disabled={!canEdit || busy} onClick={() => saveRow(row)}>Save</Button>
+          <Button size="sm" variant="outline" className="h-8" disabled={!allowUpload || busy} onClick={() => saveRow(row)}>Save</Button>
         </div>
-        {canEdit && (
-          <div className="flex items-center justify-between pt-1">
-            <Button size="sm" variant={row.is_available ? "outline" : "default"} className="h-7 text-xs"
-              disabled={busy} onClick={() => setPublished([row.id], !row.is_available)}>
-              {row.is_available ? <><EyeOff size={12} className="mr-1" /> Unpublish</> : <><Globe size={12} className="mr-1" /> Publish</>}
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            value={drafts[row.id]?.category ?? ""}
+            disabled={!allowUpload}
+            onChange={(e) => setDrafts((d) => ({ ...d, [row.id]: { ...d[row.id], category: e.target.value } }))}
+            className="h-8 text-xs"
+            placeholder="Category"
+          />
+          <Input
+            value={drafts[row.id]?.collection ?? ""}
+            disabled={!allowUpload}
+            onChange={(e) => setDrafts((d) => ({ ...d, [row.id]: { ...d[row.id], collection: e.target.value } }))}
+            className="h-8 text-xs"
+            placeholder="Collection"
+          />
+        </div>
+        <Input
+          value={drafts[row.id]?.tags ?? ""}
+          disabled={!allowUpload}
+          onChange={(e) => setDrafts((d) => ({ ...d, [row.id]: { ...d[row.id], tags: e.target.value } }))}
+          className="h-8 text-xs"
+          placeholder="Tags (comma separated)"
+        />
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-1">
+            {allowPublish && (
+              <Button size="sm" variant={row.is_available ? "outline" : "default"} className="h-7 text-xs"
+                disabled={busy} onClick={() => setPublished([row.id], !row.is_available)}>
+                {row.is_available ? <><EyeOff size={12} className="mr-1" /> Unpublish</> : <><Globe size={12} className="mr-1" /> Publish</>}
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openPreview([row.id])}>
+              <Eye size={12} className="mr-1" /> Preview
             </Button>
+          </div>
+          {allowUpload && (
             <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove(row.id)}>
               <Trash2 size={12} />
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </Card>
   );
 
   return (
     <div className="space-y-5">
-      {canEdit && (
+      {!allowUpload && (
+        <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+          <Lock size={14} className="mt-0.5 shrink-0" />
+          Your role can view the catalogue but cannot upload, edit or publish items.
+        </div>
+      )}
+
+      {allowUpload && (
         <div
           onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
@@ -226,66 +340,111 @@ const CatalogueUploadPublishPanel = ({ orgId, currency = "NGN", canEdit = true }
           {progress ? (
             <div className="space-y-2">
               <Loader2 className="mx-auto animate-spin text-primary" size={24} />
-              <p className="text-sm text-muted-foreground">Uploading {progress.done}/{progress.total}…</p>
+              <p className="text-sm text-muted-foreground">{progress.label} {progress.done}/{progress.total}…</p>
               <div className="h-1.5 w-full max-w-xs mx-auto rounded-full bg-muted overflow-hidden">
-                <div className="h-full bg-primary transition-all" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+                <div className="h-full bg-primary transition-all" style={{ width: `${(progress.done / Math.max(1, progress.total)) * 100}%` }} />
               </div>
             </div>
           ) : (
-            <>
-              <Upload className="mx-auto text-muted-foreground mb-2" size={24} />
+            <div className="space-y-1">
+              <Upload className="mx-auto text-muted-foreground" size={24} />
               <p className="text-sm font-medium">Drop product images here or click to browse</p>
-              <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP, GIF or AVIF · up to {MAX_MB} MB each · uploaded as drafts</p>
-            </>
+              <p className="text-xs text-muted-foreground">JPG, PNG, WebP, GIF or AVIF — up to {MAX_MB} MB each. Images are resized and compressed automatically.</p>
+            </div>
           )}
         </div>
       )}
 
       {errors.length > 0 && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1">
-          <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-            <AlertCircle size={14} /> Some files were rejected
-          </div>
-          {errors.map((e, i) => <p key={i} className="text-xs text-muted-foreground">{e}</p>)}
+          {errors.map((e, i) => (
+            <p key={i} className="text-xs text-destructive flex items-start gap-1.5"><AlertCircle size={12} className="mt-0.5 shrink-0" />{e}</p>
+          ))}
         </div>
       )}
 
-      {canEdit && selectedIds.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 p-3">
-          <span className="text-sm">{selectedIds.length} selected</span>
-          <Button size="sm" disabled={busy} onClick={() => setPublished(selectedIds, true)}>
-            <Globe size={14} className="mr-1" /> Publish
+      {optSummary && (
+        <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <Gauge size={14} className="text-primary" /> Optimisation impact
+            <span className="text-xs font-normal text-muted-foreground">
+              {formatBytes(optSummary.before)} → {formatBytes(optSummary.after)} (saved {formatBytes(optSummary.saved)}, {optSummary.pct}%)
+            </span>
+          </div>
+          <ul className="space-y-1">
+            {optimizations.map((o, i) => (
+              <li key={i} className="text-[11px] text-muted-foreground flex flex-wrap gap-x-2">
+                <span className="font-medium text-foreground">{o.file.name}</span>
+                <span>{formatBytes(o.originalBytes)} → {formatBytes(o.optimizedBytes)}</span>
+                {o.width > 0 && <span>{o.originalWidth}×{o.originalHeight} → {o.width}×{o.height}</span>}
+                <span>quality {Math.round(o.quality * 100)}%</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {allowUpload && selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3">
+          <span className="text-xs text-muted-foreground">{selectedIds.length} selected</span>
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openPreview(selectedIds)}>
+            <Eye size={12} className="mr-1" /> Preview
           </Button>
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => setPublished(selectedIds, false)}>
-            <EyeOff size={14} className="mr-1" /> Unpublish
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setSelected({})}>Clear</Button>
+          {allowPublish && (
+            <>
+              <Button size="sm" className="h-7 text-xs" disabled={busy} onClick={() => setPublished(selectedIds, true)}>
+                <Globe size={12} className="mr-1" /> Publish selected
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 text-xs" disabled={busy} onClick={() => setPublished(selectedIds, false)}>
+                <EyeOff size={12} className="mr-1" /> Unpublish selected
+              </Button>
+            </>
+          )}
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary" /></div>
+        <div className="flex justify-center py-10"><Loader2 className="animate-spin text-muted-foreground" /></div>
       ) : (
         <>
           <section className="space-y-3">
-            <h4 className="font-heading font-semibold text-sm">Drafts ({draftsList.length})</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold">Drafts <span className="text-muted-foreground font-normal">({draftsList.length})</span></h4>
+              {draftsList.length > 0 && (
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openPreview(draftsList.map((r) => r.id))}>
+                  <Eye size={12} className="mr-1" /> Preview all drafts
+                </Button>
+              )}
+            </div>
             {draftsList.length === 0 ? (
-              <p className="text-xs text-muted-foreground">No drafts. Upload images above to start.</p>
+              <p className="text-xs text-muted-foreground">No drafts. Upload images to get started.</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">{draftsList.map(renderCard)}</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">{draftsList.map(renderCard)}</div>
             )}
           </section>
 
           <section className="space-y-3">
-            <h4 className="font-heading font-semibold text-sm">Published ({publishedList.length})</h4>
+            <h4 className="text-sm font-semibold">Published <span className="text-muted-foreground font-normal">({publishedList.length})</span></h4>
             {publishedList.length === 0 ? (
               <p className="text-xs text-muted-foreground">Nothing published yet.</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">{publishedList.map(renderCard)}</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">{publishedList.map(renderCard)}</div>
             )}
+          </section>
+
+          <section className="rounded-lg border border-border bg-card p-3">
+            <CatalogueAuditLog orgId={orgId} />
           </section>
         </>
       )}
+
+      <CataloguePreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        items={previewItems}
+        currency={currency}
+        orgName={orgName}
+      />
     </div>
   );
 };

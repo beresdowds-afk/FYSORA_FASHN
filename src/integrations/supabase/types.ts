@@ -1044,6 +1044,39 @@ export type Database = {
           },
         ]
       }
+      catalogue_item_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          changes: Json
+          created_at: string
+          id: string
+          item_id: string | null
+          item_name: string | null
+          org_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          changes?: Json
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          org_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          changes?: Json
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_name?: string | null
+          org_id?: string
+        }
+        Relationships: []
+      }
       channel_routing_config: {
         Row: {
           created_at: string | null
@@ -5762,6 +5795,7 @@ export type Database = {
           available_sizes: string[] | null
           category: string | null
           category_id: string | null
+          collection: string | null
           created_at: string
           currency: string | null
           description: string | null
@@ -5785,6 +5819,7 @@ export type Database = {
           available_sizes?: string[] | null
           category?: string | null
           category_id?: string | null
+          collection?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -5810,6 +5845,7 @@ export type Database = {
           available_sizes?: string[] | null
           category?: string | null
           category_id?: string | null
+          collection?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -12718,6 +12754,14 @@ export type Database = {
       assign_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
+      }
+      can_manage_catalogue: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_publish_catalogue: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
       }
       capture_missing_column_error: {
         Args: {
