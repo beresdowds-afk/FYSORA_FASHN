@@ -177,6 +177,8 @@ const App = () => (
             <Route path="/browse" element={<BrowseOrganizations />} />
             <Route path="/catalogue/tailor/:tailorId" element={<TailorCataloguePage />} />
             <Route path="/catalogue/:orgId" element={<CataloguePage />} />
+            <Route path="/catalogue/:orgId/category/:category" element={<CataloguePage />} />
+            <Route path="/catalogue/:orgId/collection/:collection" element={<CataloguePage />} />
             <Route path="/platform-catalogue" element={<PlatformCataloguePage />} />
             <Route path="/platform-tour" element={<PlatformTour />} />
             <Route path="/payments" element={<PaymentsPortal />} />
