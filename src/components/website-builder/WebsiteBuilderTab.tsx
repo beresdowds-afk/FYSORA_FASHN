@@ -11,6 +11,7 @@ import {
 import OrgBrandingPanel from "./OrgBrandingPanel";
 import SocialSyncPanel from "@/components/catalogue/SocialSyncPanel";
 import OrgMediaGroupingManager from "@/components/catalogue/OrgMediaGroupingManager";
+import CatalogueUploadPublishPanel from "@/components/catalogue/CatalogueUploadPublishPanel";
 import FeaturedShowcasePanel from "./FeaturedShowcasePanel";
 import CompanyOfficersPanel from "./CompanyOfficersPanel";
 import WebsiteBuilderManual from "./WebsiteBuilderManual";
