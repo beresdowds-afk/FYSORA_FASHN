@@ -11,6 +11,7 @@ import {
 import OrgBrandingPanel from "./OrgBrandingPanel";
 import SocialSyncPanel from "@/components/catalogue/SocialSyncPanel";
 import OrgMediaGroupingManager from "@/components/catalogue/OrgMediaGroupingManager";
+import CatalogueUploadPublishPanel from "@/components/catalogue/CatalogueUploadPublishPanel";
 import FeaturedShowcasePanel from "./FeaturedShowcasePanel";
 import CompanyOfficersPanel from "./CompanyOfficersPanel";
 import WebsiteBuilderManual from "./WebsiteBuilderManual";
@@ -1651,6 +1652,18 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
       {activeSection === "catalogue" && (
         <div className="mt-6">
           <FeaturedShowcasePanel org={{ id: org.id }} />
+        </div>
+      )}
+
+      {activeSection === "catalogue" && (
+        <div className="mt-6 rounded-xl border border-border bg-card p-4 sm:p-6 space-y-3">
+          <div>
+            <h3 className="font-heading font-semibold text-base">Bulk Upload &amp; Publish</h3>
+            <p className="text-xs text-muted-foreground">
+              Drop product images to create drafts, add a price, then publish them to your public catalogue.
+            </p>
+          </div>
+          <CatalogueUploadPublishPanel orgId={org.id} currency={org.currency || "NGN"} canEdit={canEdit} />
         </div>
       )}
 
