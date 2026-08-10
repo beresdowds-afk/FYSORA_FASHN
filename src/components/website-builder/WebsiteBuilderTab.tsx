@@ -1663,7 +1663,14 @@ const WebsiteBuilderTab = ({ org, role }: WebsiteBuilderTabProps) => {
               Drop product images to create drafts, add a price, then publish them to your public catalogue.
             </p>
           </div>
-          <CatalogueUploadPublishPanel orgId={org.id} currency={org.currency || "NGN"} canEdit={canEdit} />
+          <CatalogueUploadPublishPanel
+            orgId={org.id}
+            currency={org.currency || "NGN"}
+            orgName={org.name}
+            canEdit={canEdit}
+            canUpload={canEdit || role === "designer"}
+            canPublish={canEdit}
+          />
         </div>
       )}
 
