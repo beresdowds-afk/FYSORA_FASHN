@@ -15,6 +15,7 @@ import { ArrowLeft, Mail, Lock, User, Shield, Users, Scissors, Building2, Loader
 import { useToast } from "@/hooks/use-toast";
 import DisclaimerDialog, { DisclaimerBanner } from "@/components/shared/DisclaimerDialog";
 import { prefetchPostLoginData, readPrefetchedData } from "@/lib/postLoginPrefetch";
+import { isPasswordLeaked, MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 import { verifyPasskeyForCurrentSession } from "@/lib/passkeyChallenge";
 import { KeyRound } from "lucide-react";
 
@@ -109,6 +110,35 @@ const Auth = () => {
   const [oauthRolePicking, setOauthRolePicking] = useState(false);
   const [oauthSelectedRole, setOauthSelectedRole] = useState<UserRole>("customer");
 
+  // Finish onboarding for a signed-in user: verify any pending identity server-side
+  // (the client can no longer mark itself verified) and persist the referral code.
+  useEffect(() => {
+    let cancelled = false;
+    const finishOnboarding = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const u = session?.user;
+      if (!u || cancelled) return;
+      const { data: pi, error: piErr } = await (supabase.from as any)("profile_identity")
+        .select("identity_number, identity_type, identity_verification_status")
+        .eq("id", u.id)
+        .maybeSingle();
+      if (piErr) { console.error("onboarding: identity lookup failed", piErr.message); return; }
+      if (pi?.identity_verification_status === "pending" && pi.identity_number && pi.identity_type) {
+        const { error } = await supabase.functions.invoke("verify-identity", {
+          body: { id_type: pi.identity_type, id_number: pi.identity_number, entity_type: "profile", entity_id: u.id },
+        });
+        if (error) console.error("onboarding: identity verification failed", error.message);
+      }
+      const referral = (u.user_metadata as any)?.referral_code;
+      if (referral) {
+        const { error } = await supabase.from("profiles").update({ referral_code: referral } as any).eq("id", u.id);
+        if (error) console.error("onboarding: referral save failed", error.message);
+      }
+    };
+    void finishOnboarding();
+    return () => { cancelled = true; };
+  }, []);
+
   // After Google OAuth returns, ensure the user has a user_roles row.
   // If not, show the role-picker dialog.
   useEffect(() => {
@@ -178,24 +208,6 @@ const Auth = () => {
 
   const requiresIdentity = selectedRole === "tailor" || selectedRole === "designer";
 
-  const checkLeakedPassword = async (pw: string): Promise<boolean> => {
-    try {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(pw);
-      const hashBuffer = await crypto.subtle.digest("SHA-1", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
-      const prefix = hashHex.slice(0, 5);
-      const suffix = hashHex.slice(5);
-      const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
-      if (!res.ok) return false; // fail open
-      const text = await res.text();
-      return text.split("\n").some(line => line.startsWith(suffix));
-    } catch {
-      return false; // fail open on network errors
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -211,8 +223,14 @@ const Auth = () => {
       return;
     }
 
+    if (mode === "signup" && password.length < MIN_PASSWORD_LENGTH) {
+      toast({ title: "Password too short", description: `Use at least ${MIN_PASSWORD_LENGTH} characters.`, variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
     if (mode === "signup") {
-      const isLeaked = await checkLeakedPassword(password);
+      const isLeaked = await isPasswordLeaked(password);
       if (isLeaked) {
         toast({ title: "Unsafe password", description: "This password has appeared in a data breach. Please choose a different password.", variant: "destructive" });
         setLoading(false);
@@ -235,7 +253,14 @@ const Auth = () => {
     }
 
     const { error } = mode === "signup"
-      ? await signUp(email, password, displayName)
+      ? await signUp(email, password, displayName, {
+          // Applied by the handle_new_user trigger (role is allow-listed server-side).
+          signup_role: ROLE_TO_DB_ROLE[selectedRole],
+          ...(requiresIdentity && identityType && identityNumber
+            ? { identity_type: identityType, identity_number: identityNumber.trim() }
+            : {}),
+          ...(referralCode.trim() ? { referral_code: referralCode.trim().toUpperCase().slice(0, 40) } : {}),
+        })
       : await signIn(email, password);
 
     setLoading(false);
@@ -243,39 +268,8 @@ const Auth = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else if (mode === "signup") {
-      // Persist the selected role into user_roles via the secure RPC.
-      // (After email signup, the session is already established so auth.uid() works.)
-      try {
-        await supabase.rpc("assign_role", { _role: ROLE_TO_DB_ROLE[selectedRole] });
-      } catch (e) {
-        console.error("assign_role failed:", e);
-      }
-
-      // Save identity info to profile after signup
-      if (requiresIdentity && identityType && identityNumber) {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          await supabase.from("profiles").update({
-            identity_verified: true,
-            identity_verified_at: new Date().toISOString(),
-          } as any).eq("id", userData.user.id);
-
-          await (supabase.from as any)("profile_identity").upsert({
-            id: userData.user.id,
-            identity_type: identityType,
-            identity_number: identityNumber.trim(),
-            identity_verification_status: "verified",
-          });
-
-          // Persist optional referral code (best-effort; column is optional)
-          if (referralCode.trim()) {
-            await supabase.from("profiles")
-              .update({ referral_code: referralCode.trim().toUpperCase() } as any)
-              .eq("id", userData.user.id);
-          }
-        }
-      }
-
+      // Role and identity were stored server-side from signup metadata (handle_new_user),
+      // and the identity is verified by verify-identity after the user signs in.
       toast({
         title: "Check your email",
         description: "We've sent you a confirmation link to verify your account.",
@@ -561,7 +555,7 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    minLength={6}
+                    minLength={mode === "signup" ? MIN_PASSWORD_LENGTH : undefined}
                     className="pl-10 pr-10"
                   />
                   <button
