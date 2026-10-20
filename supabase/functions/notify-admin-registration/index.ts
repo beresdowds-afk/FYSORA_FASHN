@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
   if (!_authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
+  let authUser: { id: string; email?: string | null } | null = null;
   try {
     const _authClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -28,13 +29,16 @@ Deno.serve(async (req) => {
     if (_authError || !_authData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    authUser = _authData.user;
   } catch (_e) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
   // --- end auth ---
 
   try {
-    const { org_id, user_id, user_name, user_email, org_name } = await req.json();
+    // Only org_id is read from the body. The registrant identity comes from the JWT and
+    // display fields from the database, so callers cannot inject text into notifications.
+    const { org_id } = await req.json();
 
     if (!org_id) {
       return new Response(
@@ -47,6 +51,28 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Caller must be a member of, or have registered with, the target org.
+    const { data: isMember } = await supabaseAdmin.rpc("is_org_member", { _user_id: authUser!.id, _org_id: org_id });
+    let allowed = !!isMember;
+    if (!allowed) {
+      const { data: reg } = await supabaseAdmin
+        .from("customer_registrations").select("id")
+        .eq("org_id", org_id).eq("user_id", authUser!.id).maybeSingle();
+      allowed = !!reg;
+    }
+    if (!allowed) {
+      console.warn("notify-admin-registration: forbidden", { user: authUser!.id });
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: profile } = await supabaseAdmin.from("profiles").select("display_name").eq("id", authUser!.id).maybeSingle();
+    const user_name = profile?.display_name || null;
+    const user_email = authUser!.email || null;
+    const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
     // Get org admins
     const { data: admins } = await supabaseAdmin
@@ -71,7 +97,7 @@ Deno.serve(async (req) => {
       .single();
 
     const orgEmail = org?.email;
-    const displayOrgName = org_name || org?.name || "Your Organization";
+    const displayOrgName = org?.name || "Your Organization";
 
     // Create in-app notifications for each admin
     for (const admin of admins) {
@@ -104,15 +130,15 @@ Deno.serve(async (req) => {
                   <div style="height: 4px; background: ${brandColor};"></div>
                   <div style="padding: 32px;">
                     <h2 style="color: ${brandColor}; margin: 0 0 8px;">New Customer Registration</h2>
-                    <p style="margin: 0 0 16px; color: #555;">A new customer has registered for <strong>${displayOrgName}</strong> using an invite code.</p>
+                    <p style="margin: 0 0 16px; color: #555;">A new customer has registered for <strong>${esc(displayOrgName)}</strong> using an invite code.</p>
                     <div style="padding: 16px; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px;">
-                      <p style="margin: 0; font-size: 14px; color: #555;"><strong>Customer:</strong> ${user_name || "N/A"}</p>
-                      ${user_email ? `<p style="margin: 4px 0 0; font-size: 14px; color: #555;"><strong>Email:</strong> ${user_email}</p>` : ""}
+                      <p style="margin: 0; font-size: 14px; color: #555;"><strong>Customer:</strong> ${esc(user_name || "N/A")}</p>
+                      ${user_email ? `<p style="margin: 4px 0 0; font-size: 14px; color: #555;"><strong>Email:</strong> ${esc(user_email)}</p>` : ""}
                     </div>
                     <p style="margin: 0; color: #555;">You can view and manage this registration in your dashboard.</p>
                   </div>
                   <div style="padding: 20px 32px; background: #fafafa; border-top: 1px solid #eee;">
-                    <p style="margin: 0; font-size: 12px; color: #999;">${displayOrgName}</p>
+                    <p style="margin: 0; font-size: 12px; color: #999;">${esc(displayOrgName)}</p>
                   </div>
                 </div>
               </div>

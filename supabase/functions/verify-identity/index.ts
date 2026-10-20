@@ -45,6 +45,8 @@ interface ProviderConfig {
   cost_per_verification: number;
 }
 
+const PLACEHOLDER_ENTITY_ID = "00000000-0000-0000-0000-000000000000";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -74,6 +76,55 @@ Deno.serve(async (req) => {
 
     const cleanNumber = number.trim().toUpperCase();
 
+    // Persisting a verification result mutates trusted "verified" flags, so it is
+    // only allowed for an authenticated caller who is authorized for the entity.
+    // Unauthenticated calls (pre-signup) and placeholder ids are format-check only.
+    let persistEntityId: string | null = null;
+    if (entity_id && entity_id !== PLACEHOLDER_ENTITY_ID) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const anon = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data: claims, error: claimsErr } = await anon.auth.getClaims(authHeader.replace("Bearer ", ""));
+      const callerId = claims?.claims?.sub as string | undefined;
+      if (claimsErr || !callerId) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      let allowed = false;
+      const { data: isSuper } = await serviceClient.rpc("has_role", { _user_id: callerId, _role: "super_admin" });
+      if (isSuper) allowed = true;
+      else if (entity_type === "organization") {
+        const { data: isAdmin } = await serviceClient.rpc("is_org_admin", { _user_id: callerId, _org_id: entity_id });
+        allowed = !!isAdmin;
+      } else if (callerId === entity_id) {
+        allowed = true;
+      } else {
+        // Org admin verifying a member of their organization
+        const { data: adminOrgs } = await serviceClient.from("org_members").select("org_id").eq("user_id", callerId).eq("role", "org_admin").eq("is_active", true);
+        const orgIds = (adminOrgs || []).map((o: any) => o.org_id);
+        if (orgIds.length) {
+          const { data: shared } = await serviceClient.from("org_members").select("id").eq("user_id", entity_id).in("org_id", orgIds).limit(1);
+          allowed = !!shared?.length;
+        }
+      }
+      if (!allowed) {
+        console.warn("[verify-identity] forbidden entity write attempt", { caller: callerId, entity_type });
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      persistEntityId = entity_id;
+    }
+
     // 1. Fetch active providers sorted by priority
     const { data: providers } = await serviceClient
       .from("verification_provider_config")
@@ -101,7 +152,7 @@ Deno.serve(async (req) => {
       // Log attempt
       await serviceClient.from("identity_verification_attempts").insert({
         entity_type,
-        entity_id: entity_id || null,
+        entity_id: persistEntityId,
         provider: selectedProvider.provider,
         verification_type: entity_type === "organization" ? "business_registration" : "identity",
         id_type: type,
@@ -125,7 +176,7 @@ Deno.serve(async (req) => {
       // Fallback to local validation
       result = localValidation(type, cleanNumber, entity_type);
       
-      if (entity_id) {
+      if (persistEntityId) {
         await serviceClient.from("identity_verification_attempts").insert({
           entity_type,
           entity_id,
@@ -144,7 +195,7 @@ Deno.serve(async (req) => {
     }
 
     // 3. Update entity record if entity_id provided
-    if (entity_id && entity_type === "profile") {
+    if (persistEntityId && entity_type === "profile") {
       await serviceClient.from("profiles").update({
         identity_verified: result.valid,
         identity_verified_at: result.valid ? new Date().toISOString() : null,
@@ -164,7 +215,7 @@ Deno.serve(async (req) => {
         entity_id,
         metadata: { type, provider: result.provider, status: result.valid ? "verified" : "failed", number_masked: maskNumber(cleanNumber) },
       });
-    } else if (entity_id && entity_type === "organization") {
+    } else if (persistEntityId && entity_type === "organization") {
       await serviceClient.from("organizations").update({
         business_reg_number: cleanNumber,
         business_reg_type: type,

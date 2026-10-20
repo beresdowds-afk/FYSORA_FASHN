@@ -1,6 +1,10 @@
 // Passkey (WebAuthn) authentication: begin + finish.
 // Used as a SECOND-FACTOR check after email/password sign-in.
 // The Supabase session is created by password auth; this function only
+// SECURITY NOTE: this is a client-enforced convenience check, NOT a server-enforced
+// second factor. The password session already exists and is not gated on this result
+// (no AAL claim / RLS gate), so do not rely on it to protect data. Server-side
+// enforcement would require an AAL2/"passkey verified" session flag checked by RLS.
 // verifies possession of an enrolled passkey and marks last_used_at.
 import {
   generateAuthenticationOptions,
