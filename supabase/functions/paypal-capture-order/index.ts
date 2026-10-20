@@ -11,9 +11,42 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Require an authenticated user (called by the frontend on return from PayPal).
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+    const anon = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: claimsData, error: claimsError } = await anon.auth.getClaims(authHeader.replace("Bearer ", ""));
+    if (claimsError || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
     const { order_id: paypalOrderId } = await req.json();
     if (!paypalOrderId) {
       return new Response(JSON.stringify({ error: "missing order_id" }), { status: 400, headers: corsHeaders });
+    }
+
+    const service = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const { data: payment } = await service
+      .from("payments")
+      .select("id, order_id, amount, status")
+      .eq("gateway_payment_id", paypalOrderId)
+      .maybeSingle();
+
+    // Idempotency: already-completed payment => do not capture or increment again.
+    if (payment?.status === "completed") {
+      return new Response(JSON.stringify({ ok: true, status: "COMPLETED", payment_id: payment.id, duplicate: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const isProd = (Deno.env.get("PAYPAL_MODE") || "sandbox") === "live";
@@ -43,17 +76,6 @@ Deno.serve(async (req) => {
     const paypalStatus = capData.status || "";
     const captured = paypalStatus === "COMPLETED";
 
-    const service = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const { data: payment } = await service
-      .from("payments")
-      .select("id, order_id, amount")
-      .eq("gateway_payment_id", paypalOrderId)
-      .maybeSingle();
-
     if (payment) {
       await service.from("payments").update({
         status: captured ? "completed" : "failed",
@@ -61,8 +83,10 @@ Deno.serve(async (req) => {
       }).eq("id", payment.id);
 
       if (captured && payment.order_id) {
-        const { data: order } = await service.from("orders").select("amount_paid, customer_total, total_amount").eq("id", payment.order_id).maybeSingle();
-        const newPaid = Number(order?.amount_paid || 0) + Number(payment.amount);
+        // Non-incremental: recompute from the authoritative sum of completed payments.
+        const { data: paid } = await service.from("payments").select("amount").eq("order_id", payment.order_id).eq("status", "completed");
+        const newPaid = (paid || []).reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+        const { data: order } = await service.from("orders").select("customer_total, total_amount").eq("id", payment.order_id).maybeSingle();
         const total = Number(order?.customer_total || order?.total_amount || 0);
         await service.from("orders").update({
           amount_paid: newPaid,

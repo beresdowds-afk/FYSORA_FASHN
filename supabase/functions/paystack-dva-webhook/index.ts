@@ -24,13 +24,19 @@ Deno.serve(async (req) => {
     const rawBody = await req.text();
     const signature = req.headers.get("x-paystack-signature");
     
-    if (signature) {
-      const hash = createHmac("sha512", paystackKey).update(rawBody).digest("hex");
-      if (hash !== signature) {
-        return new Response(JSON.stringify({ error: "Invalid signature" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Signature is mandatory: reject missing or mismatching signatures.
+    if (!signature) {
+      console.warn("paystack-dva-webhook: missing signature");
+      return new Response(JSON.stringify({ error: "Missing signature" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const hash = createHmac("sha512", paystackKey).update(rawBody).digest("hex");
+    if (hash !== signature) {
+      console.warn("paystack-dva-webhook: invalid signature");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const payload = JSON.parse(rawBody);

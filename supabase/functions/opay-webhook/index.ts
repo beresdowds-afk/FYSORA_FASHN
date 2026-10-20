@@ -17,6 +17,18 @@ async function hmacSha512Hex(secret: string, message: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Non-incremental: order.amount_paid is the authoritative sum of completed payments.
+async function syncOrderPaidTotal(service: any, orderId: string) {
+  const { data: paid } = await service.from("payments").select("amount").eq("order_id", orderId).eq("status", "completed");
+  const newPaid = (paid || []).reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+  const { data: order } = await service.from("orders").select("customer_total, total_amount").eq("id", orderId).maybeSingle();
+  const total = Number(order?.customer_total || order?.total_amount || 0);
+  await service.from("orders").update({
+    amount_paid: newPaid,
+    payment_status: newPaid >= total ? "paid" : "partial",
+  }).eq("id", orderId);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -29,13 +41,18 @@ Deno.serve(async (req) => {
     const signature = body.sha512 || body.signature || req.headers.get("x-signature");
     const secret = Deno.env.get("OPAY_SECRET_KEY") || "";
 
-    // Signature verification (skip if no secret configured — sandbox-friendly)
-    if (secret && signature) {
+    // Signature is mandatory when a secret is configured (sandbox without secret is allowed).
+    if (secret) {
+      if (!signature) {
+        console.warn("opay-webhook: missing signature");
+        return new Response("missing signature", { status: 401 });
+      }
       const canonical = typeof body.payload === "object"
         ? JSON.stringify(body.payload)
         : (body.payload || raw);
       const expected = await hmacSha512Hex(secret, canonical);
       if (expected !== String(signature).toLowerCase()) {
+        console.warn("opay-webhook: invalid signature");
         return new Response("invalid signature", { status: 401 });
       }
     }
@@ -56,11 +73,24 @@ Deno.serve(async (req) => {
 
     const { data: payment } = await service
       .from("payments")
-      .select("id, order_id, amount")
+      .select("id, order_id, amount, status")
       .eq("gateway_payment_id", reference)
       .maybeSingle();
 
     if (!payment) return new Response("payment not found", { status: 404 });
+
+    // Idempotency: a replayed callback for an already-completed payment is a no-op.
+    if (payment.status === "completed" && mappedStatus === "completed") {
+      return new Response(JSON.stringify({ ok: true, duplicate: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // Never downgrade a completed payment.
+    if (payment.status === "completed") {
+      return new Response(JSON.stringify({ ok: true, ignored: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     await service.from("payments").update({
       status: mappedStatus,
@@ -68,13 +98,7 @@ Deno.serve(async (req) => {
     }).eq("id", payment.id);
 
     if (mappedStatus === "completed" && payment.order_id) {
-      const { data: order } = await service.from("orders").select("amount_paid, customer_total, total_amount").eq("id", payment.order_id).maybeSingle();
-      const newPaid = Number(order?.amount_paid || 0) + Number(payment.amount);
-      const total = Number(order?.customer_total || order?.total_amount || 0);
-      await service.from("orders").update({
-        amount_paid: newPaid,
-        payment_status: newPaid >= total ? "paid" : "partial",
-      }).eq("id", payment.order_id);
+      await syncOrderPaidTotal(service, payment.order_id);
     }
 
     return new Response(JSON.stringify({ ok: true }), {
