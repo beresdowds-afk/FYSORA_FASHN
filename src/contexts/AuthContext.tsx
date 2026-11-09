@@ -7,7 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, displayName?: string, metadata?: Record<string, string>) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -50,13 +50,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, displayName?: string) => {
+  const signUp = async (email: string, password: string, displayName?: string, metadata?: Record<string, string>) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
-        data: { display_name: displayName },
+        // Land on /auth after confirmation so onboarding can finish (identity check, routing).
+        emailRedirectTo: `${window.location.origin}/auth`,
+        // Role/identity are applied server-side by the handle_new_user trigger, so they
+        // persist even when email confirmation means there is no session yet.
+        data: { display_name: displayName, ...metadata },
       },
     });
     return { error: error as Error | null };
@@ -64,6 +67,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // Generic message so responses don't reveal whether an account exists.
+    if (error && (error as any).code === "invalid_credentials") {
+      return { error: new Error("Invalid email or password") };
+    }
     return { error: error as Error | null };
   };
 

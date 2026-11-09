@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const REACTIVATION_DENIED_STATUS = 402;
+
+// Reactivation is only allowed while the paid period is still valid; otherwise a new checkout is required.
+const periodStillValid = (end?: string | null) => !!end && new Date(end).getTime() > Date.now();
+const reactivationDenied = () =>
+  new Response(JSON.stringify({
+    error: "Subscription period has expired. Please start a new checkout to reactivate.",
+    code: "payment_required",
+  }), { status: REACTIVATION_DENIED_STATUS, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
 type Action = "cancel" | "reactivate";
 type Scope = "designer" | "customer" | "organization";
 
@@ -50,6 +60,18 @@ Deno.serve(async (req) => {
 
     if (body.scope === "designer" || body.scope === "customer") {
       const plan = body.plan_name || (body.scope === "designer" ? "designer_monthly" : "Premium Access");
+      if (body.action === "reactivate") {
+        const { data: current } = await svc
+          .from("customer_subscriptions")
+          .select("current_period_end")
+          .eq("user_id", userId)
+          .eq("plan_name", plan)
+          .maybeSingle();
+        if (current && !periodStillValid(current.current_period_end)) {
+          console.warn("manage-subscription: reactivation denied (expired)", { scope: body.scope });
+          return reactivationDenied();
+        }
+      }
       const { data, error } = await svc
         .from("customer_subscriptions")
         .update({ status: nextStatus, updated_at: new Date().toISOString() })
@@ -76,6 +98,17 @@ Deno.serve(async (req) => {
       const { data: isAdmin } = await svc.rpc("is_org_admin", { _user_id: userId, _org_id: body.org_id });
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Only org admins can manage the subscription" }), { status: 403, headers: corsHeaders });
+      }
+      if (body.action === "reactivate") {
+        const { data: current } = await svc
+          .from("org_subscriptions")
+          .select("current_period_end")
+          .eq("org_id", body.org_id)
+          .maybeSingle();
+        if (current && !periodStillValid(current.current_period_end)) {
+          console.warn("manage-subscription: reactivation denied (expired)", { scope: body.scope });
+          return reactivationDenied();
+        }
       }
       const { data, error } = await svc
         .from("org_subscriptions")

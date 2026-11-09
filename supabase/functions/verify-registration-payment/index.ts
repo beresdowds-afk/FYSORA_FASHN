@@ -7,29 +7,33 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function verifyWithGateway(gateway: string, secretKey: string, reference: string): Promise<boolean> {
+interface GatewayResult { ok: boolean; amount?: number; currency?: string }
+
+// Returns payment status plus the amount/currency the gateway actually collected
+// (major units) so the caller can compare them with what we expected.
+async function verifyWithGateway(gateway: string, secretKey: string, reference: string): Promise<GatewayResult> {
   if (gateway === "paystack") {
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: { Authorization: `Bearer ${secretKey}` },
     });
     const data = await res.json();
-    return data.data?.status === "success";
+    return { ok: data.data?.status === "success", amount: Number(data.data?.amount) / 100, currency: data.data?.currency };
   }
   if (gateway === "stripe") {
     const res = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(reference)}`, {
       headers: { Authorization: `Basic ${btoa(secretKey + ":")}` },
     });
     const data = await res.json();
-    return data.payment_status === "paid";
+    return { ok: data.payment_status === "paid", amount: Number(data.amount_total) / 100, currency: String(data.currency || "").toUpperCase() };
   }
   if (gateway === "flutterwave") {
     const res = await fetch(`https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`, {
       headers: { Authorization: `Bearer ${secretKey}` },
     });
     const data = await res.json();
-    return data.data?.status === "successful";
+    return { ok: data.data?.status === "successful", amount: Number(data.data?.amount), currency: data.data?.currency };
   }
-  return false;
+  return { ok: false };
 }
 
 Deno.serve(async (req) => {
@@ -70,7 +74,9 @@ Deno.serve(async (req) => {
       .from("customer_registrations")
       .select("*")
       .eq("gateway_reference", reference)
-      .single();
+      .eq("user_id", userId) // ownership enforced in the query; tolerates duplicate references across users
+      .limit(1)
+      .maybeSingle();
 
     if (!reg) {
       return new Response(JSON.stringify({ error: "Registration not found" }), { status: 404, headers: corsHeaders });
@@ -92,14 +98,31 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: `${gateway} keys not configured` }), { status: 400, headers: corsHeaders });
     }
 
-    const verified = await verifyWithGateway(gateway, keys.secretKey, reference);
+    const gw = await verifyWithGateway(gateway, keys.secretKey, reference);
 
-    if (verified) {
-      // Update registration status
-      await serviceClient.from("customer_registrations").update({
+    if (gw.ok) {
+      // Amount/currency must match what the registration was priced at (local currency if set).
+      const expectedAmount = Number(reg.local_amount) > 0 ? Number(reg.local_amount) : Number(reg.fee_amount);
+      const expectedCurrency = String((Number(reg.local_amount) > 0 && reg.local_currency) || reg.fee_currency || "USD").toUpperCase();
+      const amountOk = Number.isFinite(gw.amount) && Math.abs((gw.amount as number) - expectedAmount) < 0.01;
+      const currencyOk = !gw.currency || gw.currency.toUpperCase() === expectedCurrency;
+      if (expectedAmount > 0 && (!amountOk || !currencyOk)) {
+        console.warn("verify-registration-payment: amount/currency mismatch", { reg: reg.id, gateway });
+        return new Response(JSON.stringify({ error: "Payment amount does not match registration fee" }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Atomic, idempotent transition: only one concurrent caller can flip pending -> paid.
+      const { data: claimed } = await serviceClient.from("customer_registrations").update({
         status: "paid",
         paid_at: new Date().toISOString(),
-      }).eq("id", reg.id);
+      }).eq("id", reg.id).neq("status", "paid").select("id");
+      if (!claimed || claimed.length === 0) {
+        return new Response(JSON.stringify({ status: "already_paid" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       // Platform fee ledger
       await serviceClient.from("platform_fee_ledger").insert({

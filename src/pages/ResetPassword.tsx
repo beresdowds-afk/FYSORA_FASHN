@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { Lock, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { isPasswordLeaked, MIN_PASSWORD_LENGTH } from "@/lib/passwordPolicy";
 import { resolveHomeRoute } from "@/lib/roleHome";
 
 const ResetPassword = () => {
@@ -15,6 +16,7 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isRecovery, setIsRecovery] = useState(false);
+  const [linkInvalid, setLinkInvalid] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -25,6 +27,16 @@ const ResetPassword = () => {
     if (type === "recovery") {
       setIsRecovery(true);
     }
+    // Expired/invalid links come back with an error in the hash or query string.
+    const queryParams = new URLSearchParams(window.location.search);
+    if (hashParams.get("error") || queryParams.get("error")) {
+      setLinkInvalid(true);
+    }
+    // After a refresh the hash is gone, but the recovery session may still exist.
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setIsRecovery(true);
+      else if (type !== "recovery") setLinkInvalid(true);
+    });
 
     // Also listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -42,12 +54,17 @@ const ResetPassword = () => {
       toast({ title: "Passwords don't match", variant: "destructive" });
       return;
     }
-    if (password.length < 6) {
-      toast({ title: "Password must be at least 6 characters", variant: "destructive" });
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      toast({ title: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`, variant: "destructive" });
       return;
     }
 
     setLoading(true);
+    if (await isPasswordLeaked(password)) {
+      setLoading(false);
+      toast({ title: "Unsafe password", description: "This password has appeared in a data breach. Please choose a different one.", variant: "destructive" });
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
 
@@ -80,7 +97,13 @@ const ResetPassword = () => {
             <span className="font-heading font-bold text-lg">FYSORA FASHN (Fashion Stitches Africa)</span>
           </div>
 
-          {success ? (
+          {linkInvalid && !isRecovery && !success ? (
+            <div className="text-center py-8">
+              <h2 className="font-heading font-bold text-xl mb-2">Link expired or invalid</h2>
+              <p className="text-muted-foreground text-sm mb-4">Request a new password reset link to continue.</p>
+              <Button variant="hero" onClick={() => navigate("/auth")}>Back to sign in</Button>
+            </div>
+          ) : success ? (
             <div className="text-center py-8">
               <CheckCircle2 size={48} className="mx-auto text-secondary mb-4" />
               <h2 className="font-heading font-bold text-xl mb-2">Password Updated</h2>
@@ -96,14 +119,14 @@ const ResetPassword = () => {
                   <Label htmlFor="password">New Password</Label>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="pl-10" />
+                    <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={MIN_PASSWORD_LENGTH} className="pl-10" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm">Confirm Password</Label>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input id="confirm" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="pl-10" />
+                    <Input id="confirm" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" required minLength={MIN_PASSWORD_LENGTH} className="pl-10" />
                   </div>
                 </div>
                 <Button variant="hero" className="w-full" type="submit" disabled={loading}>
